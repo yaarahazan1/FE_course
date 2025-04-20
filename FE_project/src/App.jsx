@@ -9,6 +9,7 @@ import Dashboard from "./view/pages/Dashboard/Dashboard";
 import NotFound from "./view/pages/NotFound/NotFound"; 
 import SummaryLibrary from "./view/pages/SummaryLibrary/SummaryLibrary"; 
 import TimeManagement from "./view/pages/TimeManagement/TimeManagement"; 
+import HelpSettings from "./view/pages/HelpSettings/HelpSettings"; 
 
 const App = () => (
   <BrowserRouter>
@@ -23,6 +24,7 @@ const App = () => (
       <Route path="/Login" element={<Login />} />
       <Route path="/Signup" element={<Signup />} />
       <Route path="/NotFound" element={<NotFound />} />
+      <Route path="/HelpSettings" element={<HelpSettings />} />
     </Routes>
   </BrowserRouter>
 );

@@ -136,7 +136,7 @@ const HomePage = () => {
       <footer className="footer">
         <div className="footer-container">
           <div className="footer-links">
-            <Link to="/help-settings" className="footer-link">
+            <Link to="/HelpSettings" className="footer-link">
               עזרה והגדרות
             </Link>
             <span className="footer-separator">|</span>
