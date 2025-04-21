@@ -1,0 +1,47 @@
+.automatic-detection {
+    margin-top: 1.5rem;
+    background-color: #F9F9F9;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    border: 2px solid #E5E1DA;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .detection-title {
+    font-weight: 500;
+    margin-bottom: 0.75rem;
+    text-align: right;
+    color: #89A8B2;
+  }
+  
+  .detection-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .detection-item {
+    background-color: white;
+    border-radius: 0.25rem;
+    padding: 0.75rem;
+    border: 1px solid #E5E1DA;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+  }
+  
+  .detection-item:hover {
+    background-color: #F1F0E8;
+  }
+  
+  .detection-icon {
+    height: 1rem;
+    width: 1rem;
+    color: #89A8B2;
+    margin-left: 0.5rem;
+  }
+  
+  .detection-text {
+    font-size: 0.875rem;
+    color: #89A8B2;
+  }

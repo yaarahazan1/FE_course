@@ -1,0 +1,41 @@
+.academic-header {
+    margin-bottom: 2rem;
+    text-align: center;
+    background: linear-gradient(to right, #E5E1DA, #89A8B2);
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .header-title-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .header-icon-large {
+    height: 2rem;
+    width: 2rem;
+    color: white;
+  }
+  
+  .header-icon-small {
+    height: 1.5rem;
+    width: 1.5rem;
+    color: white;
+  }
+  
+  .header-title {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: white;
+  }
+  
+  .header-description {
+    color: rgba(255, 255, 255, 0.9);
+    max-width: 48rem;
+    margin-left: auto;
+    margin-right: auto;
+  }

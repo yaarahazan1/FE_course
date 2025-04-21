@@ -1,0 +1,38 @@
+/* TasksTab.css */
+.tasks-tab-container {
+    margin-bottom: 1.5rem;
+  }
+  
+  .tasks-tab-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  
+  .add-task-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.375rem;
+    padding: 0.25rem 0.5rem;
+    background-color: transparent;
+    cursor: pointer;
+  }
+  
+  .add-task-btn:hover {
+    background-color: #f8fafc;
+  }
+  
+  .tasks-tab-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+  
+  .tasks-tab-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }

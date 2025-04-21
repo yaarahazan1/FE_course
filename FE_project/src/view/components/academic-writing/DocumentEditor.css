@@ -1,0 +1,43 @@
+.editor-card {
+    border: 2px solid #E5E1DA;
+    border-radius: 0.375rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .document-textarea {
+    min-height: 400px;
+    width: 100%;
+    border: 0;
+    resize: none;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    font-family: inherit;
+    outline: none;
+  }
+  
+  .editor-stats {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #89A8B2;
+    font-size: 0.875rem;
+    background-color: #F9F9F9;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    border: 1px solid #E5E1DA;
+  }
+  
+  .autosave-info {
+    display: flex;
+    align-items: center;
+  }
+  
+  .autosave-icon {
+    height: 1rem;
+    width: 1rem;
+    margin-left: 0.25rem;
+  }
+  
+  .word-count {
+    color: #89A8B2;
+  }

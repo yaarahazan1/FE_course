@@ -1,0 +1,144 @@
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .calendar-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: white;
+  }
+  
+  .calendar-date-button {
+    display: flex;
+    gap: 0.5rem;
+    border: 1px solid white;
+    color: white;
+    background-color: transparent;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    align-items: center;
+  }
+  
+  .calendar-date-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .calendar-popover {
+    position: relative;
+  }
+  
+  .calendar-popover-content {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 0.5rem;
+    background-color: white;
+    border-radius: 0.375rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 50;
+  }
+  
+  .calendar-picker {
+    padding: 0.75rem;
+    pointer-events: auto;
+  }
+  
+  .calendar-picker-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+  }
+  
+  .calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.25rem;
+  }
+  
+  .calendar-day {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  
+  .calendar-day:hover {
+    background-color: #f3f4f6;
+  }
+  
+  .calendar-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .calendar-tabs {
+    display: flex;
+  }
+  
+  .tabs-list {
+    display: flex;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 0.375rem;
+  }
+  
+  .tab-trigger {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 0.375rem;
+  }
+  
+  .tab-active {
+    background-color: white;
+    color: #89A8B2;
+  }
+  
+  .view-selector {
+    display: flex;
+    border: 2px solid #E5E1DA;
+    border-radius: 0.375rem;
+    overflow: hidden;
+  }
+  
+  .view-button {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.9);
+  }
+  
+  .view-button:first-child {
+    border-left: 1px solid #E5E1DA;
+  }
+  
+  .view-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .view-active {
+    background-color: white;
+    color: #89A8B2;
+  }
+  
+  .view-text {
+    font-weight: 700;
+    font-size: 1rem;
+  }
+  
+  .icon-small {
+    height: 1rem;
+    width: 1rem;
+  }

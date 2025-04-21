@@ -1,0 +1,7 @@
+.container {
+    margin: 0 auto;
+    padding: 1.5rem 1rem;
+    max-width: 80rem;
+    direction: rtl;
+    background: linear-gradient(to bottom, #F1F0E8, rgba(229, 225, 218, 0.3));
+  }

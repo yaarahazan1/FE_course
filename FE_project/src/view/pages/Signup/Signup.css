@@ -1,0 +1,239 @@
+/* Base styles */
+:root {
+    font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+    direction: rtl;
+  }
+  
+  body {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+  }
+  
+  /* Container */
+  .custom-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  
+  /* Header/Navbar */
+  .custom-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #E5E1DA;
+  }
+  
+  .header-left {
+    display: flex;
+    align-items: center;
+  }
+  
+  .header-title {
+    font-weight: bold;
+    font-size: 1.25rem;
+    color: #89A8B2;
+    text-decoration: none;
+  }
+  
+  /* Signup specific styles */
+  .signup-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 80vh;
+    background: linear-gradient(to right, #E5E1DA, #F9F9F9);
+    padding: 2rem 1rem;
+  }
+  
+  .signup-card {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    width: 100%;
+    max-width: 36rem;
+    text-align: center;
+  }
+  
+  .signup-icon-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1rem;
+  }
+  
+  .signup-icon {
+    width: 4rem;
+    height: 4rem;
+    color: #89A8B2;
+  }
+  
+  .signup-title {
+    font-size: 1.5rem;
+    color: #89A8B2;
+    margin-bottom: 1.5rem;
+  }
+  
+  .signup-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  
+  .form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  @media (min-width: 640px) {
+    .form-row {
+      flex-direction: row;
+    }
+    
+    .form-row .form-group {
+      flex: 1;
+    }
+  }
+  
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    text-align: right;
+  }
+  
+  .form-label {
+    font-size: 0.875rem;
+    color: #464646;
+    margin-bottom: 0.25rem;
+  }
+  
+  .form-input {
+    padding: 0.75rem;
+    border: 1px solid #E5E1DA;
+    border-radius: 0.25rem;
+    font-size: 1rem;
+  }
+  
+  .form-actions {
+    margin-top: 1rem;
+  }
+  
+  .signup-button {
+    width: 100%;
+    background-color: #89A8B2;
+    color: white;
+    padding: 0.75rem;
+    border: none;
+    border-radius: 0.25rem;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .signup-button:hover {
+    background-color: rgba(137, 168, 178, 0.9);
+  }
+  
+  .signup-footer {
+    margin-top: 1.5rem;
+    text-align: center;
+  }
+  
+  .login-text {
+    margin-bottom: 0.5rem;
+    color: #464646;
+  }
+  
+  .login-link {
+    text-decoration: none;
+  }
+  
+  .login-button {
+    width: 100%;
+    border: 1px solid #89A8B2;
+    color: #89A8B2;
+    padding: 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+  .login-button:hover {
+    background-color: #89A8B2;
+    color: white;
+  }
+  
+  /* Footer styles from HomePage */
+  .footer {
+    background-color: #F9F9F9;
+    border-top: 1px solid #E5E1DA;
+    padding-top: 1.5rem;
+    margin-top: auto;
+    text-align: center;
+  }
+  
+  .footer-container {
+    max-width: 80rem;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0 1rem 1.5rem 1rem;
+  }
+  
+  .footer-links {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  @media (min-width: 768px) {
+    .footer-links {
+      flex-direction: row;
+      gap: 2rem;
+    }
+  }
+  
+  .footer-link {
+    color: #89A8B2;
+    transition: color 0.3s ease;
+    text-decoration: none;
+  }
+  
+  .footer-link:hover {
+    color: rgba(137, 168, 178, 0.8);
+  }
+  
+  .footer-separator {
+    display: none;
+    color: #E5E1DA;
+  }
+  
+  @media (min-width: 768px) {
+    .footer-separator {
+      display: inline;
+    }
+  }
+  
+  .footer-item {
+    color: #89A8B2;
+    cursor: pointer;
+    transition: color 0.3s ease;
+    text-decoration: none;
+  }
+  
+  .footer-item:hover {
+    color: rgba(137, 168, 178, 0.8);
+  }
+  
+  /* Ensure parent links don't have underlines */
+  a {
+    text-decoration: none;
+  }

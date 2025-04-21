@@ -1,0 +1,11 @@
+.content-area {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  @media (min-width: 768px) {
+    .content-area {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
