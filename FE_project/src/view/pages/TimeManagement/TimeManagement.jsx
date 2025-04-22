@@ -1,147 +1,70 @@
-import React, { useState } from "react";
-import PageHeader from "../../components/PageHeader";
-import MonthView from "../../components/time-managmenet/MonthView";
-import TaskList from "../../components/time-managmenet/TaskList";
-import CalendarHeader from "../../components/time-managmenet/CalendarHeader";
-import TasksSidebar from "../../components/time-managmenet/TasksSidebar";
-import AddTaskDialog from "../../components/AddTaskDialog";
-// import AdminBadge from "../../components/AdminBadge";
-import WeekView from "../../components/time-managmenet/WeekView";
+import React from "react";
+import PageHeader from "../PageHeader";
 import { Link } from "react-router-dom";
-import {
-  sampleTasks,
-  getMonthDays,
-  getWeekDays
-} from "../../components/time-managmenet/timeManagementUtils";
-import "./TimeManagement.css";
 
-const TimeManagement = () => {
-  const [date, setDate] = useState(new Date());
-  const [view, setView] = useState("חודשי");
-  const [eventType, setEventType] = useState("הכל");
-  const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false);
-
-  // Prepare calendar data based on the selected view
-  const currentWeekDays = getWeekDays(date);
-  const daysInMonth = getMonthDays(date);
-
-  // Filter tasks based on selected event type
-  const filteredTasks = sampleTasks.filter(
-    task => eventType === "הכל" || task.type === eventType
-  );
-
-  const handleAddTaskSuccess = () => {
-    setIsAddTaskDialogOpen(false);
-  };
-
+function TimeManagement() {
   return (
-    <div className="time-management-container">
-      {/* <AdminBadge /> */}
-      
-      <div className="container">
-        <PageHeader />
-        
-        <div className="page-title">
-          <h1>ניהול זמנים</h1>
-          <p>
-            נהל את לוח הזמנים שלך עם כל המשימות והפרויקטים שלך בצורה חכמה ויעילה
-          </p>
-        </div>
-        
-        <div className="content-grid">
-          <div className="sidebar">
-            <div className="card profile-card">
-              <div className="card-content">
-                <div className="profile-container">
-                  <div className="profile-image">
-                    <span>פרופיל</span>
-                  </div>
-                  <span className="profile-name">יעל כהן</span>
-                  <span className="profile-title">מדעי ההתנהגות</span>
-                </div>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <PageHeader />
+
+      {/* כותרת עמוד */}
+      <header style={{ textAlign: "center", padding: "1rem" }}>
+        <h1>ניהול זמנים</h1>
+        <p>נהל את לוח הזמנים שלך עם כל המשימות והפרויקטים בצורה חכמה ויעילה</p>
+      </header>
+
+      {/* תוכן עיקרי */}
+      <div style={{ display: "flex", flex: 1, gap: "1rem", padding: "1rem", flexWrap: "wrap" }}>
+        {/* צד שמאל - פרופיל + הצעות למידה באותו קו */}
+        <aside style={{ flex: "1 1 250px", minWidth: "250px" }}>
+          <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start" }}>
+            {/* פרופיל */}
+            <section style={{ flex: 1, textAlign: "center" }}>
+              <div style={{ width: "80px", height: "80px", background: "#ccc", borderRadius: "50%", margin: "0 auto" }}>
+                <p style={{ fontSize: "12px" }}>פרופיל</p>
               </div>
-            </div>
-            <div className="suggestions-card">
-              <div className="suggestions-header">
-                <h2>הצעות למידה</h2>
-              </div>
-              <div className="suggestions-content">
-                <TasksSidebar 
-                  tasks={filteredTasks} 
-                />
-              </div>
-            </div>
+              <p><strong>יעל כהן</strong></p>
+              <p>מדעי ההתנהגות</p>
+            </section>
+
+            {/* הצעות למידה */}
+            <section style={{ flex: 2 }}>
+              <h2>הצעות למידה</h2>
+              <p>[רשימת משימות מוצעת]</p>
+            </section>
           </div>
-          <div className="main-content">
-            <div className="calendar-wrapper">
-              <div className="calendar-header">
-                <CalendarHeader
-                  date={date}
-                  view={view}
-                  eventType={eventType}
-                  currentWeekDays={currentWeekDays}
-                  setDate={setDate}
-                  setView={setView}
-                  setEventType={setEventType}
-                />
-              </div>
-              
-              <div className="calendar-card">
-                {view === "חודשי" ? (
-                  <MonthView 
-                    date={date} 
-                    daysInMonth={daysInMonth} 
-                    filteredTasks={filteredTasks} 
-                  />
-                ) : (
-                  <WeekView 
-                    currentWeekDays={currentWeekDays} 
-                    filteredTasks={filteredTasks} 
-                  />
-                )}
-              </div>
-            </div>
-            
-            <div className="tasks-card">
-              <div className="tasks-header">
-                <h2>משימות קרובות</h2>
-              </div>
-              <div className="tasks-content">
-                <TaskList 
-                  filteredTasks={filteredTasks} 
-                  onAddTask={() => setIsAddTaskDialogOpen(true)} 
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    
-      <footer className="app-footer">
-        <div className="footer-container">
-          <div className="footer-links">
-            <Link to="/help-settings" className="footer-link">
-              עזרה והגדרות
+        </aside>
+
+        {/* צד ימין - לוח שנה + משימות קרובות */}
+        <main style={{ flex: "3 1 600px", minWidth: "300px" }}>
+          {/* לוח שנה */}
+          <section>
+            <h2>לוח שנה</h2>
+            <p>[כאן יוצג תצוגת חודש או שבוע]</p>
+          </section>
+
+          {/* משימות קרובות */}
+          <section style={{ marginTop: "2rem" }}>
+            <h2>משימות קרובות</h2>
+            <p>[רשימת משימות קרובות]</p>
+            <Link to="/AddTask">
+              <button >הוסף משימה</button>
             </Link>
-            <span className="footer-divider">|</span>
-            <div className="footer-link">
-              תנאי שימוש
-            </div>
-            <span className="footer-divider">|</span>
-            <div className="footer-link">
-              מדיניות פרטיות
-            </div>
-          </div>
-        </div>
+          </section>
+        </main>
+      </div>
+
+      {/* פוטר */}
+      <footer style={{
+        marginTop: "auto",
+        textAlign: "center",
+        padding: "1rem",
+        borderTop: "1px solid #ccc"
+      }}>
+        <p>עזרה והגדרות | תנאי שימוש | מדיניות פרטיות</p>
       </footer>
-      
-      <AddTaskDialog 
-        isOpen={isAddTaskDialogOpen} 
-        onClose={() => setIsAddTaskDialogOpen(false)}
-        onAddSuccess={handleAddTaskSuccess} 
-      />
     </div>
   );
-};
+}
 
 export default TimeManagement;

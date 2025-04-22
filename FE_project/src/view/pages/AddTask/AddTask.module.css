@@ -1,0 +1,13 @@
+
+.container {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #89A8B2;
+  margin-bottom: 1.5rem;
+}

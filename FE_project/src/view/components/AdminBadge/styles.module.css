@@ -1,0 +1,12 @@
+
+.badge {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  background-color: #89A8B2;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  z-index: 50;
+}

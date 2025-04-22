@@ -1,11 +1,13 @@
 import { Link } from "react-router-dom";
-import { Button } from "../../components/ui/button";
+import Button from "../../components/Button/Button";
 import { Calendar, BookOpen, CheckSquare, PenLine, Users, BarChart } from "lucide-react";
 import "./HomePage.css";
+import AdminBadge from "../AdminBadge";
 
 const HomePage = () => {
   return (
     <div className="custom-container">
+      <AdminBadge />
       {/* Header/Navbar */}
       <header className="custom-header">
         <div className="header-left">

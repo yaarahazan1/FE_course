@@ -1,140 +1,108 @@
 import React, { useState } from "react";
-import AddTaskDialog from "../../components/AddTaskDialog";
-import PageHeader from "../../components/PageHeader";
-import SearchBar from "../../components/course-management/SearchBar";
-import Footer from "../../components/course-management/Footer";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
-import AddCourseDialog from "../../components/course-management/AddCourseDialog";
-import AddProjectDialog from "../../components/course-management/AddProjectDialog";
-import ProjectsTab from "../../components/course-management/ProjectsTab";
-import TasksTab from "../../components/course-management/TasksTab";
-import CoursesTab from "../../components/course-management/CoursesTab";
-import './CourseManagement.css';
+import PageHeader from "../PageHeader";
 
-const CourseManagement = () => {
-  const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false);
-  const [isAddCourseDialogOpen, setIsAddCourseDialogOpen] = useState(false);
-  const [isAddProjectDialogOpen, setIsAddProjectDialogOpen] = useState(false);
-  const [selectedProjectId, setSelectedProjectId] = useState(null);
-  
-  // Projects data
-  const [projects] = useState([
+function ProjectTaskManager() {
+  const [activeTab, setActiveTab] = useState("tasks");
+  const [expandedProjectId, setExpandedProjectId] = useState(null);
+
+  const tasks = [
+    { id: 1, title: "עבודת מחקרית לפסיכולוגיה", status: "מתבצע", date: "15 ביוני 2025" },
+    { id: 2, title: "פרויקט שנה באתיקה", status: "בבדיקה", date: "30 במאי 2025" },
+    { id: 3, title: "סיכום הרצאות 1-5 בשיטות מחקר", status: "הושלם", date: "30 באוקטובר 2025" },
+  ];
+
+  const projects = [
     {
       id: 1,
-      name: "SnackMatch",
-      description: "אפליקציה שמתאימה חטיפים לפי מצב הרוח",
-      status: "פעיל",
-      tasks: 7,
-      teamMembers: [
-        { id: 1, name: "רונית כהן גולדמן", role: "מנהלת צוות" },
-        { id: 2, name: "משה לוינסקי", role: "חבר צוות" },
-        { id: 3, name: "יעל אבוטבול", role: "חברת צוות" }
+      title: "SnackMatch",
+      description: "אפליקציה שתתאים חטיפים לפי מצב רוח שלך",
+      group: ["יואב לוי", "מאיה כהן", "דנה פרידמן"],
+      chat: [
+        { from: "יואב", message: "בקרוב נעלה דברים שהשלמנו" },
+        { from: "מאיה", message: "סיימתי לכתוב חלק מהסקירה" },
       ],
-      messages: [
-        {
-          id: 1,
-          sender: "רונית",
-          message: "בוקר טוב לכם! זוכרים שהמשימה - 'בניית טופס בחירת מצב רוח' צריכה להיות מוגשת עד סוף השבוע",
-          time: "09:30",
-        }
-      ]
     },
-    {
-      id: 2,
-      name: "מחקר מגמות דיגיטליות",
-      description: "ניתוח מגמות בשוק הדיגיטלי",
-      status: "בתהליך",
-      tasks: 4,
-      teamMembers: [
-        { id: 3, name: "שמחה ליאון סויסה", role: "מנהל צוות" },
-        { id: 2, name: "משה לוינסקי", role: "חבר צוות" },
-        { id: 4, name: "נועה ברק", role: "חברת צוות" }
-      ],
-      messages: [
-        {
-          id: 1,
-          sender: "שמחה",
-          message: "שלחתי לכם מסמך עם הממצאים הראשוניים של הסקר",
-          time: "10:15",
-        }
-      ]
-    }
-  ]);
+  ];
 
-  return (
-    <div className="container">
-      <PageHeader />
-
-      <div className="header">
-        <div>
-          <h1 className="title">מנהל פרויקטים ומשימות</h1>
-          <p className="subtitle">ניהול קורסים, פרויקטים ומשימות במקום אחד</p>
+  const renderTasks = () => (
+    <div>
+      {tasks.map((task) => (
+        <div key={task.id} style={{ border: "1px solid #ccc", padding: "1rem", marginBottom: "1rem" }}>
+          <h3>{task.title}</h3>
+          <p>התאריך: {task.date}</p>
+          <span>{task.status}</span>
         </div>
-      </div>
-
-      <SearchBar 
-        onAddCourse={() => setIsAddCourseDialogOpen(true)}
-        onAddProject={() => setIsAddProjectDialogOpen(true)}
-      />
-      
-      <Tabs defaultValue="projects" className="tabs">
-        <TabsList className="tabsList">
-          <TabsTrigger value="projects" className="tabsTrigger">
-            פרויקטים
-          </TabsTrigger>
-          <TabsTrigger value="tasks" className="tabsTrigger">
-            משימות
-          </TabsTrigger>
-          <TabsTrigger value="courses" className="tabsTrigger">
-            קורסים
-          </TabsTrigger>
-        </TabsList>
-        
-        {/* Projects Tab */}
-        <TabsContent value="projects">
-          <ProjectsTab 
-            projects={projects}
-            selectedProjectId={selectedProjectId}
-            setSelectedProjectId={setSelectedProjectId}
-            onAddProject={() => setIsAddProjectDialogOpen(true)}
-          />
-        </TabsContent>
-        
-        {/* Tasks Tab */}
-        <TabsContent value="tasks">
-          <TasksTab onAddTask={() => setIsAddTaskDialogOpen(true)} />
-        </TabsContent>
-        
-        {/* Courses Tab */}
-        <TabsContent value="courses">
-          <CoursesTab onAddCourse={() => setIsAddCourseDialogOpen(true)} />
-        </TabsContent>
-      </Tabs>
-
-      <AddTaskDialog 
-        isOpen={isAddTaskDialogOpen} 
-        onClose={() => setIsAddTaskDialogOpen(false)} 
-        onAddSuccess={() => {
-          setIsAddTaskDialogOpen(false);
-          // Here you could refresh the task list or update state
-        }} 
-      />
-
-      <AddCourseDialog 
-        isOpen={isAddCourseDialogOpen} 
-        onClose={() => setIsAddCourseDialogOpen(false)} 
-        onAddSuccess={() => setIsAddCourseDialogOpen(false)} 
-      />
-
-      <AddProjectDialog 
-        isOpen={isAddProjectDialogOpen} 
-        onClose={() => setIsAddProjectDialogOpen(false)} 
-        onAddSuccess={() => setIsAddProjectDialogOpen(false)} 
-      />
-
-      <Footer />
+      ))}
     </div>
   );
-};
 
-export default CourseManagement;
+  const renderProjects = () => (
+    <div>
+      {projects.map((project) => (
+        <div key={project.id} style={{ border: "1px solid #ccc", marginBottom: "1rem" }}>
+          <div
+            style={{ padding: "1rem", cursor: "pointer" }}
+            onClick={() => setExpandedProjectId(project.id === expandedProjectId ? null : project.id)}
+          >
+            <h3>{project.title}</h3>
+            <p>{project.description}</p>
+          </div>
+          {expandedProjectId === project.id && (
+            <div style={{ padding: "1rem", borderTop: "1px solid #ccc", background: "#f9f9f9" }}>
+              <h4>חברי הקבוצה:</h4>
+              <ul>
+                {project.group.map((member, idx) => (
+                  <li key={idx}>{member}</li>
+                ))}
+              </ul>
+              <h4 style={{ marginTop: "1rem" }}>צ׳אט קבוצתי:</h4>
+              <div style={{ border: "1px solid #ddd", padding: "0.5rem", marginTop: "0.5rem" }}>
+                {project.chat.map((msg, idx) => (
+                  <div key={idx}><strong>{msg.from}:</strong> {msg.message}</div>
+                ))}
+              </div>
+              <textarea style={{ width: "100%", marginTop: "0.5rem" }} placeholder="כתיבת הודעה..." />
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <div style={{ padding: "1rem", direction: "rtl", fontFamily: "sans-serif" }}>
+      {/* Header */}
+      <PageHeader />
+  
+      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+        <h2>מנהל פרויקטים ומשימות</h2>
+        <button style={{ padding: "0.5rem 1rem" }}>הוספת קורס/פרויקט +</button>
+      </header>
+
+      {/* Search and Tabs */}
+      <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1rem" }}>
+        <input type="text" placeholder="חפש משימה, פרויקט, קורס..." style={{ flex: 1, padding: "0.5rem" }} />
+      </div>
+
+      <nav style={{ display: "flex", gap: "2rem", marginBottom: "1rem", borderBottom: "1px solid #ccc", paddingBottom: "0.5rem" }}>
+        <span style={{ cursor: "pointer", fontWeight: activeTab === "courses" ? "bold" : "normal" }} onClick={() => setActiveTab("courses")}>קורסים</span>
+        <span style={{ cursor: "pointer", fontWeight: activeTab === "projects" ? "bold" : "normal" }} onClick={() => setActiveTab("projects")}>פרויקטים</span>
+        <span style={{ cursor: "pointer", fontWeight: activeTab === "tasks" ? "bold" : "normal" }} onClick={() => setActiveTab("tasks")}>משימות</span>
+      </nav>
+
+      {/* Content */}
+      <div>
+        {activeTab === "tasks" && renderTasks()}
+        {activeTab === "projects" && renderProjects()}
+        {activeTab === "courses" && <p>כאן יופיעו קורסים.</p>}
+      </div>
+
+      {/* Footer */}
+      <footer style={{ marginTop: "2rem", textAlign: "center", fontSize: "0.8rem", color: "#777" }}>
+        <span>עזרה והדרכות | תנאי שימוש | מדיניות פרטיות</span>
+      </footer>
+    </div>
+  );
+}
+
+export default ProjectTaskManager;

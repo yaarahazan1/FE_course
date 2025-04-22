@@ -1,180 +1,116 @@
+import React from "react";
 import { Link } from "react-router-dom";
-import { Button } from "../../components/ui/button";
-import { BarChart, Clock, BookOpen, CheckSquare, Bell, Settings } from "lucide-react";
-import "./Dashboard.css";
+import PageHeader from "../PageHeader";
 
 const Dashboard = () => {
+  <PageHeader />
+  // מידע מדומה פשוט
+  const currentUserData = {
+    name: "יעל ישראלי",
+    tasksCompleted: 12,
+    tasksTotal: 16,
+    studyHours: 28,
+    summariesUploaded: 5,
+    lastActive: "11/04/2025",
+    progress: [
+      { day: "יום א'", hours: 2 },
+      { day: "יום ב'", hours: 5 },
+      { day: "יום ג'", hours: 3 },
+    ],
+  };
+
+  const recentSummaries = [
+    { id: 1, title: "מבוא לפסיכולוגיה", date: "10/04/2025", author: "רונית כהן" },
+    { id: 2, title: "אלגוריתמים", date: "08/04/2025", author: "משה לוי" }
+  ];
+
+  const recentActivities = [
+    { id: 1, activity: "השלמת משימה", details: "מבוא לפיזיקה", date: "11/04/2025" },
+    { id: 2, activity: "העלאת סיכום", details: "תכנות", date: "10/04/2025" }
+  ];
+
+  const summaryRatings = [
+    { id: 1, title: "תכנות מונחה עצמים", rating: 5 },
+    { id: 2, title: "מבנה נתונים", rating: 3 }
+  ];
+
   return (
-    <div className="custom-container">
-      {/* Header/Navbar */}
-      <header className="custom-header">
-        <div className="header-left">
-          <Link to="/" className="header-title">סטודנט חכם</Link>
+    <div style={{ minHeight: "100vh", padding: "1rem", direction: "rtl" }}>
+      <header style={{ display: "flex", justifyContent: "space-between", marginBottom: "2rem" }}>
+        <div>
+          <h1 style={{ fontSize: "2rem" }}>לוח מחוונים</h1>
+          <p>סיכום סטטיסטי של פעילות</p>
         </div>
-        <div className="header-right">
-          <Button variant="ghost" className="header-icon-button">
-            <Bell />
-          </Button>
-          <Button variant="ghost" className="header-icon-button">
-            <Settings />
-          </Button>
-          <Link to="/">
-            <Button variant="outline" className="logout-button">
-              התנתקות
-            </Button>
-          </Link>
+        <div>
+          <Link to="/">חזרה לדף הבית</Link>
         </div>
       </header>
-      
-      {/* Dashboard Content */}
-      <div className="dashboard-layout">
-        {/* Sidebar */}
-        <aside className="dashboard-sidebar">
-          <div className="sidebar-header">
-            <BarChart className="sidebar-icon" />
-            <h2 className="sidebar-title">לוח מחוונים</h2>
+
+      {/* נתונים אישיים */}
+      <section style={{ border: "1px solid #ccc", padding: "1rem", marginBottom: "2rem" }}>
+        <h2 style={{ fontSize: "1.5rem" }}>הנתונים שלי (עדכון אחרון: {currentUserData.lastActive})</h2>
+        <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginTop: "1rem" }}>
+          <div style={{ flex: "1 1 200px" }}>
+            <strong>{currentUserData.tasksCompleted}</strong>
+            <p>משימות שהושלמו מתוך {currentUserData.tasksTotal}</p>
           </div>
-          
-          <nav className="sidebar-nav">
-            <Link to="/Dashboard" className="nav-link active">
-              <BarChart className="nav-icon" />
-              <span>לוח מחוונים</span>
-            </Link>
-            <Link to="/TimeManagement" className="nav-link">
-              <Clock className="nav-icon" />
-              <span>ניהול זמן</span>
-            </Link>
-            <Link to="/SummaryLibrary" className="nav-link">
-              <BookOpen className="nav-icon" />
-              <span>ספריית סיכומים</span>
-            </Link>
-            <Link to="/CourseManagement" className="nav-link">
-              <CheckSquare className="nav-icon" />
-              <span>ניהול קורסים</span>
-            </Link>
-          </nav>
-        </aside>
-        
-        {/* Main Content */}
-        <main className="dashboard-main">
-          <h1 className="page-title">שלום, סטודנט</h1>
-          
-          <div className="summary-cards">
-            <div className="summary-card">
-              <h3 className="card-title">משימות פעילות</h3>
-              <p className="card-count">12</p>
-              <div className="card-footer">
-                <Link to="/CourseManagement" className="card-link">צפה בכל המשימות</Link>
-              </div>
-            </div>
-            
-            <div className="summary-card">
-              <h3 className="card-title">סיכומים שהועלו</h3>
-              <p className="card-count">8</p>
-              <div className="card-footer">
-                <Link to="/SummaryLibrary" className="card-link">צפה בכל הסיכומים</Link>
-              </div>
-            </div>
-            
-            <div className="summary-card">
-              <h3 className="card-title">אירועים היום</h3>
-              <p className="card-count">3</p>
-              <div className="card-footer">
-                <Link to="/TimeManagement" className="card-link">צפה בלוח זמנים</Link>
-              </div>
-            </div>
+          <div style={{ flex: "1 1 200px" }}>
+            <strong>{currentUserData.studyHours}</strong>
+            <p>שעות למידה בשבוע האחרון</p>
           </div>
-          
-          <div className="dashboard-sections">
-            <section className="dashboard-section">
-              <div className="section-header">
-                <h2 className="section-title">משימות קרובות</h2>
-                <Link to="/CourseManagement" className="section-link">צפה בהכל</Link>
-              </div>
-              
-              <div className="task-list">
-                <div className="task-item">
-                  <div className="task-checkbox"></div>
-                  <div className="task-content">
-                    <h4 className="task-title">הגשת עבודה בשיטות מחקר</h4>
-                    <p className="task-date">היום, 23:59</p>
-                  </div>
-                  <div className="task-priority high"></div>
-                </div>
-                
-                <div className="task-item">
-                  <div className="task-checkbox"></div>
-                  <div className="task-content">
-                    <h4 className="task-title">תרגיל בסטטיסטיקה</h4>
-                    <p className="task-date">מחר, 16:00</p>
-                  </div>
-                  <div className="task-priority medium"></div>
-                </div>
-                
-                <div className="task-item">
-                  <div className="task-checkbox"></div>
-                  <div className="task-content">
-                    <h4 className="task-title">קריאת מאמר לשיעור פסיכולוגיה</h4>
-                    <p className="task-date">יום רביעי, 10:00</p>
-                  </div>
-                  <div className="task-priority low"></div>
-                </div>
-              </div>
-            </section>
-            
-            <section className="dashboard-section">
-              <div className="section-header">
-                <h2 className="section-title">לוח זמנים להיום</h2>
-                <Link to="/TimeManagement" className="section-link">צפה בלוח המלא</Link>
-              </div>
-              
-              <div className="schedule-list">
-                <div className="schedule-item">
-                  <div className="schedule-time">08:30 - 10:00</div>
-                  <div className="schedule-content">
-                    <h4 className="schedule-title">הרצאה: שיטות מחקר</h4>
-                    <p className="schedule-location">בניין 72, כיתה 204</p>
-                  </div>
-                </div>
-                
-                <div className="schedule-item">
-                  <div className="schedule-time">10:15 - 11:45</div>
-                  <div className="schedule-content">
-                    <h4 className="schedule-title">תרגול: סטטיסטיקה</h4>
-                    <p className="schedule-location">בניין 90, כיתה 101</p>
-                  </div>
-                </div>
-                
-                <div className="schedule-item">
-                  <div className="schedule-time">13:00 - 14:30</div>
-                  <div className="schedule-content">
-                    <h4 className="schedule-title">הרצאה: פסיכולוגיה חברתית</h4>
-                    <p className="schedule-location">בניין 72, כיתה 115</p>
-                  </div>
-                </div>
-              </div>
-            </section>
-          </div>
-        </main>
-      </div>
-      
-      {/* Footer */}
-      <footer className="footer">
-        <div className="footer-container">
-          <div className="footer-links">
-            <Link to="/HelpSettings" className="footer-link">
-              עזרה והגדרות
-            </Link>
-            <span className="footer-separator">|</span>
-            <div className="footer-item">
-              תנאי שימוש
-            </div>
-            <span className="footer-separator">|</span>
-            <div className="footer-item">
-              מדיניות פרטיות
-            </div>
+          <div style={{ flex: "1 1 200px" }}>
+            <strong>{currentUserData.summariesUploaded}</strong>
+            <p>סיכומים שהועלו</p>
           </div>
         </div>
+      </section>
+
+      {/* סיכומים חדשים */}
+      <section style={{ marginBottom: "2rem" }}>
+        <h2 style={{ fontSize: "1.5rem" }}>סיכומים חדשים</h2>
+        <ul>
+          {recentSummaries.map((summary) => (
+            <li key={summary.id}>
+              <strong>{summary.title}</strong> — {summary.author} ({summary.date})
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* פעילויות אחרונות */}
+      <section style={{ marginBottom: "2rem" }}>
+        <h2 style={{ fontSize: "1.5rem" }}>פעילות אחרונה</h2>
+        <ul>
+          {recentActivities.map((act) => (
+            <li key={act.id}>
+              {act.activity}: {act.details} ({act.date})
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* ציונים / פידבק */}
+      <section style={{ marginBottom: "2rem" }}>
+        <h2 style={{ fontSize: "1.5rem" }}>פידבק על סיכומים</h2>
+        <ul>
+          {summaryRatings.map((s) => (
+            <li key={s.id}>
+              {s.title}: {s.rating} מתוך 5
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* טיפ יומי */}
+      <section style={{ borderTop: "1px solid #ccc", paddingTop: "1rem" }}>
+        <h3>טיפ היומי:</h3>
+        <p>30 דקות לימוד ביום מגדילות הצלחה במבחנים</p>
+      </section>
+
+      <footer style={{ marginTop: "4rem", textAlign: "center", borderTop: "1px solid #ccc", paddingTop: "1rem" }}>
+        <Link to="/help-settings" style={{ margin: "0 1rem" }}>עזרה והגדרות</Link>
+        <span style={{ margin: "0 1rem" }}>תנאי שימוש</span>
+        <span style={{ margin: "0 1rem" }}>מדיניות פרטיות</span>
       </footer>
     </div>
   );

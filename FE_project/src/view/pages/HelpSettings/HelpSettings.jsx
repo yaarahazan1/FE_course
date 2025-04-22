@@ -1,93 +1,107 @@
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Button } from "../../components/ui/button";
-import { HelpCircle, Settings, BarChart } from "lucide-react";
-import "./HelpSettings.css";
 
 const HelpSettings = () => {
+  const [activeTab, setActiveTab] = useState("help");
+
   return (
-    <div className="help-container">
-      {/* Header/Navbar */}
-      <header className="help-header">
-        <div className="header-left">
-          <span className="header-title">סטודנט חכם - עזרה והגדרות</span>
-        </div>
-        <div className="header-right">
-          <Link to="/">
-            <Button variant="outline" className="home-button">
-              <BarChart className="icon-chart" />
-              חזרה לדף הבית
-            </Button>
+    <div style={{ minHeight: "100vh", padding: "2rem", direction: "rtl", backgroundColor: "#fdfdfd" }}>
+      <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
+
+        {/* חזור לדף הבית */}
+        <div style={{ marginBottom: "1.5rem" }}>
+          <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", fontSize: "1rem" }}>
+            <span style={{ marginLeft: "0.5rem", fontSize: "1.2rem" }}>←</span>
+            חזרה לדף הבית
           </Link>
         </div>
-      </header>
-      
-      {/* Help and Settings Content */}
-      <section className="help-section">
-        <h1 className="help-title">עזרה והגדרות</h1>
-        <p className="help-description">
-          מרכז התמיכה והגדרות חשבון למערכת סטודנט חכם
-        </p>
-        
-        <div className="help-panel">
-          {/* Help Card */}
-          <div className="help-card">
-            <div className="help-card-header">
-              <HelpCircle className="help-icon" />
-              <h3 className="help-card-title">עזרה ותמיכה</h3>
-            </div>
-            <div className="help-card-content">
-              <ul className="help-list">
-                <li className="help-list-item">שאלות נפוצות</li>
-                <li className="help-list-item">מדריכי שימוש</li>
-                <li className="help-list-item">יצירת קשר עם התמיכה</li>
-                <li className="help-list-item">דיווח על תקלה</li>
-              </ul>
-              <div className="help-actions">
-                <Button variant="outline" size="sm" className="help-button">
-                  מעבר לעזרה
-                </Button>
-              </div>
-            </div>
+
+        {/* כותרת */}
+        <h1 style={{ fontSize: "2rem", fontWeight: "bold", marginBottom: "2rem" }}>
+          מרכז עזרה והגדרות
+        </h1>
+
+        {/* טאבים */}
+        <div>
+          {/* רשימת טאבים */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "1rem",
+            marginBottom: "1rem"
+          }}>
+            <button
+              onClick={() => setActiveTab("help")}
+              style={{
+                padding: "1rem",
+                fontSize: "1rem",
+                backgroundColor: activeTab === "help" ? "#ddd" : "#f5f5f5",
+                border: "1px solid #ccc",
+                cursor: "pointer"
+              }}
+            >
+              מדריכי משתמש
+            </button>
+            <button
+              onClick={() => setActiveTab("privacy")}
+              style={{
+                padding: "1rem",
+                fontSize: "1rem",
+                backgroundColor: activeTab === "privacy" ? "#ddd" : "#f5f5f5",
+                border: "1px solid #ccc",
+                cursor: "pointer"
+              }}
+            >
+              הגדרות פרטיות והתראות
+            </button>
           </div>
-          
-          {/* Settings Card */}
-          <div className="help-card">
-            <div className="help-card-header">
-              <Settings className="help-icon" />
-              <h3 className="help-card-title">הגדרות חשבון</h3>
-            </div>
-            <div className="help-card-content">
-              <ul className="help-list">
-                <li className="help-list-item">פרטי חשבון</li>
-                <li className="help-list-item">הגדרות פרטיות</li>
-                <li className="help-list-item">התראות והודעות</li>
-                <li className="help-list-item">החלפת סיסמה</li>
-              </ul>
-              <div className="help-actions">
-                <Button variant="outline" size="sm" className="help-button">
-                  עריכת הגדרות
-                </Button>
+
+          {/* תוכן טאב */}
+          <div style={{
+            border: "1px solid #ccc",
+            padding: "2rem",
+            minHeight: "300px",
+            backgroundColor: "#fafafa"
+          }}>
+            {activeTab === "help" ? (
+              <div>
+                <h2 style={{ fontSize: "1.5rem", marginBottom: "1rem" }}>מדריכי משתמש</h2>
+                <ul style={{ lineHeight: "2" }}>
+                  <li>איך להשתמש במערכת?</li>
+                  <li>ניהול החשבון האישי</li>
+                  <li>שיתוף סיכומים עם אחרים</li>
+                  <li>שימוש בכתיבה האקדמית</li>
+                </ul>
               </div>
-            </div>
+            ) : (
+              <div>
+                <h2 style={{ fontSize: "1.5rem", marginBottom: "1rem" }}>הגדרות פרטיות והתראות</h2>
+                <ul style={{ lineHeight: "2" }}>
+                  <li>ניהול הרשאות חשיפה</li>
+                  <li>קביעת העדפות אימייל</li>
+                  <li>שליטה בהתראות בתוך האתר</li>
+                  <li>מחיקת החשבון</li>
+                </ul>
+              </div>
+            )}
           </div>
         </div>
-      </section>
-      
-      {/* Footer */}
-      <footer className="help-footer">
-        <div className="footer-container">
-          <div className="footer-links">
-            <Link to="/" className="footer-link">
-              דף הבית
-            </Link>
-            <span className="footer-separator">|</span>
-            <div className="footer-item">
-              תנאי שימוש
-            </div>
-            <span className="footer-separator">|</span>
-            <div className="footer-item">
-              מדיניות פרטיות
-            </div>
+      </div>
+
+      {/* פוטר */}
+      <footer style={{
+        marginTop: "4rem",
+        padding: "2rem 1rem",
+        textAlign: "center",
+        borderTop: "1px solid #ccc"
+      }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem", alignItems: "center" }}>
+          <Link to="/help-settings" style={{ textDecoration: "underline" }}>
+            עזרה והגדרות
+          </Link>
+          <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", justifyContent: "center" }}>
+            <span style={{ cursor: "pointer", textDecoration: "underline" }}>תנאי שימוש</span>
+            <span style={{ cursor: "pointer", textDecoration: "underline" }}>מדיניות פרטיות</span>
           </div>
         </div>
       </footer>

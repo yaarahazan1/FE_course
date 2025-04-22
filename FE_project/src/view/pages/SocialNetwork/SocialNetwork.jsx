@@ -1,96 +1,68 @@
-import { Link } from "react-router-dom";
-import "./SocialNetwork.css";
+import React from "react";
 
-const SocialNetwork = () => {
+function SocialNetwork() {
+  const posts = [
+    {
+      author: "רחל לוי",
+      time: "לפני שעתיים",
+      content: "שיתפתי את סיכומי השיעור האחרון בנושא דיפרנציאליים...",
+    },
+    {
+      author: "יואב שמעון",
+      time: "לפני 5 שעות",
+      content: "מישהו משתתף בסדנת לימוד לקראת המבחן?",
+    },
+  ];
+
   return (
-    <div className="social-network-container">
-      {/* Header/Navbar */}
-      <header className="custom-header">
-        <div className="header-left">
-          <span className="header-title">סטודנט חכם</span>
-        </div>
-        <div className="header-right">
-          <Link to="/" className="home-link">
-            <button className="custom-button">
-              דף הבית
-            </button>
-          </Link>
-        </div>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", padding: "1rem" }}>
+      <header>
+        <h1>רשת חברתית</h1>
       </header>
 
-      {/* Main Content */}
-      <div className="social-network-content">
-        <h1 className="page-title">רשת חברתית לסטודנטים</h1>
-        
-        <div className="search-section">
-          <input type="text" className="search-input" placeholder="חפש סטודנטים או קורסים..." />
-          <button className="search-button">חפש</button>
-        </div>
-        
-        <div className="network-sections">
-          <div className="network-section">
-            <h2 className="section-title">קורסים פופולריים</h2>
-            <div className="courses-list">
-              <div className="course-card">
-                <h3 className="course-title">מבוא למדעי המחשב</h3>
-                <p className="course-members">124 סטודנטים</p>
-                <button className="join-button">הצטרף</button>
+      <div style={{ display: "flex", gap: "1rem", marginTop: "1rem", flex: 1, flexWrap: "wrap" }}>
+        {/* Sidebar */}
+        <aside style={{ flex: "1 1 250px", minWidth: "250px" }}>
+          <section>
+            <h2>פרופיל</h2>
+            <p>[שם משתמש]</p>
+          </section>
+          <section style={{ marginTop: "1rem" }}>
+            <h3>אירועים קרובים</h3>
+            <ul>
+              <li>בחינת אמצע בפיזיקה - היום</li>
+              <li>הגשת עבודה במתמטיקה - 15 ביוני</li>
+            </ul>
+          </section>
+        </aside>
+
+        {/* Main content */}
+        <main style={{ flex: "3 1 600px", minWidth: "300px" }}>
+          {/* טופס פוסט */}
+          <section>
+            <h2>הוספת פוסט</h2>
+            <textarea placeholder="כתוב משהו..." rows="3" style={{ width: "100%" }} />
+            <button onClick={() => alert("הוספת פוסט")}>פרסם</button>
+          </section>
+
+          {/* פיד */}
+          <section style={{ marginTop: "2rem" }}>
+            <h2>פיד פוסטים</h2>
+            {posts.map((post, index) => (
+              <div key={index} style={{ border: "1px solid #ccc", padding: "1rem", marginBottom: "1rem" }}>
+                <p><strong>{post.author}</strong> – {post.time}</p>
+                <p>{post.content}</p>
               </div>
-              <div className="course-card">
-                <h3 className="course-title">סטטיסטיקה</h3>
-                <p className="course-members">87 סטודנטים</p>
-                <button className="join-button">הצטרף</button>
-              </div>
-              <div className="course-card">
-                <h3 className="course-title">אלגברה לינארית</h3>
-                <p className="course-members">105 סטודנטים</p>
-                <button className="join-button">הצטרף</button>
-              </div>
-            </div>
-          </div>
-          
-          <div className="network-section">
-            <h2 className="section-title">קבוצות לימוד</h2>
-            <div className="groups-list">
-              <div className="group-card">
-                <h3 className="group-title">קבוצת תכנות מתקדם</h3>
-                <p className="group-description">לימוד משותף וחילופי ידע בתכנות</p>
-                <div className="group-actions">
-                  <button className="join-button">הצטרף לקבוצה</button>
-                </div>
-              </div>
-              <div className="group-card">
-                <h3 className="group-title">קבוצת הכנה למבחנים</h3>
-                <p className="group-description">הכנה משותפת למבחנים וחילופי חומרי לימוד</p>
-                <div className="group-actions">
-                  <button className="join-button">הצטרף לקבוצה</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+            ))}
+          </section>
+        </main>
       </div>
-      
-      {/* Footer */}
-      <footer className="footer">
-        <div className="footer-container">
-          <div className="footer-links">
-            <Link to="/HelpSettings" className="footer-link">
-              עזרה והגדרות
-            </Link>
-            <span className="footer-separator">|</span>
-            <div className="footer-item">
-              תנאי שימוש
-            </div>
-            <span className="footer-separator">|</span>
-            <div className="footer-item">
-              מדיניות פרטיות
-            </div>
-          </div>
-        </div>
+
+      <footer style={{ marginTop: "auto", textAlign: "center", padding: "1rem", borderTop: "1px solid #ccc" }}>
+        <p>עזרה והגדרות | תנאי שימוש | מדיניות פרטיות</p>
       </footer>
     </div>
   );
-};
+}
 
 export default SocialNetwork;
