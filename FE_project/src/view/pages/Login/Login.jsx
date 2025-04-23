@@ -91,7 +91,6 @@ const Login = () => {
         <div style={{ flex: "1 1 400px", padding: "2rem", display: "flex", justifyContent: "center", alignItems: "center" }}>
           <div style={{ textAlign: "center", maxWidth: "300px" }}>
             <div style={{ width: "120px", height: "120px", borderRadius: "50%", background: "#eee", margin: "0 auto 1.5rem" }}>
-              {/* מקום לאייקון */}
             </div>
             <h2 style={{ fontSize: "1.2rem", marginBottom: "1rem" }}>ברוכים הבאים לסטודנט חכם</h2>
             <p>

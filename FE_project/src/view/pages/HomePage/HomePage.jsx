@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import styles from "../../../styles/styles.module.css"; 
-import AdminBadge from "../AdminBadge"
+import AdminBadge from "../AdminManagement/AdminBadge"
 
 const HomePage = () => {
   return (

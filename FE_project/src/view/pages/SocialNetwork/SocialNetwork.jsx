@@ -3,7 +3,6 @@ import PageHeader from "../PageHeader";
 import { Link } from "react-router-dom";
 import styles from "../../../styles/styles.module.css";
 import { Heart, MessageSquare, Share, Paperclip, ImageIcon, Calendar } from "lucide-react";
-import Button from "../../components/Button/Button";
 
 const SocialNetwork = () => {
   const [searchTerm, setSearchTerm] = useState("");
