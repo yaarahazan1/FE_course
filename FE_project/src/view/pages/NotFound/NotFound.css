@@ -1,0 +1,37 @@
+.notfound-container {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    direction: rtl;
+    font-family: sans-serif;
+  }
+  
+  .notfound-box {
+    text-align: center;
+    padding: 2rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+  }
+  
+  .notfound-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+  }
+  
+  .notfound-title {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+  }
+  
+  .notfound-message {
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+  }
+  
+  .notfound-button {
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  

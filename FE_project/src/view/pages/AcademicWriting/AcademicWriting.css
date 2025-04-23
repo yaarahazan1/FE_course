@@ -1,0 +1,95 @@
+.academic-writing-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 1rem;
+  direction: rtl;
+  font-family: sans-serif;
+}
+
+.academic-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.academic-controls {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.academic-select {
+  flex: 0 1 300px;
+}
+
+.academic-select label {
+  display: block;
+  margin-bottom: 0.3rem;
+}
+
+.academic-select select {
+  width: 100%;
+  padding: 0.5rem;
+}
+
+.academic-main {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  flex: 1;
+}
+
+.academic-editor {
+  flex: 3 1 600px;
+  min-width: 300px;
+}
+
+.academic-editor textarea {
+  width: 100%;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  min-height: 300px;
+}
+
+.save-info {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.academic-sidebar {
+  flex: 1 1 250px;
+  min-width: 250px;
+  border: 1px solid #ccc;
+  padding: 1rem;
+}
+
+.academic-sidebar h2,
+.academic-sidebar h3 {
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.academic-sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.academic-sidebar li {
+  margin-bottom: 0.5rem;
+}
+
+.academic-sidebar button {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #999;
+  background: none;
+  cursor: pointer;
+}
+
+.academic-analysis {
+  margin-top: 2rem;
+  padding: 1rem;
+  border-top: 1px solid #ccc;
+}

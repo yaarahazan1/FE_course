@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import PageHeader from "../PageHeader";
-import styles from "../../../styles/styles.module.css"; 
+import "./AcademicWriting.css";
 import { Link } from "react-router-dom";
+import "../../../styles/styles.css";
 
 function AcademicWriting() {
   const [documentType, setDocumentType] = useState("מאמר");
@@ -12,62 +13,55 @@ function AcademicWriting() {
   const citationStyles = ["APA", "MLA", "Chicago", "Harvard", "IEEE"];
   const typeOfTemplate = ["תבנית בסיסית", "תבנית מחקר", "תבנית תזה", "תבנית מותאמת אישית"];
 
-
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", padding: "1rem" }}>
+    <div className="academic-writing-container">
       <PageHeader />
 
-      <header style={{ textAlign: "center", marginBottom: "1.5rem" }}>
+      <header className="academic-header">
         <h1>כתיבה אקדמית</h1>
         <p>כתוב, ערוך וצטט בצורה מקצועית בהתאם לכללי הכתיבה האקדמית המקובלים</p>
       </header>
 
-      <section style={{
-          display: "flex", 
-          gap: "0.5rem", 
-        }}>
-          <div style={{ flex: "0 1 340px" }}>
+      <section className="academic-controls">
+        <div className="academic-select">
           <label>סוג מסמך:</label>
-          <select value={documentType} onChange={(e) => setDocumentType(e.target.value)} style={{ width: "100%", padding: "0.5rem" }}>
-            {documentTypes.map(type => (
+          <select value={documentType} onChange={(e) => setDocumentType(e.target.value)}>
+            {documentTypes.map((type) => (
               <option key={type} value={type}>{type}</option>
             ))}
           </select>
         </div>
-        <div style={{ flex: "0 1 340px" }}>
+        <div className="academic-select">
           <label>סגנון ציטוט:</label>
-          <select value={citationStyle} onChange={(e) => setCitationStyle(e.target.value)} style={{ width: "100%", padding: "0.5rem" }}>
-            {citationStyles.map(style => (
+          <select value={citationStyle} onChange={(e) => setCitationStyle(e.target.value)}>
+            {citationStyles.map((style) => (
               <option key={style} value={style}>{style}</option>
             ))}
           </select>
         </div>
-        <div style={{ flex: "0 1 340px" }}>
+        <div className="academic-select">
           <label>תבנית מסמך:</label>
-          <select value={citationStyle} onChange={(e) => setCitationStyle(e.target.value)} style={{ width: "100%", padding: "0.5rem" }}>
-            {typeOfTemplate.map(style => (
+          <select value={citationStyle} onChange={(e) => setCitationStyle(e.target.value)}>
+            {typeOfTemplate.map((style) => (
               <option key={style} value={style}>{style}</option>
             ))}
           </select>
         </div>
       </section>
 
-      <main style={{ display: "flex", flexWrap: "wrap", gap: "2rem", flex: 1 }}>
-        <section style={{ flex: "3 1 600px", minWidth: "300px" }}>
+      <main className="academic-main">
+        <section className="academic-editor">
           <label>תוכן המסמך:</label>
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
             rows="15"
-            style={{ width: "100%", padding: "0.5rem", marginBottom: "0.5rem" }}
             placeholder="כתבי כאן את הטקסט האקדמי..."
           />
-          <div style={{ fontSize: "0.9rem", color: "#555" }}>
-            נשמר אוטומטית.
-          </div>
+          <div className="save-info">נשמר אוטומטית.</div>
         </section>
 
-        <aside style={{ flex: "1 1 200px", minWidth: "250px", border: "1px solid #ccc", padding: "1rem", marginTop: "0" }}>
+        <aside className="academic-sidebar">
           <h2>אפשרויות נוספות</h2>
           <h3>ייצוא</h3>
           <ul>
@@ -75,22 +69,21 @@ function AcademicWriting() {
             <li><button onClick={() => alert("ייצוא ל־Word")}>ייצוא ל־Word</button></li>
           </ul>
 
-          <h3 style={{ marginTop: "1.5rem" }}>שמירה</h3>
+          <h3>שמירה</h3>
           <ul>
             <li><button onClick={() => alert("שמור מקומית")}>שמור מקומית</button></li>
             <li><button onClick={() => alert("שמור בענן")}>שמור בענן</button></li>
           </ul>
 
-          <h3 style={{ marginTop: "1.5rem" }}>סניפים</h3>
+          <h3>סניפים</h3>
           <ul>
             <li><button onClick={() => alert("צפי בגרסאות קודמות")}>הצג גרסאות</button></li>
             <li><button onClick={() => alert("צור סניף חדש")}>צור סניף חדש</button></li>
           </ul>
         </aside>
-
       </main>
 
-      <section style={{ marginTop: "2rem", padding: "1rem", borderTop: "1px solid #ccc" }}>
+      <section className="academic-analysis">
         <h3>זיהוי אוטומטי</h3>
         <p>
           הפונקציה תסרוק את המסמך ותזהה מקורות, בעיות ניסוח, אזכורים לא עקביים ועוד.
@@ -98,20 +91,14 @@ function AcademicWriting() {
         </p>
       </section>
 
-      <footer className={styles.footer}>
-        <div className={styles.footerContainer}>
-          <div className={styles.footerLinks}>
-            <Link to="/HelpSettings" className={styles.footerLink}>
-              עזרה והגדרות
-            </Link>
-            <span className={styles.footerSeparator}>|</span>
-            <div className={styles.footerItem}>
-              תנאי שימוש
-            </div>
-            <span className={styles.footerSeparator}>|</span>
-            <div className={styles.footerItem}>
-              מדיניות פרטיות
-            </div>
+      <footer className="footer">
+        <div className="footer-container">
+          <div className="footer-links">
+            <Link to="/HelpSettings" className="footer-link">עזרה והגדרות</Link>
+            <span className="footer-separator">|</span>
+            <div className="footer-item">תנאי שימוש</div>
+            <span className="footer-separator">|</span>
+            <div className="footer-item">מדיניות פרטיות</div>
           </div>
         </div>
       </footer>

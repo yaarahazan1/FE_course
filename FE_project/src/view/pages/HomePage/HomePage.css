@@ -1,0 +1,125 @@
+.pageWrapper {
+    min-height: 100vh;
+    direction: rtl;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .header {
+    background-color: #fff;
+    border-bottom: 1px solid #ccc;
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .logoContainer {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .logoText {
+    font-weight: bold;
+    font-size: 1.2rem;
+  }
+  
+  .navButtons {
+    display: flex;
+    gap: 0.5rem;
+  }
+  
+  .navButton {
+    padding: 0.5rem 1rem;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    cursor: pointer;
+  }
+  
+  .introSection {
+    padding: 2rem 1rem;
+    text-align: center;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .mainTitle {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+  }
+  
+  .cardsSection {
+    padding: 2rem 1rem;
+    background-color: #fafafa;
+  }
+  
+  .cardsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  .card {
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background-color: #fff;
+    padding: 1rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  
+  .card h3 {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+  }
+  
+  .card p {
+    font-size: 0.9rem;
+  }
+  
+  .cardButton {
+    padding: 0.4rem 0.8rem;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    width: 100%;
+    margin-top: 1rem;
+    cursor: pointer;
+  }
+  
+  .footer {
+    border-top: 1px solid #ccc;
+    padding: 2rem 1rem;
+    text-align: center;
+    margin-top: auto;
+  }
+  
+  .footerContainer {
+    display: flex;
+    justify-content: center;
+  }
+  
+  .footerLinks {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .footerLink {
+    text-decoration: none;
+    color: inherit;
+  }
+  
+  .footerSeparator {
+    color: #ccc;
+  }
+  
+  .footerItem {
+    color: inherit;
+  }
+  

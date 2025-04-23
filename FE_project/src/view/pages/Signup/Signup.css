@@ -1,0 +1,114 @@
+.signup-container {
+    direction: rtl;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-family: sans-serif;
+  }
+  
+  .signup-header {
+    padding: 1rem;
+    border-bottom: 1px solid #ccc;
+  }
+  
+  .logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-decoration: none;
+    color: inherit;
+  }
+  
+  .signup-body {
+    display: flex;
+    flex: 1;
+    flex-wrap: wrap;
+  }
+  
+  .signup-form-section {
+    flex: 1 1 400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+  }
+  
+  .signup-form {
+    width: 100%;
+    max-width: 400px;
+    border: 1px solid #ccc;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .signup-form h1 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    text-align: center;
+  }
+  
+  .signup-form p {
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+  
+  .signup-form input,
+  .signup-form select {
+    padding: 0.5rem;
+    width: 100%;
+  }
+  
+  .password-wrapper {
+    position: relative;
+  }
+  
+  .toggle-password {
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8rem;
+    cursor: pointer;
+    color: #555;
+  }
+  
+  .terms {
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .signup-form button {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    width: 100%;
+  }
+  
+  .login-link {
+    text-align: center;
+    margin-top: 1rem;
+  }
+  
+  .signup-side {
+    flex: 1 1 400px;
+    padding: 2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .side-content {
+    max-width: 300px;
+    text-align: center;
+  }
+  
+  .side-image {
+    width: 120px;
+    height: 120px;
+    background: #eee;
+    border-radius: 50%;
+    margin: 0 auto 1rem;
+  }
+  

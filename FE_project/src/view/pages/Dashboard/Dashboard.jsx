@@ -5,6 +5,8 @@ import {
   LineChart, Line
 } from "recharts";
 import { Link } from "react-router-dom";
+import "./Dashboard.css";
+import "../../../styles/styles.css";
 
 const Dashboard = () => {
   const tasksData = { completed: 75, pending: 25 };
@@ -77,27 +79,27 @@ const Dashboard = () => {
   };
 
   return (
-    <div style={{ direction: "rtl", padding: "2rem", fontFamily: "sans-serif" }}>
-      <header style={{ display: "flex", justifyContent: "space-between", marginBottom: "2rem" }}>
+    <div className="dashboard">
+      <header className="dashboard-header">
         <div>
-          <h1 style={{ fontSize: "2rem" }}>לוח מחוונים מערכתי</h1>
+          <h1>לוח מחוונים מערכתי</h1>
           <p>סיכום סטטיסטי של פעילות המערכת</p>
         </div>
         <Link to="/">חזרה לדף הבית</Link>
       </header>
 
-      {/* לוח אישי */}
-      <section style={{ marginBottom: "3rem", borderBottom: "1px solid #ccc", paddingBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.5rem", marginBottom: "1rem" }}>👤 הלוח האישי</h2>
-        <div style={{ display: "flex", gap: "20px", marginBottom: "20px" }}>
+      {/* אישי */}
+      <section className="section">
+        <h2>👤 הלוח האישי</h2>
+        <div className="stats-row">
           <StatBox label="משימות שהושלמו" value={`${currentUserData.tasksCompleted} מתוך ${currentUserData.tasksTotal}`} />
           <StatBox label="סיכומים שהועלו" value={currentUserData.summariesUploaded} />
           <StatBox label="שעות למידה" value={currentUserData.studyHours} />
           <StatBox label="השלמת משימות" value={`${Math.round((currentUserData.tasksCompleted / currentUserData.tasksTotal) * 100)}%`} />
         </div>
 
-        <div style={{ display: "flex", gap: "20px" }}>
-          <div style={{ flex: 1 }}>
+        <div className="charts-row">
+          <div className="chart">
             <h4>📅 פעילות לפי ימים</h4>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={currentUserData.progress}>
@@ -108,7 +110,7 @@ const Dashboard = () => {
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <div style={{ flex: 1 }}>
+          <div className="chart">
             <h4>🧪 חלוקת זמן לפי קורסים</h4>
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
@@ -122,15 +124,15 @@ const Dashboard = () => {
             </ResponsiveContainer>
           </div>
         </div>
-        <div style={{ marginTop: "2rem", textAlign: "center" }}>
+        <div className="recommendation">
           <strong>💡 המלצה:</strong> הקדש/י יותר זמן לקורס אנגלית השבוע.
         </div>
       </section>
 
-      {/* סטטיסטיקה כללית */}
+      {/* כלליות */}
       <section>
-        <h2 style={{ fontSize: "1.5rem", marginBottom: "1rem" }}>📊 סטטיסטיקות כלליות</h2>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "20px" }}>
+        <h2>📊 סטטיסטיקות כלליות</h2>
+        <div className="grid">
           <ChartBox title="סטטוס משימות">
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
@@ -146,7 +148,7 @@ const Dashboard = () => {
 
           <ChartBox title="סיכומים חדשים">
             {recentSummaries.map(item => (
-              <div key={item.id} style={{ borderBottom: "1px solid #eee", padding: "5px 0" }}>
+              <div key={item.id}>
                 <strong>{item.title}</strong><br />
                 <small>{item.author} - {item.date}</small>
               </div>
@@ -155,7 +157,7 @@ const Dashboard = () => {
 
           <ChartBox title="פעילות אחרונה">
             {recentActivities.map(item => (
-              <div key={item.id} style={{ borderBottom: "1px solid #eee", padding: "5px 0" }}>
+              <div key={item.id}>
                 <strong>{item.activity}</strong><br />
                 <small>{item.details} - {item.date}</small>
               </div>
@@ -190,33 +192,43 @@ const Dashboard = () => {
                 {s.title}: {"★".repeat(s.rating)}{"☆".repeat(5 - s.rating)}
               </div>
             ))}
-            <div style={{ marginTop: "10px" }}><strong>{completionRate}%</strong> שביעות רצון</div>
+            <div><strong>{completionRate}%</strong> שביעות רצון</div>
           </ChartBox>
 
           <ChartBox title="מעורבות משתמשים">
             <p>כניסות: {userEngagement.visitors}</p>
-            <p>משתמשים פעילים: {userEngagement.activeUsers}</p>
+            <p>פעילים: {userEngagement.activeUsers}</p>
             <p>חדשים: {userEngagement.newUsers}</p>
-            <div style={{ marginTop: "10px" }}>
-              <strong>טיפ:</strong> הקדשת 30 דקות ביום מעלה הצלחה ב־40%
-            </div>
+            <div><strong>טיפ:</strong> הקדשת 30 דקות ביום מעלה הצלחה ב־40%</div>
           </ChartBox>
         </div>
       </section>
+
+      <footer className="footer">
+        <div className="footer-container">
+          <div className="footer-links">
+            <Link to="/HelpSettings" className="footer-link">עזרה והגדרות</Link>
+            <span className="footer-separator">|</span>
+            <div className="footer-item">תנאי שימוש</div>
+            <span className="footer-separator">|</span>
+            <div className="footer-item">מדיניות פרטיות</div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
 
 const StatBox = ({ label, value }) => (
-  <div style={{ flex: 1, background: "#f9f9f9", border: "1px solid #ddd", borderRadius: "8px", padding: "10px", textAlign: "center" }}>
+  <div className="stat-box">
     <div>{label}</div>
-    <div style={{ fontWeight: "bold", fontSize: "1.2rem" }}>{value}</div>
+    <div className="stat-value">{value}</div>
   </div>
 );
 
 const ChartBox = ({ title, children }) => (
-  <div style={{ flex: "1 1 300px", border: "1px solid #ccc", borderRadius: "8px", padding: "10px", background: "#fff" }}>
-    <h4 style={{ marginBottom: "10px" }}>{title}</h4>
+  <div className="chart-box">
+    <h4>{title}</h4>
     {children}
   </div>
 );

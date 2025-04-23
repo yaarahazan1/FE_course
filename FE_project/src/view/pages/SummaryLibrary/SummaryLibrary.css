@@ -1,0 +1,92 @@
+.summary-wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    padding: 1rem;
+  }
+  
+  .summary-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  
+  .summary-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  
+  .summary-filters input,
+  .summary-filters select {
+    padding: 0.5rem;
+  }
+  
+  .summary-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+  
+  .summary-item {
+    border: 1px solid #ccc;
+    padding: 1rem;
+  }
+  
+  .locked {
+    color: red;
+    font-size: 0.9rem;
+  }
+  
+  .locked-notice {
+    border: 1px dashed gray;
+    padding: 1rem;
+    text-align: center;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+  }
+  
+  .floating-upload {
+    position: fixed;
+    bottom: 1rem;
+    left: 1rem;
+    padding: 0.5rem 1rem;
+    background-color: grey;
+  }
+  
+  .dialog-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.3);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .dialog-box {
+    background: white;
+    padding: 2rem;
+    max-width: 500px;
+    width: 100%;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  
+  .file-info {
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+  }
+  
+  .upload-sum{
+    background-color: grey;
+  }

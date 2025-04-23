@@ -14,7 +14,6 @@ import AddTask from "./view/pages/AddTask/AddTask";
 import SocialNetwork from "./view/pages/SocialNetwork/SocialNetwork";
 import AdminManagement from "./view/pages/AdminManagement/AdminManagement";
 import Dashboard from "./view/pages/Dashboard/Dashboard";
-import UploadSummaryDialog from "./view/pages/UploadSummaryDialog/UploadSummaryDialog";
 
 
 document.documentElement.dir = "rtl";
@@ -35,7 +34,6 @@ const App = () => (
         <Route path="/Signup" element={<Signup />} />
         <Route path="/AddTask" element={<AddTask />} />
         <Route path="/AdminManagement" element={<AdminManagement />} />
-        <Route path="/UploadSummaryDialog" element={<UploadSummaryDialog />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

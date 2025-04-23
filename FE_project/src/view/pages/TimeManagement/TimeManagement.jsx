@@ -1,8 +1,10 @@
 import React, { useState } from "react";
-import PageHeader from "../PageHeader";
 import AddTask from "../AddTask/AddTask";
 import { Link } from "react-router-dom";
-import styles from "../../../styles/styles.module.css";
+import "./TimeManagement.css";
+import "../../../styles/styles.css";
+import PageHeader from "../PageHeader";
+
 
 const sampleTasks = [
   { id: 1, title: "עבודה בפסיכולוגיה", due: "2025-05-01" },
@@ -14,82 +16,64 @@ const TimeManagement = () => {
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", padding: "1rem" }}>
-      <PageHeader />
-      <h1 style={{ fontSize: "1.5rem", marginBottom: "1rem", textAlign: "center" }}>ניהול זמנים</h1>
-      <p style={{ textAlign: "center", marginBottom: "2rem" }}>
-        נהל את לוח הזמנים שלך עם כל המשימות והפרויקטים שלך בצורה חכמה ויעילה
-      </p>
+    <div className="time-wrapper">
+      <PageHeader/>
+      <header className="time-header">
+        <h1>ניהול זמנים</h1>
+        <p>נהל את לוח הזמנים שלך עם כל המשימות והפרויקטים שלך בצורה חכמה ויעילה</p>
+      </header>
 
-      <div style={{ display: "flex", gap: "2rem" }}>
-        {/* צד ימין - פרופיל והצעות */}
-        <div style={{ flex: "1", maxWidth: "300px" }}>
-          {/* פרופיל */}
-          <div style={{ border: "1px solid #ccc", padding: "1.5rem", marginBottom: "1rem", textAlign: "center", borderRadius: "8px" }}>
-            <div style={{
-              width: "80px",
-              height: "80px",
-              borderRadius: "50%",
-              backgroundColor: "#e0e0e0",
-              margin: "0 auto 1rem",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              fontSize: "1.25rem"
-            }}>
-              י"כ
-            </div>
-            <h3 style={{ margin: "0", fontSize: "1.1rem" }}>יעל כהן</h3>
-            <p style={{ margin: "0.25rem 0", fontSize: "0.9rem", color: "#777" }}>מדעי ההתנהגות</p>
+      <div className="time-layout">
+        <aside className="profile-panel">
+          <div className="profile-box">
+            <div className="profile-icon">י"כ</div>
+            <h3>יעל כהן</h3>
+            <p>מדעי ההתנהגות</p>
           </div>
-
-          {/* הצעות למידה */}
-          <div style={{ border: "1px solid #ccc", padding: "1rem", borderRadius: "8px" }}>
-            <h3 style={{ textAlign: "center", marginBottom: "1rem" }}>הצעות למידה</h3>
-            <ul style={{ listStyle: "none", padding: 0 }}>
+          <div className="suggestions-box">
+            <h3>הצעות למידה</h3>
+            <ul>
               {sampleTasks.map((task) => (
-                <li key={task.id} style={{ marginBottom: "0.75rem" }}>
+                <li key={task.id}>
                   <strong>{task.title}</strong><br />
                   עד {task.due}
                 </li>
               ))}
             </ul>
           </div>
-        </div>
+        </aside>
 
-        {/* מרכז - לוח שנה ומשימות */}
-        <div style={{ flex: "3" }}>
-          <div style={{ border: "1px solid #ccc", padding: "1rem", marginBottom: "2rem", borderRadius: "8px" }}>
-            <h3 style={{ marginBottom: "1rem" }}>לוח שנה</h3>
+        <main className="tasks-panel">
+          <div className="calendar-box">
+            <h3>לוח שנה</h3>
             <p>כאן יוצג לוח חודשי או שבועי בעתיד</p>
           </div>
 
-          {/* משימות קרובות */}
-          <div style={{ border: "1px solid #ccc", padding: "1rem", borderRadius: "8px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-              <h3 style={{ margin: 0 }}>משימות קרובות</h3>
-              <button onClick={() => setIsAddTaskOpen(true)}>הוספת משימה</button>
+          <div className="upcoming-tasks">
+            <div className="tasks-header">
+              <h3>משימות קרובות</h3>
+              <button className="add-task" onClick={() => setIsAddTaskOpen(true)}>הוספת משימה</button>
             </div>
             {sampleTasks.map((task) => (
-              <div key={task.id} style={{ border: "1px solid #eee", padding: "0.75rem", marginBottom: "0.5rem" }}>
+              <div key={task.id} className="task-card">
                 <p><strong>{task.title}</strong></p>
-                <p style={{ fontSize: "0.9rem", color: "#555" }}>עד {task.due}</p>
+                <p>עד {task.due}</p>
               </div>
             ))}
           </div>
-        </div>
+        </main>
       </div>
 
       <AddTask isOpen={isAddTaskOpen} onClose={() => setIsAddTaskOpen(false)} />
 
-      <footer className={styles.footer}>
-        <div className={styles.footerContainer}>
-          <div className={styles.footerLinks}>
-            <Link to="/HelpSettings" className={styles.footerLink}>עזרה והגדרות</Link>
-            <span className={styles.footerSeparator}>|</span>
-            <div className={styles.footerItem}>תנאי שימוש</div>
-            <span className={styles.footerSeparator}>|</span>
-            <div className={styles.footerItem}>מדיניות פרטיות</div>
+      <footer className="footer">
+        <div className="footer-container">
+          <div className="footer-links">
+            <Link to="/HelpSettings" className="footer-link">עזרה והגדרות</Link>
+            <span className="footer-separator">|</span>
+            <div className="footer-item">תנאי שימוש</div>
+            <span className="footer-separator">|</span>
+            <div className="footer-item">מדיניות פרטיות</div>
           </div>
         </div>
       </footer>

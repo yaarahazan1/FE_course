@@ -1,0 +1,48 @@
+.admin-badge-wrapper {
+    position: relative;
+    margin-right: 1rem;
+    display: flex;
+    align-items: center;
+  }
+  
+  .admin-button {
+    padding: 0.5rem;
+    font-size: 1rem;
+    cursor: pointer;
+    background: none;
+    border: none;
+  }
+  
+  .admin-popover {
+    position: absolute;
+    top: 2.5rem;
+    right: 0;
+    width: 250px;
+    padding: 1rem;
+    border: 1px solid #ccc;
+    background: #fff;
+    direction: rtl;
+    z-index: 1000;
+  }
+  
+  .admin-popover-content {
+    text-align: center;
+  }
+  
+  .admin-popover-content h3 {
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+  }
+  
+  .admin-popover-content p {
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+  }
+  
+  .admin-popover-content button {
+    width: 100%;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+  }
+  

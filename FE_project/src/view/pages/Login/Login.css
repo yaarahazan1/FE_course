@@ -1,0 +1,125 @@
+.login-container {
+    min-height: 100vh;
+    direction: rtl;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .login-header {
+    padding: 1rem;
+    border-bottom: 1px solid #ccc;
+  }
+  
+  .login-brand {
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-decoration: none;
+  }
+  
+  .login-main {
+    display: flex;
+    flex: 1;
+    flex-wrap: wrap;
+  }
+  
+  .login-form-wrapper,
+  .login-sidebox {
+    flex: 1 1 400px;
+    padding: 2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .login-form-box {
+    width: 100%;
+    max-width: 400px;
+    border: 1px solid #ccc;
+    padding: 2rem;
+  }
+  
+  .login-title {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+  
+  .login-subtitle {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  
+  .form-group {
+    margin-bottom: 1rem;
+  }
+  
+  .form-group input {
+    width: 100%;
+    padding: 0.5rem;
+    margin-top: 0.25rem;
+  }
+  
+  .password-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .forgot-link {
+    font-size: 0.9rem;
+    text-align: left;
+  }
+  
+  .remember-me {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.9rem;
+    gap: 0.3rem;
+    margin-top: 0.5rem;
+    white-space: nowrap;
+  }  
+  
+  .remember-me input {
+    margin-left: 0.3rem;
+  }
+  
+  .login-btn {
+    width: 100%;
+    padding: 0.75rem;
+    margin-top: 1rem;
+  }
+  
+  .login-divider {
+    text-align: center;
+    margin: 1.5rem 0;
+  }
+  
+  .social-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 1rem;
+  }
+  
+  .signup-link {
+    text-align: center;
+    margin-top: 1rem;
+  }
+  
+  .login-side-content {
+    text-align: center;
+    max-width: 300px;
+  }
+  
+  .avatar-placeholder {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: #eee;
+    margin: 0 auto 1.5rem;
+  }
+  
+  .side-title {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+  }
