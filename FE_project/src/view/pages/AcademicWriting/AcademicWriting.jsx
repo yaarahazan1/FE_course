@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import PageHeader from "../PageHeader";
+import styles from "../../../styles/styles.module.css"; 
+import { Link } from "react-router-dom";
 
 function AcademicWriting() {
   const [documentType, setDocumentType] = useState("מאמר");
@@ -8,20 +10,23 @@ function AcademicWriting() {
 
   const documentTypes = ["מאמר", "תזה", "סמינריון", "מסמך"];
   const citationStyles = ["APA", "MLA", "Chicago", "Harvard", "IEEE"];
+  const typeOfTemplate = ["תבנית בסיסית", "תבנית מחקר", "תבנית תזה", "תבנית מותאמת אישית"];
+
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", padding: "1rem" }}>
       <PageHeader />
 
-      {/* כותרת כללית */}
       <header style={{ textAlign: "center", marginBottom: "1.5rem" }}>
         <h1>כתיבה אקדמית</h1>
-        <p>בחרי את סוג המסמך וסגנון הציטוט, כתבי את התוכן, ונהלי אותו באופן חכם</p>
+        <p>כתוב, ערוך וצטט בצורה מקצועית בהתאם לכללי הכתיבה האקדמית המקובלים</p>
       </header>
 
-      {/* אזור בחירה של סוג מסמך וסגנון ציטוט */}
-      <section style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "2rem" }}>
-        <div style={{ flex: "1 1 200px" }}>
+      <section style={{
+          display: "flex", 
+          gap: "0.5rem", 
+        }}>
+          <div style={{ flex: "0 1 340px" }}>
           <label>סוג מסמך:</label>
           <select value={documentType} onChange={(e) => setDocumentType(e.target.value)} style={{ width: "100%", padding: "0.5rem" }}>
             {documentTypes.map(type => (
@@ -29,7 +34,7 @@ function AcademicWriting() {
             ))}
           </select>
         </div>
-        <div style={{ flex: "1 1 200px" }}>
+        <div style={{ flex: "0 1 340px" }}>
           <label>סגנון ציטוט:</label>
           <select value={citationStyle} onChange={(e) => setCitationStyle(e.target.value)} style={{ width: "100%", padding: "0.5rem" }}>
             {citationStyles.map(style => (
@@ -37,11 +42,17 @@ function AcademicWriting() {
             ))}
           </select>
         </div>
+        <div style={{ flex: "0 1 340px" }}>
+          <label>תבנית מסמך:</label>
+          <select value={citationStyle} onChange={(e) => setCitationStyle(e.target.value)} style={{ width: "100%", padding: "0.5rem" }}>
+            {typeOfTemplate.map(style => (
+              <option key={style} value={style}>{style}</option>
+            ))}
+          </select>
+        </div>
       </section>
 
-      {/* אזור התוכן הראשי */}
       <main style={{ display: "flex", flexWrap: "wrap", gap: "2rem", flex: 1 }}>
-        {/* אזור כתיבה */}
         <section style={{ flex: "3 1 600px", minWidth: "300px" }}>
           <label>תוכן המסמך:</label>
           <textarea
@@ -56,8 +67,8 @@ function AcademicWriting() {
           </div>
         </section>
 
-        {/* אפשרויות צד */}
-        <aside style={{ flex: "1 1 250px", minWidth: "250px", border: "1px solid #ccc", padding: "1rem" }}>
+        <aside style={{ flex: "1 1 200px", minWidth: "250px", border: "1px solid #ccc", padding: "1rem", marginTop: "0" }}>
+          <h2>אפשרויות נוספות</h2>
           <h3>ייצוא</h3>
           <ul>
             <li><button onClick={() => alert("ייצוא ל-PDF")}>ייצוא ל־PDF</button></li>
@@ -76,9 +87,9 @@ function AcademicWriting() {
             <li><button onClick={() => alert("צור סניף חדש")}>צור סניף חדש</button></li>
           </ul>
         </aside>
+
       </main>
 
-      {/* זיהוי אוטומטי */}
       <section style={{ marginTop: "2rem", padding: "1rem", borderTop: "1px solid #ccc" }}>
         <h3>זיהוי אוטומטי</h3>
         <p>
@@ -87,9 +98,22 @@ function AcademicWriting() {
         </p>
       </section>
 
-      {/* פוטר */}
-      <footer style={{ marginTop: "auto", textAlign: "center", padding: "1rem", borderTop: "1px solid #ccc" }}>
-        <p>עזרה והגדרות | תנאי שימוש | מדיניות פרטיות</p>
+      <footer className={styles.footer}>
+        <div className={styles.footerContainer}>
+          <div className={styles.footerLinks}>
+            <Link to="/HelpSettings" className={styles.footerLink}>
+              עזרה והגדרות
+            </Link>
+            <span className={styles.footerSeparator}>|</span>
+            <div className={styles.footerItem}>
+              תנאי שימוש
+            </div>
+            <span className={styles.footerSeparator}>|</span>
+            <div className={styles.footerItem}>
+              מדיניות פרטיות
+            </div>
+          </div>
+        </div>
       </footer>
     </div>
   );

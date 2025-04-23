@@ -8,7 +8,6 @@ const HelpSettings = () => {
     <div style={{ minHeight: "100vh", padding: "2rem", direction: "rtl", backgroundColor: "#fdfdfd" }}>
       <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
 
-        {/* חזור לדף הבית */}
         <div style={{ marginBottom: "1.5rem" }}>
           <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", fontSize: "1rem" }}>
             <span style={{ marginLeft: "0.5rem", fontSize: "1.2rem" }}>←</span>
@@ -16,14 +15,11 @@ const HelpSettings = () => {
           </Link>
         </div>
 
-        {/* כותרת */}
         <h1 style={{ fontSize: "2rem", fontWeight: "bold", marginBottom: "2rem" }}>
           מרכז עזרה והגדרות
         </h1>
 
-        {/* טאבים */}
         <div>
-          {/* רשימת טאבים */}
           <div style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
@@ -56,7 +52,6 @@ const HelpSettings = () => {
             </button>
           </div>
 
-          {/* תוכן טאב */}
           <div style={{
             border: "1px solid #ccc",
             padding: "2rem",
@@ -88,7 +83,6 @@ const HelpSettings = () => {
         </div>
       </div>
 
-      {/* פוטר */}
       <footer style={{
         marginTop: "4rem",
         padding: "2rem 1rem",

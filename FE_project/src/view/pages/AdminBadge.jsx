@@ -15,7 +15,6 @@ const AdminBadge = () => {
     const newStatus = !isAdmin;
     localStorage.setItem('isAdmin', String(newStatus));
     setIsAdmin(newStatus);
-    alert(newStatus ? 'מצב מנהל הופעל' : 'מצב מנהל בוטל');
     setShowPopover(false);
   };
 

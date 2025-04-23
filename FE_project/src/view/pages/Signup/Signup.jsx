@@ -26,16 +26,13 @@ function Signup() {
 
   return (
     <div style={{ minHeight: "100vh", direction: "rtl", display: "flex", flexDirection: "column" }}>
-      {/* Header */}
       <header style={{ padding: "1rem", borderBottom: "1px solid #ccc" }}>
         <Link to="/" style={{ fontSize: "1.5rem", fontWeight: "bold", textDecoration: "none" }}>
           סטודנט חכם
         </Link>
       </header>
 
-      {/* Main content */}
       <div style={{ display: "flex", flex: 1, flexWrap: "wrap" }}>
-        {/* Form section */}
         <div style={{ flex: "1 1 400px", padding: "2rem", display: "flex", justifyContent: "center", alignItems: "center" }}>
           <div style={{ width: "100%", maxWidth: "400px", border: "1px solid #ccc", padding: "2rem" }}>
             <h1 style={{ fontSize: "1.5rem", marginBottom: "1rem", textAlign: "center" }}>הרשמה</h1>
@@ -104,7 +101,6 @@ function Signup() {
           </div>
         </div>
 
-        {/* Info side */}
         <div style={{ flex: "1 1 400px", padding: "2rem", display: "flex", justifyContent: "center", alignItems: "center" }}>
           <div style={{ textAlign: "center", maxWidth: "300px" }}>
             <div style={{ width: "120px", height: "120px", borderRadius: "50%", background: "#eee", margin: "0 auto 1.5rem" }}></div>
@@ -114,7 +110,6 @@ function Signup() {
         </div>
       </div>
 
-      {/* Footer */}
       <footer style={{ textAlign: "center", padding: "2rem 1rem", borderTop: "1px solid #ccc" }}>
         <Link to="/help-settings" style={{ margin: "0 1rem" }}>עזרה והגדרות</Link>
         <span style={{ margin: "0 1rem" }}>תנאי שימוש</span>
