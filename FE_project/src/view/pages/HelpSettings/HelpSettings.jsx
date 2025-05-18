@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import "./HelpSettings.css";
-import "../../../styles/styles.css";
 
 const HelpSettings = () => {
   const [activeTab, setActiveTab] = useState("help");
@@ -60,19 +59,6 @@ const HelpSettings = () => {
           </div>
         </div>
       </div>
-
-
-      <footer className="footer">
-        <div className="footer-container">
-          <div className="footer-links">
-            <Link to="/HelpSettings" className="footer-link">עזרה והגדרות</Link>
-            <span className="footer-separator">|</span>
-            <div className="footer-item">תנאי שימוש</div>
-            <span className="footer-separator">|</span>
-            <div className="footer-item">מדיניות פרטיות</div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

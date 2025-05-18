@@ -1,160 +1,442 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import "./Summarylibrary.css";
-import "../../../styles/styles.css";
-import PageHeader from "../PageHeader";
+import "./SummaryLibrary.css";
 
-const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess }) => {
-  const [title, setTitle] = useState("");
-  const [course, setCourse] = useState("");
-  const [professor, setProfessor] = useState("");
-  const [description, setDescription] = useState("");
-  const [file, setFile] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
+const demoSummaries = [
+  {
+    id: 1,
+    title: "מבוא לסטטיסטיקה",
+    author: "עדי לוי",
+    date: "15 בינואר 2025",
+    course: "סטטיסטיקה למדעי החברה",
+    professor: "פרופ׳ יעקב כהן",
+    rating: 5,
+    downloads: 142,
+    pages: 15,
+    isLocked: false,
+  },
+  {
+    id: 2,
+    title: "סיכום סמסטר א׳ - פסיכולוגיה חברתית",
+    author: "מיכל גולן",
+    date: "3 בפברואר 2025",
+    course: "פסיכולוגיה חברתית",
+    professor: "ד״ר שרה לוינסון",
+    rating: 4.5,
+    downloads: 89,
+    pages: 23,
+    isLocked: false,
+  },
+  {
+    id: 3,
+    title: "מבנה נתונים ואלגוריתמים - סיכום מבחן",
+    author: "אייל דורון",
+    date: "20 בדצמבר 2024",
+    course: "מבנה נתונים",
+    professor: "פרופ׳ דוד ישראלי",
+    rating: 4,
+    downloads: 210,
+    pages: 18,
+    isLocked: true,
+  },
+  {
+    id: 4,
+    title: "אלגברה לינארית - נוסחאון מורחב",
+    author: "רונית כהן",
+    date: "5 בינואר 2025",
+    course: "אלגברה לינארית",
+    professor: "ד״ר משה אברהם",
+    rating: 5,
+    downloads: 320,
+    pages: 8,
+    isLocked: true,
+  },
+];
 
-  const handleUpload = () => {
-    if (!title || !course || !file) {
-      alert("אנא מלא את כל השדות הנדרשים ובחר קובץ");
-      return;
+// רכיב כרטיס סיכום
+const SummaryCard = ({ summary, hasAccess, onAccessRequired }) => {
+  // פונקציה להצגת כוכבי דירוג
+  const renderRatingStars = (rating) => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 !== 0;
+
+    for (let i = 0; i < fullStars; i++) {
+      stars.push(<span key={`full-${i}`} className="star-full">★</span>);
     }
-    setIsUploading(true);
-    setTimeout(() => {
-      setIsUploading(false);
-      onUploadSuccess();
-      resetForm();
-    }, 1500);
+
+    if (hasHalfStar) {
+      stars.push(<span key="half" className="star-half">★</span>);
+    }
+
+    const emptyStars = 5 - stars.length;
+    for (let i = 0; i < emptyStars; i++) {
+      stars.push(<span key={`empty-${i}`} className="star-empty">★</span>);
+    }
+
+    return stars;
   };
 
-  const handleFileChange = (e) => {
-    const selected = e.target.files?.[0];
-    if (selected?.type !== "application/pdf") return alert("PDF בלבד");
-    if (selected.size > 10 * 1024 * 1024) return alert("מקסימום 10MB");
-    setFile(selected);
+  const handleDownload = () => {
+    if (summary.isLocked && !hasAccess) {
+      onAccessRequired();
+    } else {
+      // בהמשך: לוגיקת הורדה
+      alert("מוריד את הסיכום: " + summary.title);
+    }
   };
 
-  const resetForm = () => {
-    setTitle(""); setCourse(""); setProfessor(""); setDescription(""); setFile(null);
+  const handlePreview = () => {
+    if (summary.isLocked && !hasAccess) {
+      onAccessRequired();
+    } else {
+      // בהמשך: לוגיקת תצוגה מקדימה
+      alert("מציג תצוגה מקדימה של: " + summary.title);
+    }
+  };
+
+  return (
+    <div className="summary-card">
+      <div className="summary-card-header">
+        {summary.isLocked && !hasAccess ? (
+          <div className="locked-indicator">
+            <span className="lock-icon">🔒</span>
+          </div>
+        ) : null}
+        
+        <div className="summary-type">
+          {summary.course.includes("פסיכולוגיה") ? "פסיכולוגיה חברתית" : 
+           summary.course.includes("סטטיסטיקה") ? "סטטיסטיקה למדעי החברה" :
+           summary.course.includes("נתונים") ? "מבנה נתונים" :
+           "אלגברה לינארית"}
+        </div>
+      </div>
+
+      <div className="summary-card-content">
+        <h3 className="summary-title">{summary.title}</h3>
+        <div className="summary-meta">
+          <span className="summary-author">{summary.author}</span>
+          <span className="summary-date">{summary.date}</span>
+        </div>
+        <div className="summary-professor">
+          <span className="professor-label">מרצה: </span>
+          <span className="professor-name">{summary.professor}</span>
+        </div>
+        <div className="summary-stats">
+          <div className="summary-pages">
+            <span className="pages-icon">📄</span>
+            <span>{summary.pages} עמודים</span>
+          </div>
+          <div className="summary-rating">
+            <div className="rating-value">{summary.rating}</div>
+            <div className="rating-stars">{renderRatingStars(summary.rating)}</div>
+          </div>
+          <div className="summary-downloads">
+            <span className="downloads-count">{summary.downloads}</span>
+            <span className="downloads-icon">⬇️</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="summary-card-actions">
+        <button 
+          className={`download-button ${summary.isLocked && !hasAccess ? "locked-button" : ""}`}
+          onClick={handleDownload}
+        >
+          <span className="download-icon">⬇️</span>
+          <span>הורד</span>
+        </button>
+        <button 
+          className={`preview-button ${summary.isLocked && !hasAccess ? "locked-button" : ""}`}
+          onClick={handlePreview}
+        >
+          <span className="preview-icon">👁️</span>
+          <span>תצוגה מקדימה</span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// דיאלוג העלאת סיכום
+const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess }) => {
+  const [formData, setFormData] = useState({
+    title: "",
+    course: "",
+    professor: "",
+    file: null,
+  });
+
+  const handleChange = (e) => {
+    const { name, value, files } = e.target;
+    if (name === "file" && files) {
+      setFormData({
+        ...formData,
+        file: files[0],
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value,
+      });
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // בהמשך: לוגיקת העלאת קובץ
+    console.log("מעלה סיכום:", formData);
+    onUploadSuccess();
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="dialog-overlay">
-      <div className="dialog-box">
-        <h2>העלאת סיכום חדש</h2>
-        <p>שתף את הסיכומים שלך עם סטודנטים אחרים</p>
-        <input placeholder="כותרת הסיכום *" value={title} onChange={(e) => setTitle(e.target.value)} />
-        <input placeholder="שם הקורס *" value={course} onChange={(e) => setCourse(e.target.value)} />
-        <input placeholder="שם המרצה" value={professor} onChange={(e) => setProfessor(e.target.value)} />
-        <textarea placeholder="תיאור קצר" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
-        <div>
-          <label>בחר קובץ PDF *</label><br />
-          <input type="file" accept=".pdf" onChange={handleFileChange} />
-          {file && (
-            <div className="file-info">
-              <p>{file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)</p>
-              <button onClick={() => setFile(null)}>הסר קובץ</button>
+      <div className="dialog-content">
+        <div className="dialog-header">
+          <h2 className="dialog-title">העלאת סיכום חדש</h2>
+          <button className="dialog-close" onClick={onClose}>×</button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="title">כותרת הסיכום</label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              value={formData.title}
+              onChange={handleChange}
+              placeholder="הזן כותרת מתאימה"
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="course">שם הקורס</label>
+            <input
+              type="text"
+              id="course"
+              name="course"
+              value={formData.course}
+              onChange={handleChange}
+              placeholder="הזן את שם הקורס"
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="professor">שם המרצה</label>
+            <input
+              type="text"
+              id="professor"
+              name="professor"
+              value={formData.professor}
+              onChange={handleChange}
+              placeholder="הזן את שם המרצה"
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="file">קובץ הסיכום</label>
+            <div className="file-upload">
+              <input
+                type="file"
+                id="file"
+                name="file"
+                onChange={handleChange}
+                accept=".pdf,.doc,.docx"
+                required
+              />
+              <label htmlFor="file" className="file-upload-label">
+                <span className="upload-icon">📎</span>
+                <span>{formData.file ? formData.file.name : "בחר קובץ"}</span>
+              </label>
             </div>
-          )}
-        </div>
-        <div className="dialog-actions">
-          <button onClick={onClose}>ביטול</button>
-          <button onClick={handleUpload} disabled={isUploading}>
-            {isUploading ? "טוען..." : "העלה סיכום"}
-          </button>
-        </div>
+          </div>
+          
+          <div className="dialog-footer">
+            <button type="button" className="btn-cancel" onClick={onClose}>ביטול</button>
+            <button type="submit" className="btn-submit">העלה סיכום</button>
+          </div>
+        </form>
       </div>
     </div>
   );
 };
 
-function SummaryLibrary() {
-  const [hasUploaded, setHasUploaded] = useState(false);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+// רכיב ראשי של ספריית הסיכומים
+const SummaryLibrary = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCourse, setSelectedCourse] = useState("all");
-  const [selectedProfessor, setSelectedProfessor] = useState("all");
+  const [selectedCourse, setSelectedCourse] = useState("");
+  const [selectedProfessor, setSelectedProfessor] = useState("");
   const [sortBy, setSortBy] = useState("recent");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [hasUploaded, setHasUploaded] = useState(false);
 
-  const summaries = [
-    { title: "מבוא לסטטיסטיקה", course: "סטטיסטיקה", professor: "פרופ' לוי", locked: false },
-    { title: "פסיכולוגיה חברתית", course: "פסיכולוגיה", professor: "ד\"ר גולן", locked: false },
-    { title: "אלגוריתמים", course: "מדעי המחשב", professor: "פרופ' כהן", locked: true },
-    { title: "אלגברה לינארית", course: "מתמטיקה", professor: "ד\"ר רונית", locked: true },
-  ];
+  // פונקציה לסינון וחיפוש סיכומים
+  const filteredSummaries = demoSummaries.filter(summary => {
+    const matchesSearch = searchQuery === "" || 
+      summary.title.includes(searchQuery) || 
+      summary.course.includes(searchQuery) || 
+      summary.professor.includes(searchQuery);
+    
+    const matchesCourse = selectedCourse === "" || summary.course === selectedCourse;
+    const matchesProfessor = selectedProfessor === "" || summary.professor === selectedProfessor;
+    
+    return matchesSearch && matchesCourse && matchesProfessor;
+  });
 
-  const courses = [...new Set(summaries.map(s => s.course))];
-  const profs = [...new Set(summaries.map(s => s.professor))];
+  // מיון סיכומים
+  const sortedSummaries = [...filteredSummaries].sort((a, b) => {
+    if (sortBy === "recent") {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    }
+    if (sortBy === "rating") {
+      return b.rating - a.rating;
+    }
+    if (sortBy === "downloads") {
+      return b.downloads - a.downloads;
+    }
+    return 0;
+  });
 
-  const filtered = summaries
-    .filter(s => [s.title, s.course, s.professor].some(f => f.includes(searchQuery)))
-    .filter(s => selectedCourse === "all" || s.course === selectedCourse)
-    .filter(s => selectedProfessor === "all" || s.professor === selectedProfessor);
+  const handleUploadSuccess = () => {
+    setHasUploaded(true);
+    alert("הסיכום הועלה בהצלחה! כעת יש לך גישה מלאה לכל הסיכומים בספרייה.");
+    setIsDialogOpen(false);
+  };
+
+  const uniqueCourses = [...new Set(demoSummaries.map(summary => summary.course))];
+  const uniqueProfessors = [...new Set(demoSummaries.map(summary => summary.professor))];
 
   return (
-    <div className="summary-wrapper">
-      <PageHeader />
-      <header className="summary-header">
+    <div className="container">
+      <header className="page-title">
         <h1>ספריית סיכומים</h1>
-        <p>גישה מהירה לחומרי לימוד מסוכמים</p>
+        <p className="subtitle">
+          גישה מהירה לחומרי לימוד מסוכמים שנאספו על ידי סטודנטים. חפשו, סננו וגלו סיכומים איכותיים לקורסים שלכם.
+        </p>
       </header>
 
-      <section className="summary-filters">
-        <input placeholder="חיפוש..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-        <select value={selectedCourse} onChange={(e) => setSelectedCourse(e.target.value)}>
-          <option value="all">כל הקורסים</option>
-          {courses.map(c => <option key={c}>{c}</option>)}
-        </select>
-        <select value={selectedProfessor} onChange={(e) => setSelectedProfessor(e.target.value)}>
-          <option value="all">כל המרצים</option>
-          {profs.map(p => <option key={p}>{p}</option>)}
-        </select>
-        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-          <option value="recent">הכי חדשים</option>
-          <option value="rating">דירוג</option>
-          <option value="downloads">הורדות</option>
-        </select>
-      </section>
+      {/* חיפוש וסינון */}
+      <div className="search-filters">
+        <div className="search-bar">
+          <span className="search-icon">🔍</span>
+          <input
+            type="text"
+            placeholder="חפש לפי קורס, מרצה או נושא"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="search-input"
+          />
+        </div>
+        
+        <div className="filter-container">
+          <select 
+            value={selectedCourse} 
+            onChange={(e) => setSelectedCourse(e.target.value)}
+            className="filter-select"
+          >
+            <option value="">סנן לפי קורס</option>
+            {uniqueCourses.map(course => (
+              <option key={course} value={course}>{course}</option>
+            ))}
+          </select>
+        </div>
+        
+        <div className="filter-container">
+          <select 
+            value={selectedProfessor} 
+            onChange={(e) => setSelectedProfessor(e.target.value)}
+            className="filter-select"
+          >
+            <option value="">סנן לפי מרצה</option>
+            {uniqueProfessors.map(professor => (
+              <option key={professor} value={professor}>{professor}</option>
+            ))}
+          </select>
+        </div>
+        
+        <div className="filter-container">
+          <select 
+            value={sortBy} 
+            onChange={(e) => setSortBy(e.target.value)}
+            className="filter-select"
+          >
+            <option value="recent">הכי חדשים</option>
+            <option value="rating">דירוג</option>
+            <option value="downloads">הורדות</option>
+          </select>
+        </div>
+      </div>
 
-      <main className="summary-list">
-        {filtered.map((s, i) => (
-          <div key={i} className="summary-item">
-            <p>{s.title}</p>
-            <small>{s.course} - {s.professor}</small>
-            {s.locked && !hasUploaded && <p className="locked">[נעול – העלה סיכום]</p>}
-          </div>
-        ))}
-      </main>
-
-      {!hasUploaded && (
-        <section className="locked-notice">
-          <h3>גישה מוגבלת</h3>
-          <p>כדי לצפות בכל הסיכומים, עליך להעלות אחד.</p>
-          <button className="upload-sum" onClick={() => setIsDialogOpen(true)}>העלה סיכום</button>
-        </section>
+      {/* רשימת הסיכומים */}
+      {sortedSummaries.length > 0 ? (
+        <div className="summaries-grid">
+          {sortedSummaries.map(summary => (
+            <SummaryCard 
+              key={summary.id} 
+              summary={summary} 
+              hasAccess={hasUploaded}
+              onAccessRequired={() => setIsDialogOpen(true)}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="no-results">
+          <div className="no-results-icon">📄</div>
+          <h3 className="no-results-title">לא נמצאו סיכומים</h3>
+          <p className="no-results-message">נסו לשנות את מונחי החיפוש או הסינון</p>
+          <button 
+            className="clear-filter-btn"
+            onClick={() => {
+              setSearchQuery("");
+              setSelectedCourse("");
+              setSelectedProfessor("");
+            }}
+          >
+            נקה סינון
+          </button>
+        </div>
       )}
 
-      <button className="floating-upload" onClick={() => setIsDialogOpen(true)}>+ העלה סיכום</button>
-
-      <UploadSummaryDialog isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} onUploadSuccess={() => {
-        setHasUploaded(true);
-        setIsDialogOpen(false);
-        alert("סיכום הועלה בהצלחה!");
-      }} />
-
-      <footer className="footer">
-        <div className="footer-container">
-          <div className="footer-links">
-            <Link to="/HelpSettings" className="footer-link">עזרה והגדרות</Link>
-            <span className="footer-separator">|</span>
-            <div className="footer-item">תנאי שימוש</div>
-            <span className="footer-separator">|</span>
-            <div className="footer-item">מדיניות פרטיות</div>
-          </div>
+      {/* אזור גישה מוגבלת */}
+      {!hasUploaded && (
+        <div className="restricted-access">
+          <div className="lock-icon-large">🔒</div>
+          <h3 className="restricted-title">גישה מוגבלת</h3>
+          <p className="restricted-message">
+            כדי לקבל גישה מלאה לכל הסיכומים בספרייה, עליך להעלות לפחות סיכום אחד משלך.
+          </p>
+          <button 
+            className="upload-btn"
+            onClick={() => setIsDialogOpen(true)}
+          >
+            <span className="upload-icon">📤</span>
+            העלה את הסיכום הראשון שלך
+          </button>
         </div>
-      </footer>
+      )}
+
+      {/* כפתור העלאת סיכום - הצג תמיד גם אחרי העלאה */}
+      <div className="fixed-upload-btn">
+        <button 
+          className="upload-btn-floating"
+          onClick={() => setIsDialogOpen(true)}
+        >
+          <span className="upload-icon">📤</span>
+          העלה סיכום
+        </button>
+      </div>
+      {/* דיאלוג העלאת סיכום */}
+      <UploadSummaryDialog 
+        isOpen={isDialogOpen} 
+        onClose={() => setIsDialogOpen(false)}
+        onUploadSuccess={handleUploadSuccess}
+      />
     </div>
   );
-}
+};
 
 export default SummaryLibrary;

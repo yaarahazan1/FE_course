@@ -1,9 +1,6 @@
 import React, { useState } from "react";
-import PageHeader from "../PageHeader";
 import AddTask from "../AddTask/AddTask";
-import { Link } from "react-router-dom";
 import "./CourseManagement.css";
-import "../../../styles/styles.css";
 
 const CourseManagement = () => {
   const [activeTab, setActiveTab] = useState("projects");
@@ -72,7 +69,6 @@ const CourseManagement = () => {
 
   return (
     <div className="page">
-      <PageHeader />
       <h1 className="title">מנהל פרויקטים ומשימות</h1>
       <p className="subtitle">ניהול קורסים, פרויקטים ומשימות במקום אחד</p>
 
@@ -149,18 +145,6 @@ const CourseManagement = () => {
           ))}
         </section>
       )}
-
-      <footer className="footer">
-        <div className="footer-container">
-          <div className="footer-links">
-            <Link to="/HelpSettings" className="footer-link">עזרה והגדרות</Link>
-            <span className="footer-separator">|</span>
-            <div className="footer-item">תנאי שימוש</div>
-            <span className="footer-separator">|</span>
-            <div className="footer-item">מדיניות פרטיות</div>
-          </div>
-        </div>
-      </footer>
 
       <AddTask isOpen={isAddTaskOpen} onClose={() => setIsAddTaskOpen(false)} />
     </div>

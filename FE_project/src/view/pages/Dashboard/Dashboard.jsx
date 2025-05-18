@@ -6,7 +6,6 @@ import {
 } from "recharts";
 import { Link } from "react-router-dom";
 import "./Dashboard.css";
-import "../../../styles/styles.css";
 
 const Dashboard = () => {
   const tasksData = { completed: 75, pending: 25 };
@@ -204,17 +203,6 @@ const Dashboard = () => {
         </div>
       </section>
 
-      <footer className="footer">
-        <div className="footer-container">
-          <div className="footer-links">
-            <Link to="/HelpSettings" className="footer-link">עזרה והגדרות</Link>
-            <span className="footer-separator">|</span>
-            <div className="footer-item">תנאי שימוש</div>
-            <span className="footer-separator">|</span>
-            <div className="footer-item">מדיניות פרטיות</div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

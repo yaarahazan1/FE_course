@@ -1,8 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
 import "./SocialNetwork.css";
-import "../../../styles/styles.css";
-import PageHeader from "../PageHeader";
 
 const SocialNetwork = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -47,7 +44,6 @@ const SocialNetwork = () => {
 
   return (
     <div className="social-container">
-      <PageHeader/>
       <header>
         <h2>רשת חברתית לסטודנטים</h2>
       </header>
@@ -132,18 +128,6 @@ const SocialNetwork = () => {
             ))}
         </main>
       </div>
-
-      <footer className="footer">
-        <div className="footer-container">
-          <div className="footer-links">
-            <Link to="/HelpSettings" className="footer-link">עזרה והגדרות</Link>
-            <span className="footer-separator">|</span>
-            <div className="footer-item">תנאי שימוש</div>
-            <span className="footer-separator">|</span>
-            <div className="footer-item">מדיניות פרטיות</div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

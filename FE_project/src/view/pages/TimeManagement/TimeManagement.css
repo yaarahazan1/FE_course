@@ -1,91 +1,148 @@
 .time-wrapper {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    padding: 1rem;
-    direction: rtl;
-    font-family: sans-serif;
-  }
-  
-  .time-header {
-    text-align: center;
-    margin-bottom: 2rem;
-  }
-  
-  .time-header h1 {
-    font-size: 1.5rem;
-    margin-bottom: 0.5rem;
-  }
-  
-  .time-layout {
-    display: flex;
-    gap: 2rem;
-    flex: 1;
-  }
-  
-  .profile-panel {
-    flex: 1;
-    max-width: 300px;
-  }
-  
-  .profile-box {
-    border: 1px solid #ccc;
-    padding: 1.5rem;
-    margin-bottom: 1rem;
-    text-align: center;
-    border-radius: 8px;
-  }
-  
-  .profile-icon {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background-color: #e0e0e0;
-    margin: 0 auto 1rem;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 1.25rem;
-  }
-  
-  .suggestions-box {
-    border: 1px solid #ccc;
-    padding: 1rem;
-    border-radius: 8px;
-  }
-  
-  .suggestions-box ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-  
-  .tasks-panel {
-    flex: 3;
-  }
-  
-  .calendar-box,
-  .upcoming-tasks {
-    border: 1px solid #ccc;
-    padding: 1rem;
-    border-radius: 8px;
-    margin-bottom: 2rem;
-  }
-  
-  .tasks-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-  }
-  
-  .task-card {
-    border: 1px solid #eee;
-    padding: 0.75rem;
-    margin-bottom: 0.5rem;
-  }
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 1rem;
+  direction: rtl;
+  background-color: #F1F0E8;
+}
 
-  .add-task {
-    background-color: grey;
-  }
-  
+.time-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.time-header h1 {
+  font-size: 1.875rem;
+  font-weight: bold;
+  margin-bottom: 0.75rem;
+  color: #89A8B2;
+}
+
+.time-header p {
+  max-width: 48rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.time-layout {
+  display: flex;
+  gap: 2rem;
+  flex: 1;
+}
+
+.profile-panel {
+  flex: 1;
+  max-width: 380px;
+}
+
+.profile-box {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  text-align: center;
+  border-radius: 8px;
+  background-color: white;
+}
+
+.profile-box h3 {
+  font-weight: 600;
+  font-size: 1.125rem;}
+
+.profile-box p {
+  font-size: 0.875rem;
+  color: #6b7280;  
+}
+
+.profile-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: #e0e0e0;
+  margin: 0 auto 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.25rem;
+}
+
+.suggestions-box {
+  background-color: white;        
+  border-radius: 0.75rem;          
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+  border: 2px solid #E5E1DA;      
+  overflow: hidden; 
+}
+
+.suggestions {
+  background-color: #89A8B2;
+  padding: 0.75rem;          
+  border-top-left-radius: 0.75rem;
+  border-top-right-radius: 0.75rem;
+}
+
+.suggestions h2 {
+  font-size: 1.25rem;       
+  font-weight: 600;      
+  color: #ffffff;        
+  text-align: center;
+} 
+
+.suggestions-box ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tasks-sidebar {
+  padding: 1rem;
+}
+
+.tasks-panel {
+  flex: 1;
+  max-width: 70%;
+}
+
+.calendar-container {
+  margin-bottom: 1.5rem;
+}
+
+.calendar-header-wrapper {
+  background-color: #89A8B2;
+  padding-right: 1rem;
+  padding-left: 1rem;
+  border-top-left-radius: 1rem;
+  border-top-right-radius: 1rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  color: white;
+}
+
+.calendar-body-wrapper {
+  background-color: white;
+}
+
+.task-box {
+  background-color: white;
+  border-radius: 1rem;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  border: 2px solid #E5E1DA;
+  overflow: hidden;
+  max-width: 100%;
+  margin: auto;
+}
+
+.task-box-header {
+  background-color: #B3C8CF;
+  padding: 1rem;
+  border-top-left-radius: 1rem;
+  border-top-right-radius: 1rem;
+  text-align: center;
+  color: white;
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+.task-box-body {
+  padding: 1rem;
+}

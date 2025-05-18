@@ -24,8 +24,8 @@ const HomePage = () => {
 
       <section className="introSection">
         <h1 className="mainTitle">סטודנט חכם</h1>
-        <p>נהל את הלימודים שלך בצורה חכמה - גישה מהירה לסיכומים, משימות ולוח זמנים מותאם אישית</p>
-        <p>המערכת עוזרת לך לארגן את הלימודים שלך, לשתף סיכומים, לעקוב אחרי משימות והגשות לוח זמנים מותאם לסיכומים והחומרים האישיים שלך.</p>
+        <p className="info" style={{ marginBottom: "1rem"}}>נהל את הלימודים שלך בצורה חכמה - גישה מהירה לסיכומים, משימות ולוח זמנים מותאם אישית</p>
+        <p className="info">המערכת עוזרת לך לארגן את הלימודים שלך, לשתף סיכומים, לעקוב אחרי משימות והגשות לוח זמנים מותאם לסיכומים והחומרים האישיים שלך.</p>
       </section>
 
       <section className="cardsSection">
@@ -42,25 +42,13 @@ const HomePage = () => {
                 <h3>{item.title}</h3>
                 <p>{item.desc}</p>
               </div>
-              <Link to={item.to}>
+              <Link to={item.to} style={{ marginTop: "1rem" }}>
                 <button className="cardButton">למעבר</button>
               </Link>
             </div>
           ))}
         </div>
       </section>
-
-      <footer className="footer">
-        <div className="footer-container">
-          <div className="footer-links">
-            <Link to="/HelpSettings" className="footer-link">עזרה והגדרות</Link>
-            <span className="footer-separator">|</span>
-            <div className="footer-item">תנאי שימוש</div>
-            <span className="footer-separator">|</span>
-            <div className="footer-item">מדיניות פרטיות</div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };
