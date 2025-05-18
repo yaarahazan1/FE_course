@@ -1,0 +1,93 @@
+.task-list-container {
+    padding: 0;
+}
+
+.task-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.add-task-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: #89a8b2;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-weight: bold;
+    transition: background-color 0.2s;
+    border: none;
+    cursor: pointer;
+}
+
+.add-task-btn:hover {
+    background-color: #7a99a3;
+}
+
+.icon {
+    width: 16px;
+    height: 16px;
+}
+
+.scroll-area {
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.task-card {
+    display: flex;
+    align-items: start;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: #f9f9f9;
+    border-right: 4px solid #ccc;
+    border-radius: 0.5rem;
+    transition: background-color 0.2s;
+    margin-bottom: 0.75rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.task-card:hover {
+    background-color: #e5e1da;
+}
+
+.badge {
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    margin-top: 0.25rem;
+    white-space: nowrap;
+}
+
+.task-content {
+    flex: 1;
+}
+
+.task-title {
+    font-weight: 600;
+    color: #89a8b2;
+}
+
+.task-course {
+    font-size: 0.875rem;
+    color: #64748b;
+}
+
+.task-deadline {
+    font-size: 0.875rem;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.date {
+    font-weight: 500;
+}
+
+.countdown {
+    color: #64748b;
+}

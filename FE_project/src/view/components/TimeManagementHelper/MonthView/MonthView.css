@@ -1,0 +1,55 @@
+.calendar-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  direction: rtl;
+  table-layout: fixed;
+}
+
+.weekday-header {
+  background-color: #E5E1DA;
+  color: #89A8B2;
+  padding: 10px;
+  text-align: center;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.calendar-day {
+  border: 1px solid #e5e7eb;
+  vertical-align: top;
+  height: 110px;
+  padding: 6px;
+}
+
+.day-number {
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.today {
+  background-color: #f0f9ff;
+}
+
+.other-month .day-number {
+  color: #a1a1aa;
+}
+
+.tasks-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.task-item {
+  font-size: 12px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: white;
+  font-weight: 500;
+}

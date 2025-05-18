@@ -1,0 +1,116 @@
+.weekview-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.weekview-header {
+  background-color: #E5E1DA;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding: 8px;
+  text-align: center;
+  border-bottom: 1px solid #ddd;
+}
+
+.weekview-day-header {
+  background-color: #E5E1DA;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.weekview-day-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.weekview-day-number {
+  font-size: 1.125rem;
+  border-radius: 9999px;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.weekview-day-number.today {
+  background-color: #dbeafe; /* bg-blue-100 */
+}
+
+.weekview-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  min-height: 130px;
+}
+
+.weekview-column {
+  border-inline-end: 1px solid #e5e7eb;
+  padding: 4px;
+}
+
+.weekview-column.highlight {
+  background-color: #eff6ff; /* bg-blue-50 */
+}
+
+.weekview-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+}
+
+.task-item {
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: white;
+}
+
+.task-title {
+  font-weight: 500;
+}
+
+.task-course {
+  font-size: 0.75rem;
+  color: #9ca3af; /* gray-400 */
+}
+
+/* צבעים לפי עדיפות */
+.priority-high {
+  background-color: #ef4444; /* red-500 */
+}
+
+.priority-medium {
+  background-color: #f59e0b; /* amber-500 */
+}
+
+.priority-low {
+  background-color: #10b981; /* green-500 */
+}
+
+.priority-default {
+  background-color: #6b7280; /* gray-500 */
+}
+
+/* צבעים לפי סוג */
+.type-personal {
+  background-color: #3b82f6; /* blue-500 */
+}
+
+.type-study {
+  background-color: #8b5cf6; /* purple-500 */
+}
+
+.type-default {
+  background-color: #6b7280; /* gray-500 */
+}
+
+.no-tasks {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
