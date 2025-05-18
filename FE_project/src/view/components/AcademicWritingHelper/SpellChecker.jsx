@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import "../styles/AdvancedTools.css";
+import "../../../styles/AdvancedTools.css";
 
 const SpellChecker = ({ content, onClose, onApplySuggestion }) => {
   const [isLoading, setIsLoading] = useState(true);

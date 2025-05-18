@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import "../styles/AdvancedTools.css";
+import "../../../styles/AdvancedTools.css";
 
 const PlagiarismChecker = ({ content, onClose, onApplySuggestion }) => {
   const [isLoading, setIsLoading] = useState(true);
