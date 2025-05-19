@@ -4,20 +4,22 @@
 }
 
 .add-item-button {
-    background-color: #4caf50;
+    background-color: #8ba7b1;
     color: white;
     border: none;
     border-radius: 4px;
-    padding: 8px 16px;
-    font-size: 14px;
+    padding: 8px 20px;
+    font-size: 15px;
     cursor: pointer;
     display: flex;
     align-items: center;
+    min-width: 180px;
     transition: background-color 0.3s;
+    justify-content: center;
 }
 
 .add-item-button:hover {
-    background-color: #45a049;
+    background-color: #9eafb5;
 }
 
 .dropdown-menu {
@@ -27,7 +29,7 @@
     background-color: white;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     border-radius: 4px;
-    min-width: 150px;
+    min-width: 180px;
     z-index: 10;
 }
 
@@ -35,7 +37,7 @@
     display: block;
     width: 100%;
     text-align: right;
-    padding: 10px 15px;
+    padding: 12px 20px;
     background: none;
     border: none;
     cursor: pointer;

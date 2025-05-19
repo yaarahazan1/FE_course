@@ -95,30 +95,27 @@ const TasksTab = ({ tasks = [] }) => {
           {displayTasks.map((task) => (
             <div key={task.id} className="task-card">
               <div className="task-header">
-                <h3 title={task.name}>{task.name}</h3>
-                <div className={`task-priority ${getPriorityClass(task.priority)}`}>
-                  {task.priority}
-                </div>
+                <sapn title={task.name}>{task.name}</sapn>
               </div>
-              <p className="task-description" title={task.description}>
+                <sapn className={`task-priority ${getPriorityClass(task.priority)}`}>
+                  חשיבות: {task.priority}
+                </sapn>
+              <sapn className="task-description" title={task.description}>
                 {task.description}
-              </p>
+              </sapn>
               <div className="task-info">
                 <div className="task-info-item">
                   <span>תאריך יעד:</span>
                   <span>{formatDate(task.dueDate)}</span>
                 </div>
                 <div className="task-info-item">
-                  <span>שייך לפרויקט:</span>
+                  <span>סוג משימה:</span>
                   <span title={task.projectName || "לא משויך"}>
                     {task.projectName || "לא משויך"}
                   </span>
                 </div>
                 <div className="task-info-item">
-                  <span>סטטוס:</span>
-                  <span className={`task-status ${getStatusClass(task.status)}`}>
-                    {task.status}
-                  </span>
+                  <span className={`task-status ${getStatusClass(task.status)}`}>סטטוס: {task.status}</span>
                 </div>
               </div>
             </div>

@@ -121,6 +121,7 @@ const CourseManagement = () => {
     {
       id: 1,
       name: "SnackMatch",
+      dueDate: '2025-07-31',
       description: "אפליקציה שמתאימה חטיפים לפי מצב הרוח",
       status: "פעיל",
       tasks: 7,
@@ -157,6 +158,7 @@ const CourseManagement = () => {
     {
       id: 2,
       name: "מחקר מגמות דיגיטליות",
+      dueDate: '2025-07-01',
       description: "ניתוח מגמות בשוק הדיגיטלי",
       status: "בתהליך",
       tasks: 4,

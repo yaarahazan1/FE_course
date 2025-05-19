@@ -3,7 +3,8 @@ import "./ProjectsTab.css";
 import ProjectChat from "../ProjectChat/ProjectChat";
 
 const ProjectsTab = ({ projects, selectedProjectId, setSelectedProjectId }) => {
-  const [showChat, setShowChat] = useState(false);
+  // שינוי: במקום משתנה showChat יחיד, נשתמש באובייקט שמחזיק את מצב הצ'אט לכל פרויקט
+  const [chatVisibility, setChatVisibility] = useState({});
   const [expandedProjects, setExpandedProjects] = useState({});
 
   const toggleProjectExpansion = (projectId) => {
@@ -17,13 +18,17 @@ const ProjectsTab = ({ projects, selectedProjectId, setSelectedProjectId }) => {
   const formatDate = (dateString) => {
     if (!dateString) return "לא צוין תאריך";
     const date = new Date(dateString);
-    return date.toLocaleDateString("he-IL");
+    return `תאריך הגשה: ${date.toLocaleDateString("he-IL")} `;
   };
 
   // מניעת סגירת הפרויקט בעת לחיצה על כפתור הצ'אט
-  const handleChatToggle = (e) => {
+  // שינוי: עדכון הפונקציה לניהול מצב הצ'אט עבור פרויקט ספציפי
+  const handleChatToggle = (e, projectId) => {
     e.stopPropagation();
-    setShowChat(!showChat);
+    setChatVisibility(prev => ({
+      ...prev,
+      [projectId]: !prev[projectId]
+    }));
   };
 
   return (
@@ -69,16 +74,16 @@ const ProjectsTab = ({ projects, selectedProjectId, setSelectedProjectId }) => {
                     className="chat-button" 
                     onClick={(e) => handleChatToggle(e, project.id)}
                   >
-                    {showChat ? "סגור צ'אט" : "פתח צ'אט"}
+                    {chatVisibility[project.id] ? "סגור צ'אט" : "פתח צ'אט"}
                   </button>
                 </div>
 
-                {showChat && selectedProjectId === project.id && (
+                {chatVisibility[project.id] && (
                   <ProjectChat 
                     projectId={project.id} 
                     messages={project.messages.map(msg => ({
                       ...msg,
-                      isMine: msg.sender === "אני" // סימון הודעות שלי
+                      isMine: msg.sender === "אני"
                     }))}
                   />
                 )}

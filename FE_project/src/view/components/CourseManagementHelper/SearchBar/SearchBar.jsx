@@ -5,6 +5,11 @@ import "./SearchBar.css";
 const SearchBar = ({ onAddCourse, onAddProject, onAddTask }) => {
   return (
     <div className="search-bar-container">
+      <input
+        type="text"
+        className="search-input"
+        placeholder="חפש לפי שם משימה, קורס או פרויקט..."
+      />
       <div className="search-bar-buttons">
         <AddItemDropdown 
           onAddCourse={onAddCourse} 
@@ -12,11 +17,6 @@ const SearchBar = ({ onAddCourse, onAddProject, onAddTask }) => {
           onAddTask={onAddTask}
         />
       </div>
-      <input
-        type="text"
-        className="search-input"
-        placeholder="חפש לפי שם משימה, קורס או פרויקט..."
-      />
     </div>
   );
 };
