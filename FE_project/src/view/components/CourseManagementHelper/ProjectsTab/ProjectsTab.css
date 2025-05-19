@@ -1,0 +1,65 @@
+.projects-tab {
+    padding: 1rem;
+}
+
+.projects-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.add-project-button {
+    background-color: #89A8B2;
+    color: white;
+    border: none;
+    padding: 0.4rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.add-project-button:hover {
+    background-color: #7896a1;
+}
+
+.project-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.project-card {
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 1rem;
+    background-color: #f9f9f9;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.project-card:hover {
+    background-color: #f0f0f0;
+}
+
+.project-card.selected {
+    border-color: #89A8B2;
+    background-color: #e3eaea;
+}
+
+.project-description {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.team-members,
+.messages {
+    margin-top: 0.75rem;
+}
+
+.team-members ul,
+.messages ul {
+    padding-right: 1rem;
+    list-style-type: disc;
+    font-size: 0.9rem;
+}
