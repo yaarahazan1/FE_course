@@ -1,7 +1,7 @@
 import React from "react";
 import "./CoursesTab.css";
 
-const CoursesTab = ({ courses = []}) => {
+const CoursesTab = ({ courses = [] }) => {
   return (
     <div className="courses-tab">
       <div className="courses-header">
@@ -32,16 +32,19 @@ const CoursesTab = ({ courses = []}) => {
                       <span className="info-value">{course.credits}</span>
                     </div>
                   )}
-                  {course.schedule && (
-                    <div className="course-info-item">
-                      <span className="info-label">מועד:</span>
-                      <span className="info-value">{course.schedule}</span>
-                    </div>
-                  )}
                 </div>
+                
+                <div className="course-stats">
+                  <div className="course-stat-item">
+                    <span className="stat-value">{course.assignments ? course.assignments.length : 0}</span>
+                    <span className="stat-label">מטלות</span>
+                  </div>
+                </div>
+                
                 {course.description && (
                   <p className="course-description">{course.description}</p>
                 )}
+                
                 {course.assignments && course.assignments.length > 0 && (
                   <div className="course-assignments">
                     <h4>משימות קורס:</h4>

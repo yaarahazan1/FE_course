@@ -4,13 +4,19 @@ import "./AddProjectDialog.css";
 const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
   const [projectName, setProjectName] = useState("");
   const [description, setDescription] = useState("");
+  const [dueDate, setDueDate] = useState("");
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!projectName.trim()) return;
-    onAddSuccess({ name: projectName, description });
+    onAddSuccess({ 
+      name: projectName, 
+      description,
+      dueDate
+    });
     setProjectName("");
     setDescription("");
+    setDueDate("");
     onClose();
   };
 
@@ -36,6 +42,14 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows="3"
+            />
+          </label>
+          <label>
+            תאריך יעד:
+            <input
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
             />
           </label>
           <div className="modal-actions">

@@ -1,0 +1,189 @@
+.dialog-overlay {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+  
+  .dialog {
+    background: #fff;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid #eaeaea;
+    background-color: #f9f9f9;
+  }
+  
+  .dialog-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .dialog-close-button {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #666;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+  }
+  
+  .dialog-close-button:hover {
+    background-color: #eaeaea;
+    color: #333;
+  }
+  
+  .dialog-content {
+    padding: 24px;
+    overflow-y: auto;
+    direction: rtl;
+  }
+  
+  /* Form styles inside dialog */
+  .dialog-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .form-field label {
+    font-weight: 500;
+    color: #333;
+    display: flex;
+    gap: 4px;
+  }
+  
+  .required::after {
+    content: "*";
+    color: #e53935;
+    margin-right: 4px;
+  }
+  
+  .form-field input,
+  .form-field textarea,
+  .form-field select {
+    padding: 12px;
+    border: 1px solid #d1d1d1;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+    width: 100%;
+    font-family: inherit;
+  }
+  
+  .form-field input:focus,
+  .form-field textarea:focus,
+  .form-field select:focus {
+    outline: none;
+    border-color: #89a8b2;
+    box-shadow: 0 0 0 2px rgba(137, 168, 178, 0.2);
+  }
+  
+  .form-field textarea {
+    min-height: 100px;
+    resize: vertical;
+  }
+  
+  .form-field select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: left 12px center;
+    background-size: 16px;
+    padding-left: 36px;
+  }
+  
+  .dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 12px;
+    padding-top: 16px;
+    border-top: 1px solid #eaeaea;
+  }
+  
+  .button {
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    font-size: 1rem;
+  }
+  
+  .button-secondary {
+    background-color: #f0f0f0;
+    color: #333;
+  }
+  
+  .button-secondary:hover {
+    background-color: #e0e0e0;
+  }
+  
+  .button-primary {
+    background-color: #89a8b2;
+    color: white;
+  }
+  
+  .button-primary:hover {
+    background-color: #7a96a0;
+  }
+  
+  /* Date picker style override */
+  input[type="date"] {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 12px !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: left 12px center;
+    background-size: 16px;
+    padding-left: 36px;
+  }
+  
+  @media (max-width: 640px) {
+    .dialog {
+      max-width: 100%;
+      max-height: calc(100vh - 40px);
+      margin: 20px;
+      width: calc(100% - 40px);
+    }
+    
+    .dialog-content {
+      padding: 16px;
+    }
+  }
