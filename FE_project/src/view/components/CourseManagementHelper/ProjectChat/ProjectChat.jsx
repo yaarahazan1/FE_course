@@ -7,6 +7,7 @@ const ProjectChat = ({ messages: initialMessages = [] }) => {
 
   const handleSendMessage = (e) => {
     e.preventDefault();
+    e.stopPropagation(); // מונע מהאירוע להתפשט למעלה לכרטיס הפרויקט
     if (!newMessage.trim()) return;
     
     const currentTime = new Date();
@@ -26,7 +27,7 @@ const ProjectChat = ({ messages: initialMessages = [] }) => {
   };
 
   return (
-    <div className="project-chat">
+    <div className="project-chat" onClick={(e) => e.stopPropagation()}>
       <div className="chat-header">
         <h3>צ'אט צוות</h3>
       </div>

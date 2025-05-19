@@ -7,6 +7,7 @@
   background-color: #fff;
   overflow: hidden;
   margin-top: 1rem;
+  direction: rtl; 
 }
 
 .chat-header {
@@ -55,6 +56,7 @@
   color: #777;
 }
 
+/* שינוי: הודעות שלי (מימין) */
 .my-message {
   justify-content: flex-end;
 }
@@ -63,6 +65,11 @@
   background-color: #4285f4;
   color: white;
   border-bottom-right-radius: 2px;
+}
+
+/* שינוי: הודעות של אחרים (משמאל) */
+.other-message {
+  justify-content: flex-start;
 }
 
 .other-message .message-content {
@@ -93,6 +100,7 @@
 
 .send-button {
   margin-right: 0.5rem;
+  margin-left: 0;
   background-color: transparent;
   border: none;
   color: #89A8B2;
@@ -101,7 +109,7 @@
   align-items: center;
   justify-content: center;
   padding: 0.25rem;
-  transform: rotate(90deg);
+  transform: rotate(-90deg);
 }
 
 .send-button:hover {

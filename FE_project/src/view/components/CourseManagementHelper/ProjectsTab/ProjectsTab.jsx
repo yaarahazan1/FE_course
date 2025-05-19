@@ -20,6 +20,12 @@ const ProjectsTab = ({ projects, selectedProjectId, setSelectedProjectId }) => {
     return date.toLocaleDateString("he-IL");
   };
 
+  // מניעת סגירת הפרויקט בעת לחיצה על כפתור הצ'אט
+  const handleChatToggle = (e) => {
+    e.stopPropagation();
+    setShowChat(!showChat);
+  };
+
   return (
     <div className="projects-tab">
       <div className="projects-header">
@@ -45,7 +51,7 @@ const ProjectsTab = ({ projects, selectedProjectId, setSelectedProjectId }) => {
 
             {/* Expanded content shown only when selected */}
             {expandedProjects[project.id] && (
-              <div className="project-details">
+              <div className="project-details" onClick={(e) => e.stopPropagation()}>
                 <p className="project-description">{project.description}</p>
                 <p><strong>משימות:</strong> {project.tasks}</p>
 
@@ -61,10 +67,7 @@ const ProjectsTab = ({ projects, selectedProjectId, setSelectedProjectId }) => {
                 <div className="project-actions">
                   <button 
                     className="chat-button" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowChat(!showChat);
-                    }}
+                    onClick={(e) => handleChatToggle(e, project.id)}
                   >
                     {showChat ? "סגור צ'אט" : "פתח צ'אט"}
                   </button>
