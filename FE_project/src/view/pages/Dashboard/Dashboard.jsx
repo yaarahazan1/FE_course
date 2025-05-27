@@ -1,19 +1,19 @@
 import React from "react";
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip,
-  PieChart, Pie, Cell, ResponsiveContainer,
-  LineChart, Line
-} from "recharts";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
+import { Star, User, Trophy, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 import "./Dashboard.css";
 
 const Dashboard = () => {
-  const tasksData = { completed: 75, pending: 25 };
-  const completionRate = 92;
+  // מידע סטטיסטי לדוגמה
+  const tasksData = {
+    completed: 75,
+    pending: 25
+  };
 
   const pieData = [
-    { name: "הושלמו", value: tasksData.completed },
-    { name: "ממתינות", value: tasksData.pending }
+    { name: "הושלמו", value: tasksData.completed, color: "#10B981" },
+    { name: "ממתינות", value: tasksData.pending, color: "#EF4444" }
   ];
 
   const recentSummaries = [
@@ -53,6 +53,9 @@ const Dashboard = () => {
     newUsers: 5
   };
 
+  const completionRate = 92;
+
+  // נתונים עבור המשתמש הנוכחי
   const currentUserData = {
     name: "יעל ישראלי",
     tasksCompleted: 12,
@@ -61,12 +64,12 @@ const Dashboard = () => {
     summariesUploaded: 5,
     lastActive: "11/04/2025",
     progress: [
-      { day: "א'", hours: 2 },
-      { day: "ב'", hours: 5 },
-      { day: "ג'", hours: 3 },
-      { day: "ד'", hours: 4 },
-      { day: "ה'", hours: 6 },
-      { day: "ו'", hours: 2 },
+      { day: "יום א'", hours: 2 },
+      { day: "יום ב'", hours: 5 },
+      { day: "יום ג'", hours: 3 },
+      { day: "יום ד'", hours: 4 },
+      { day: "יום ה'", hours: 6 },
+      { day: "יום ו'", hours: 2 },
       { day: "שבת", hours: 0 },
     ],
     topCourses: [
@@ -78,147 +81,301 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="dashboard">
-      <header className="dashboard-header">
+    <div className="dashboard-container">
         <div>
-          <h1>לוח מחוונים מערכתי</h1>
-          <p>סיכום סטטיסטי של פעילות המערכת</p>
+          <Link to="/" className="dashboard-home-link">חזרה לדף הבית</Link>
         </div>
-        <Link to="/">חזרה לדף הבית</Link>
-      </header>
-
-      {/* אישי */}
-      <section className="section">
-        <h2>👤 הלוח האישי</h2>
-        <div className="stats-row">
-          <StatBox label="משימות שהושלמו" value={`${currentUserData.tasksCompleted} מתוך ${currentUserData.tasksTotal}`} />
-          <StatBox label="סיכומים שהועלו" value={currentUserData.summariesUploaded} />
-          <StatBox label="שעות למידה" value={currentUserData.studyHours} />
-          <StatBox label="השלמת משימות" value={`${Math.round((currentUserData.tasksCompleted / currentUserData.tasksTotal) * 100)}%`} />
+      <div className="dashboard-header">
+        <div>
+          <h1 className="dashboard-title">לוח מחוונים מערכתי</h1>
+          <p className="dashboard-subtitle">סיכום סטטיסטי של פעילות המערכת</p>
         </div>
+      </div>
 
-        <div className="charts-row">
-          <div className="chart">
-            <h4>📅 פעילות לפי ימים</h4>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={currentUserData.progress}>
-                <XAxis dataKey="day" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="hours" fill="#ccc" />
-              </BarChart>
-            </ResponsiveContainer>
+      {/* מידע על המשתמש הנוכחי */}
+      <div className="dashboard-card user-info-card">
+        <div className="card-content">
+          <div className="user-header">
+            <h2 className="user-title">
+              <User className="icon" />
+              הנתונים שלי
+            </h2>
+            <span className="last-update">עדכון אחרון: {currentUserData.lastActive}</span>
           </div>
-          <div className="chart">
-            <h4>🧪 חלוקת זמן לפי קורסים</h4>
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie data={currentUserData.topCourses} dataKey="percent" outerRadius={70} label>
-                  {currentUserData.topCourses.map((_, i) => (
-                    <Cell key={i} fill={["#ccc", "#bbb", "#aaa", "#999"][i % 4]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+          
+          <div className="user-stats-grid">
+            <div className="stat-card">
+              <div className="stat-number">{currentUserData.tasksCompleted}</div>
+              <div className="stat-label">משימות שהושלמו</div>
+              <div className="stat-sublabel">מתוך {currentUserData.tasksTotal}</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-number">{currentUserData.studyHours}</div>
+              <div className="stat-label">שעות למידה</div>
+              <div className="stat-sublabel">בשבוע האחרון</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-number">{currentUserData.summariesUploaded}</div>
+              <div className="stat-label">סיכומים שהועלו</div>
+              <div className="stat-sublabel">בחודש האחרון</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-number">{Math.round((currentUserData.tasksCompleted / currentUserData.tasksTotal) * 100)}%</div>
+              <div className="stat-label">השלמת משימות</div>
+              <div className="stat-sublabel">מתוך היעד</div>
+            </div>
+          </div>
+          
+          <div className="charts-grid">
+            <div className="chart-section">
+              <h3 className="chart-title">
+                <Clock className="chart-icon" />
+                פעילות לפי ימים
+              </h3>
+              <div className="chart-container">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={currentUserData.progress}>
+                    <XAxis dataKey="day" />
+                    <YAxis direction={"ltr"}/>
+                    <Tooltip />
+                    <Bar dataKey="hours" fill="#89A8B2" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            <div className="chart-section">
+              <h3 className="chart-title">
+                <Trophy className="chart-icon" />
+                התפלגות זמן לפי קורסים
+              </h3>
+              <div className="chart-container">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={currentUserData.topCourses}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="percent"
+                      label={({ name, percent }) => `${name} ${percent}%`}
+                    >
+                      {currentUserData.topCourses.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={['#89A8B2', '#B3C8CF', '#FDE1D3', '#FEF7CD'][index % 4]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+          
+          <div className="recommendation-card">
+            <div className="recommendation-title">המלצה אישית:</div>
+            <p className="recommendation-text">
+              בהתבסס על הנתונים שלך, כדאי להקדיש יותר זמן לקורס אנגלית בשבוע הקרוב
+            </p>
           </div>
         </div>
-        <div className="recommendation">
-          <strong>💡 המלצה:</strong> הקדש/י יותר זמן לקורס אנגלית השבוע.
+      </div>
+
+      {/* סיכום סטטיסטי */}
+      <div className="summary-grid">
+        {/* גרף עוגה של משימות */}
+        <div className="dashboard-card">
+          <div className="card-content">
+            <h2 className="card-title">סטטוס משימות</h2>
+            <div className="pie-chart-container">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="pie-legend">
+                <div className="legend-item">
+                  <div className="legend-dot completed"></div>
+                  <span>הושלמו</span>
+                </div>
+                <div className="legend-item">
+                  <div className="legend-dot pending"></div>
+                  <span>ממתינות</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </section>
 
-      {/* כלליות */}
-      <section>
-        <h2>📊 סטטיסטיקות כלליות</h2>
-        <div className="grid">
-          <ChartBox title="סטטוס משימות">
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie data={pieData} dataKey="value" outerRadius={60} label>
-                  {pieData.map((_, i) => (
-                    <Cell key={i} fill={["#bbb", "#eee"][i % 2]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </ChartBox>
-
-          <ChartBox title="סיכומים חדשים">
-            {recentSummaries.map(item => (
-              <div key={item.id}>
-                <strong>{item.title}</strong><br />
-                <small>{item.author} - {item.date}</small>
-              </div>
-            ))}
-          </ChartBox>
-
-          <ChartBox title="פעילות אחרונה">
-            {recentActivities.map(item => (
-              <div key={item.id}>
-                <strong>{item.activity}</strong><br />
-                <small>{item.details} - {item.date}</small>
-              </div>
-            ))}
-          </ChartBox>
-
-          <ChartBox title="זמן לקורסים">
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={timeSpentData} layout="vertical">
-                <XAxis type="number" />
-                <YAxis dataKey="name" type="category" width={80} />
-                <Tooltip />
-                <Bar dataKey="hours" fill="#bbb" />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartBox>
-
-          <ChartBox title="תדירות העלאת סיכומים">
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={summaryUploadData}>
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Line dataKey="uploads" stroke="#aaa" />
-              </LineChart>
-            </ResponsiveContainer>
-          </ChartBox>
-
-          <ChartBox title="ציונים על סיכומים">
-            {summaryRatings.map(s => (
-              <div key={s.id}>
-                {s.title}: {"★".repeat(s.rating)}{"☆".repeat(5 - s.rating)}
-              </div>
-            ))}
-            <div><strong>{completionRate}%</strong> שביעות רצון</div>
-          </ChartBox>
-
-          <ChartBox title="מעורבות משתמשים">
-            <p>כניסות: {userEngagement.visitors}</p>
-            <p>פעילים: {userEngagement.activeUsers}</p>
-            <p>חדשים: {userEngagement.newUsers}</p>
-            <div><strong>טיפ:</strong> הקדשת 30 דקות ביום מעלה הצלחה ב־40%</div>
-          </ChartBox>
+        {/* סיכומים חדשים */}
+        <div className="dashboard-card">
+          <div className="card-content">
+            <h2 className="card-title">סיכומים חדשים</h2>
+            <div className="summaries-list">
+              {recentSummaries.map(summary => (
+                <div key={summary.id} className="summary-item">
+                  <div className="summary-title">{summary.title}</div>
+                  <div className="summary-details">
+                    <span>מועלה ע"י: {summary.author}</span>
+                    <span>{summary.date}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </section>
 
+        {/* פעילויות אחרונות */}
+        <div className="dashboard-card">
+          <div className="card-content">
+            <h2 className="card-title">פעילות אחרונה</h2>
+            <div className="activities-list">
+              {recentActivities.map(activity => (
+                <div key={activity.id} className="activity-item">
+                  <div className="activity-title">{activity.activity}</div>
+                  <div className="activity-details">
+                    <span>{activity.details}</span>
+                    <span>{activity.date}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h2 className="section-title">מדדי ביצוע מרכזיים</h2>
+      
+      {/* מדדי ביצוע מרכזיים */}
+      <div className="kpi-grid">
+        {/* זמן שהוקדש לקורסים */}
+        <div className="dashboard-card">
+          <div className="card-content">
+            <h2 className="card-title">זמן שהוקדש לקורסים</h2>
+            <div className="chart-container">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={timeSpentData} layout="vertical">
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={80} direction={"ltr"}/>
+                  <Tooltip />
+                  <Bar dataKey="hours" fill="#89A8B2" />
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="chart-footer">
+                סה"כ: 42 שעות למידה השבוע
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* תדירות העלאת סיכומים */}
+        <div className="dashboard-card">
+          <div className="card-content">
+            <h2 className="card-title">תדירות העלאת סיכומים</h2>
+            <div className="chart-container">
+              <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={summaryUploadData} margin={{ left: 20, right: 20, top: 20, bottom: 20 }}>
+                  <XAxis dataKey="month" tick={{ dy: 10 }} />
+                  <YAxis tick={{ dy: -10 }} direction={"ltr"}/>
+                  <Tooltip />
+                  <Line type="monotone" dataKey="uploads" stroke="#89A8B2" />
+                </LineChart>
+              </ResponsiveContainer>
+              <div className="chart-footer">
+                7 סיכומים הועלו בחודש האחרון
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* שיעור השלמת משימות */}
+        <div className="dashboard-card">
+          <div className="card-content">
+            <h2 className="card-title">שיעור השלמת משימות</h2>
+            <div className="completion-rate-container">
+              <div className="completion-circle">
+                <div className="completion-inner">
+                  <span className="completion-percentage">{completionRate}%</span>
+                </div>
+              </div>
+              <div className="completion-details">
+                <div>12 משימות הושלמו מתוך 16</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* מעורבות משתמשים ופידבק */}
+      <div className="engagement-grid">
+        {/* פידבק וציונים על סיכומים */}
+        <div className="dashboard-card">
+          <div className="card-content">
+            <h2 className="card-title">פידבק וציונים על סיכומים</h2>
+            <div className="ratings-list">
+              {summaryRatings.map(summary => (
+                <div key={summary.id} className="rating-item">
+                  <span className="rating-title">{summary.title}</span>
+                  <div className="rating-stars-dashboard">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        size={18}
+                        className={i < summary.rating ? "star-filled" : "star-empty-dashboard"}
+                      />
+                    ))}
+                    <span className="rating-score">({summary.rating} מתוך 5)</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="overall-satisfaction">
+              <div className="satisfaction-rate">{completionRate}%</div>
+              <div className="satisfaction-label">שביעות רצון כללית</div>
+            </div>
+          </div>
+        </div>
+
+        {/* מעורבות משתמשים */}
+        <div className="dashboard-card">
+          <div className="card-content">
+            <h2 className="card-title">מעורבות משתמשים</h2>
+            <div className="engagement-stats">
+              <div className="engagement-stat">
+                <div className="engagement-number">{userEngagement.visitors}</div>
+                <div className="engagement-label">כניסות למערכת</div>
+              </div>
+              <div className="engagement-stat">
+                <div className="engagement-number">{userEngagement.activeUsers}</div>
+                <div className="engagement-label">משתמשים פעילים</div>
+              </div>
+              <div className="engagement-stat">
+                <div className="engagement-number">{userEngagement.newUsers}</div>
+                <div className="engagement-label">חברים שהצטרפו</div>
+              </div>
+            </div>
+            <div className="tip-card">
+              <div className="tip-title">טיפ היום:</div>
+              <p className="tip-text">הקדשת 30 דקות ללמידה יומית מגדילה ב-40% את סיכויי ההצלחה במבחנים</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
-
-const StatBox = ({ label, value }) => (
-  <div className="stat-box">
-    <div>{label}</div>
-    <div className="stat-value">{value}</div>
-  </div>
-);
-
-const ChartBox = ({ title, children }) => (
-  <div className="chart-box">
-    <h4>{title}</h4>
-    {children}
-  </div>
-);
 
 export default Dashboard;

@@ -1,11 +1,13 @@
-import React, { useState } from "react";
+import React from "react";
+import SocialHeader from "../../components/SocialNetworkHelper/SocialHeader/SocialHeader";
+import ProfileSidebar from "../../components/SocialNetworkHelper/ProfileSidebar/ProfileSidebar";
+import EventList from "../../components/SocialNetworkHelper/EventList/EventList";
+import PostFeed from "../../components/SocialNetworkHelper/PostFeed/PostFeed";
+import PostForm from "../../components/SocialNetworkHelper/PostForm/PostForm";
+
 import "./SocialNetwork.css";
 
 const SocialNetwork = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [newPostContent, setNewPostContent] = useState("");
-
   const events = [
     { id: 1, title: "בחינת אמצע בפיזיקה", date: "היום", time: "14:00" },
     { id: 2, title: "הגשת עבודה במתמטיקה", date: "15 ביוני, 2025", time: "" },
@@ -16,117 +18,43 @@ const SocialNetwork = () => {
       id: 1,
       author: "רחל לוי",
       role: "לפני שעתיים",
-      content: "שיתפתי את סיכומי השיעור האחרון בנושא דיפרנציאליים...",
+      content:
+        "שיתפתי את סיכומי השיעור האחרון בנושא דיפרנציאליים. כדאי לעבור עליהם לפני המבחן ביום שני. בהצלחה לכולם!",
       likes: 24,
       comments: 8,
-      attachment: { name: "סיכום.pdf", size: "2.3 מגהבייט" },
+      attachment: {
+        name: "סיכום_מבוא_מתמטי_שיעור_12_רביעי.pdf",
+        size: "2.3 מגהבייט",
+      },
     },
     {
       id: 2,
       author: "יואב שמעון",
       role: "לפני 5 שעות",
-      content: "מישהו משתתף בסדנת לימוד לקראת המבחן באלגוריתמים?",
+      content:
+        "מישהו משתתף בסדנת לימוד לקראת המבחן באלגוריתמים? מי רוצה להיפגש בספרייה לפני?",
       likes: 15,
       comments: 12,
       attachment: null,
     },
   ];
 
-  const handleFileChange = (e) => {
-    if (e.target.files.length > 0) {
-      setSelectedFile(e.target.files[0]);
-    }
-  };
-
-  const removeSelectedFile = () => {
-    setSelectedFile(null);
-  };
-
   return (
     <div className="social-container">
-      <header>
-        <h2>רשת חברתית לסטודנטים</h2>
-      </header>
-
-      <div className="social-search">
-        <input
-          type="text"
-          placeholder="חיפוש..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
+      <SocialHeader />
 
       <div className="social-layout">
-        <aside className="social-sidebar">
-          <div className="profile-card">
-            <div className="avatar">ש"כ</div>
-            <h3>שירה כהן</h3>
-            <p>מדעי המחשב</p>
-            <p className="label">סטודנטית שנה ג'</p>
-            <hr />
-            <div className="links">
-              <div>פרופיל</div>
-              <div>חברים</div>
-              <div>הודעות</div>
-              <div>התראות</div>
-              <div>קבוצות לימוד</div>
-            </div>
-          </div>
+        {/* Sidebar */}
+        <div className="social-sidebar">
+          <ProfileSidebar />
+          <EventList events={events} />
+        </div>
 
-          <div className="events-card">
-            <h3>אירועים קרובים</h3>
-            <ul>
-              {events.map((event) => (
-                <li key={event.id}>
-                  <strong>{event.title}</strong><br />
-                  {event.date} {event.time && `- ${event.time}`}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </aside>
-
-        <main className="social-main">
-          <section className="post-creator">
-            <textarea
-              value={newPostContent}
-              onChange={(e) => setNewPostContent(e.target.value)}
-              placeholder="מה חדש אצלך?"
-            />
-            <div className="post-options">
-              <label>
-                📎 העלאת קובץ
-                <input type="file" onChange={handleFileChange} hidden />
-              </label>
-              <button>תמונה</button>
-              <button>אירוע</button>
-              <button>פרסם</button>
-            </div>
-            {selectedFile && (
-              <div className="file-info">
-                נבחר: {selectedFile.name}
-                <button onClick={removeSelectedFile}>❌ הסר</button>
-              </div>
-            )}
-          </section>
-
-          {posts
-            .filter((p) => p.author.includes(searchTerm) || p.content.includes(searchTerm))
-            .map((post) => (
-              <div key={post.id} className="post-card">
-                <p><strong>{post.author}</strong> • {post.role}</p>
-                <p>{post.content}</p>
-                {post.attachment && (
-                  <div>📄 {post.attachment.name} ({post.attachment.size})</div>
-                )}
-                <div className="post-footer">
-                  <span>❤️ {post.likes} | 💬 {post.comments}</span>
-                  <button>🔗 שתף</button>
-                </div>
-              </div>
-            ))}
-        </main>
+        {/* Main Feed */}
+        <div className="social-main">
+          <PostForm />
+          <PostFeed posts={posts} />
+        </div>
       </div>
     </div>
   );

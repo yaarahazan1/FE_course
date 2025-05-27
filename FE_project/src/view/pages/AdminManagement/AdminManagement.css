@@ -1,132 +1,153 @@
 .admin-container {
-    display: flex;
+  min-height: 100vh;
+  padding: 1rem;
+  direction: rtl;
+  background-color: #F1F0E8;
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-header-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.logo {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #627981;
+  text-decoration: none;
+}
+
+.logo:hover {
+  text-decoration: underline;
+  color: #3a4447;
+}
+
+.admin-title {
+  font-size: 1.875rem;
+  font-weight: bold;
+  color: #89A8B2;
+  text-align: center;
+}
+
+.admin-main {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.admin-tabs {
+  width: 100%;
+}
+
+.admin-tabs-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: 1rem;
+  background-color: var(--element-bg, #E5E1DA);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--border-light, #e0e0e0);
+}
+
+.admin-tab {
+  padding: 0.75rem 1rem;
+  border: none;
+  background-color: transparent;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border-right: 1px solid var(--border-light, #e0e0e0);
+}
+
+.admin-tab:last-child {
+  border-right: none;
+}
+
+.admin-tab:hover {
+  background-color: var(--hover-bg, #f8f9fa);
+}
+
+.admin-tab.active {
+  background-color: var(--primary-accent, #89A8B2);
+  color: white;
+}
+
+.admin-tab-content {
+  width: 100%;
+}
+
+.admin-panel {
+  background-color: var(--element-bg, #ffffff);
+  border-radius: 8px;
+  padding: 1.5rem;
+  border: 1px solid var(--border-light, #e0e0e0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .admin-header-content {
     flex-direction: column;
-    min-height: 100vh;
-    padding: 1rem;
-    direction: rtl;
-    font-family: sans-serif;
-  }
-  
-  .admin-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  
-  .admin-tabs {
-    display: flex;
-    justify-content: center;
     gap: 1rem;
-    margin-top: 2rem;
-  }
-  
-  .admin-tabs button {
-    padding: 0.5rem 1rem;
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    cursor: pointer;
-  }
-  
-  .admin-tabs button.active {
-    border-bottom: 2px solid black;
+    text-align: center;
   }
   
   .admin-main {
-    margin-top: 2rem;
-    width: 70%;
-    margin-left: auto;
-    margin-right: auto;
-  }
-  
-  .admin-main input {
-    width: 95%;
-    margin-bottom: 1rem;
     padding: 0.5rem;
   }
   
-  .admin-main table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  
-  .admin-main th, .admin-main td {
-    padding: 0.5rem;
-    border-bottom: 1px solid #ccc;
-  }
-  
-  .clickable {
-    cursor: pointer;
-    text-decoration: underline;
-  }
-  
-  .modal {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100vw; height: 100vh;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex; justify-content: center; align-items: center;
-    z-index: 1000;
-  }
-  
-  .modal-content {
-    background: #fff;
-    padding: 2rem;
-    border-radius: 8px;
-    width: 600px;
-    position: relative;
-    direction: rtl;
-  }
-  
-  .close-btn {
-    position: absolute;
-    top: 10px; left: 10px;
-    background: transparent;
-    border: none;
-    font-size: 1.5rem;
-  }
-  
-  .summary-box {
-    background: #f7f7f7;
+  .admin-panel {
     padding: 1rem;
-    margin: 1rem 0;
-    border-radius: 5px;
   }
   
-  .modal-content textarea {
-    width: 100%;
-    height: 100px;
-    margin: 1rem 0;
-    padding: 0.5rem;
+  .admin-tabs-list {
+    grid-template-columns: 1fr;
   }
   
-  .modal-actions {
-    display: flex;
-    justify-content: space-between;
+  .admin-tab {
+    border-right: none;
+    border-bottom: 1px solid var(--border-light, #e0e0e0);
   }
   
-  .user-modal {
-    width: 700px;
+  .admin-tab:last-child {
+    border-bottom: none;
   }
-  
-  .user-columns {
-    display: flex;
-    gap: 20px;
+}
+
+/* RTL Support */
+[dir="rtl"] .admin-container {
+  direction: rtl;
+}
+
+[dir="rtl"] .admin-header-content {
+  flex-direction: row-reverse;
+}
+
+.admin-container * {
+  box-sizing: border-box;
+}
+
+.admin-tab-content {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
-  
-  .user-box {
-    flex: 1;
-    background: #f8f8f8;
-    padding: 15px;
-    border-radius: 10px;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
-  
-  .gray-text {
-    color: #888;
-  }
-  
-  .user-details {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
+}

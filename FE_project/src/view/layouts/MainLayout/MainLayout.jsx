@@ -1,19 +1,18 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import PageHeader from '../PageHeader'; // חשוב לשים לב למסלול
-import './MainLayout.css'; // אם יש צורך לעצב פה
+import PageHeader from '../PageHeader';
+import './MainLayout.css';
 
 const MainLayout = () => {
-  const location = useLocation(); // מביא את המיקום הנוכחי
+  const location = useLocation();
+  const hideHeaderPaths = ['/', '/Login', '/Signup', '/Dashboard', '/HelpSettings', '/AdminManagement']; // נתיבים שבהם לא נציג Header
 
   return (
-    
     <div>
-      {/* Header יופיע רק אם זה לא HomePage */}
-      {location.pathname !== '/' && <PageHeader />}
+      {!hideHeaderPaths.includes(location.pathname) && <PageHeader />}
 
       <main>
-        <Outlet /> {/* כאן יוצגו כל התוכן של העמודים */}
+        <Outlet />
       </main>
 
       <footer className="footer">

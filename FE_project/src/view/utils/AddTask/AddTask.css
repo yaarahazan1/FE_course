@@ -1,0 +1,136 @@
+.add-task-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(6, 4, 4, 0.505);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; 
+}
+
+.add-task-modal {
+  background: #fff;
+  padding: 2rem;
+  width: 700px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 12px;
+  direction: rtl;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.add-task-title {
+  text-align: center;
+  font-size: 1.6rem;
+  color: #2c3e50;
+  margin: 0%;
+  font-family: inherit;
+}
+
+.add-task-p {
+  margin-bottom: 1rem;
+  text-align: center;
+  font-size: 0.75rem;
+  margin-top: 0%;
+}
+
+.add-task-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.form-field-add-task {
+  display: flex;
+  flex-direction: column;
+  font-family: inherit;
+}
+
+.form-field-add-task label {
+  font-weight: 600;
+  color: #34495e;
+}
+
+.input-field {
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #F1F0E8;
+  font-size: 14px;
+  outline: none;
+  text-align: right;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.input-field:focus {
+  border-color: black;
+  background-color: #fff;
+}
+
+.textarea-field {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.add-task-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.confirm-button,
+.cancel-button {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.confirm-button {
+  background-color: #007bff;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.confirm-button:hover {
+  background-color: #0056b3;
+}
+
+.cancel-button {
+  background-color: #e0e0e0;
+  color: #333;
+}
+
+.cancel-button:hover {
+  background-color: #cfcfcf;
+}
+
+/* ✅ התאמה למסכים קטנים */
+@media (max-width: 480px) {
+  .add-task-modal {
+    padding: 1.2rem;
+    max-height: 95vh;
+  }
+
+  .confirm-button,
+  .cancel-button {
+    font-size: 13px;
+    padding: 8px 12px;
+  }
+
+  .add-task-title {
+    font-size: 1.3rem;
+  }
+}

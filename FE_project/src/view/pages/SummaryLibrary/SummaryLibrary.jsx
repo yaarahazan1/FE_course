@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import UploadSummaryDialog from "../../components/SummaryLibraryHelper/UploadSummaryDialog/UploadSummaryDialog";
 import "./SummaryLibrary.css";
 
 const demoSummaries = [
@@ -157,113 +158,7 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired }) => {
   );
 };
 
-// דיאלוג העלאת סיכום
-const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess }) => {
-  const [formData, setFormData] = useState({
-    title: "",
-    course: "",
-    professor: "",
-    file: null,
-  });
 
-  const handleChange = (e) => {
-    const { name, value, files } = e.target;
-    if (name === "file" && files) {
-      setFormData({
-        ...formData,
-        file: files[0],
-      });
-    } else {
-      setFormData({
-        ...formData,
-        [name]: value,
-      });
-    }
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // בהמשך: לוגיקת העלאת קובץ
-    console.log("מעלה סיכום:", formData);
-    onUploadSuccess();
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="dialog-overlay">
-      <div className="dialog-content">
-        <div className="dialog-header">
-          <h2 className="dialog-title">העלאת סיכום חדש</h2>
-          <button className="dialog-close" onClick={onClose}>×</button>
-        </div>
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="title">כותרת הסיכום</label>
-            <input
-              type="text"
-              id="title"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              placeholder="הזן כותרת מתאימה"
-              required
-            />
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="course">שם הקורס</label>
-            <input
-              type="text"
-              id="course"
-              name="course"
-              value={formData.course}
-              onChange={handleChange}
-              placeholder="הזן את שם הקורס"
-              required
-            />
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="professor">שם המרצה</label>
-            <input
-              type="text"
-              id="professor"
-              name="professor"
-              value={formData.professor}
-              onChange={handleChange}
-              placeholder="הזן את שם המרצה"
-              required
-            />
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="file">קובץ הסיכום</label>
-            <div className="file-upload">
-              <input
-                type="file"
-                id="file"
-                name="file"
-                onChange={handleChange}
-                accept=".pdf,.doc,.docx"
-                required
-              />
-              <label htmlFor="file" className="file-upload-label">
-                <span className="upload-icon">📎</span>
-                <span>{formData.file ? formData.file.name : "בחר קובץ"}</span>
-              </label>
-            </div>
-          </div>
-          
-          <div className="dialog-footer">
-            <button type="button" className="btn-cancel" onClick={onClose}>ביטול</button>
-            <button type="submit" className="btn-submit">העלה סיכום</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
 
 // רכיב ראשי של ספריית הסיכומים
 const SummaryLibrary = () => {
@@ -405,7 +300,7 @@ const SummaryLibrary = () => {
       {!hasUploaded && (
         <div className="restricted-access">
           <div className="lock-icon-large">🔒</div>
-          <h3 className="restricted-title">גישה מוגבלת</h3>
+          <h3 className="restricted-c">גישה מוגבלת</h3>
           <p className="restricted-message">
             כדי לקבל גישה מלאה לכל הסיכומים בספרייה, עליך להעלות לפחות סיכום אחד משלך.
           </p>

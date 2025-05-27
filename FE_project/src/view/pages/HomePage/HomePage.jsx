@@ -13,10 +13,10 @@ const HomePage = () => {
           <span className="logoText">סטודנט חכם</span>
         </div>
         <div className="navButtons">
-          <Link to="/dashboard">
+          <Link to="/Dashboard">
             <button className="navButton">לוח מחוונים</button>
           </Link>
-          <Link to="/login">
+          <Link to="/Login">
             <button className="navButton">כניסה</button>
           </Link>
         </div>

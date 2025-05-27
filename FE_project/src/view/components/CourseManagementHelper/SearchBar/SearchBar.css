@@ -31,4 +31,5 @@
   border: 1px solid #ccc;
   border-radius: 6px;
   max-width: 1200px;
+  font-family: inherit;
 }

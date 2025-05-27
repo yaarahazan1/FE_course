@@ -1,59 +1,51 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
+import PrivacySettings from "../../components/HelpSettingsHelper/PrivacySettings/PrivacySettings";
+import HelpGuides from "../../components/HelpSettingsHelper/HelpGuides/HelpGuides";
 import "./HelpSettings.css";
 
 const HelpSettings = () => {
   const [activeTab, setActiveTab] = useState("help");
 
   return (
-    <div className="help-container">
-      <div className="help-inner">
-
-        <div className="help-back">
-          <Link to="/" className="help-back-link">
-            <span className="arrow">←</span>
-            חזרה לדף הבית
+    <div className="help-settings-container">
+      <div className="help-settings-content">
+        <div className="back-navigation">
+          <Link to="/" className="back-link">
+            <ArrowLeft className="back-icon" />
+            <span>חזרה לדף הבית</span>
           </Link>
         </div>
-
-        <h1 className="help-title">מרכז עזרה והגדרות</h1>
-
-        <div>
-          <div className="help-tabs">
-            <button
+        
+        <h1 className="main-title-settings">מרכז עזרה והגדרות</h1>
+        
+        <div className="tabs-container">
+          <div className="tabs-list-settings">
+            <button 
+              className={`tab-trigger ${activeTab === "help" ? "active" : ""}`}
               onClick={() => setActiveTab("help")}
-              className={`help-tab ${activeTab === "help" ? "active" : ""}`}
             >
               מדריכי משתמש
             </button>
-            <button
+            <button 
+              className={`tab-trigger ${activeTab === "privacy" ? "active" : ""}`}
               onClick={() => setActiveTab("privacy")}
-              className={`help-tab ${activeTab === "privacy" ? "active" : ""}`}
             >
               הגדרות פרטיות והתראות
             </button>
           </div>
-
-          <div className="help-content-box">
-            {activeTab === "help" ? (
-              <div>
-                <h2 className="help-section-title">מדריכי משתמש</h2>
-                <ul className="help-list">
-                  <li>איך להשתמש במערכת?</li>
-                  <li>ניהול החשבון האישי</li>
-                  <li>שיתוף סיכומים עם אחרים</li>
-                  <li>שימוש בכתיבה האקדמית</li>
-                </ul>
+          
+          <div className="tab-content">
+            {activeTab === "help" && (
+              <div className="content-card">
+                <HelpGuides />
               </div>
-            ) : (
-              <div>
-                <h2 className="help-section-title">הגדרות פרטיות והתראות</h2>
-                <ul className="help-list">
-                  <li>ניהול הרשאות חשיפה</li>
-                  <li>קביעת העדפות אימייל</li>
-                  <li>שליטה בהתראות בתוך האתר</li>
-                  <li>מחיקת החשבון</li>
-                </ul>
+            )}
+            
+            {activeTab === "privacy" && (
+              <div className="content-card">
+                <PrivacySettings />
               </div>
             )}
           </div>

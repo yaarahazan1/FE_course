@@ -29,7 +29,7 @@
   margin-top: 1.5rem;
 }
 
-.tabs-list {
+.tabs-list-course {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   margin-bottom: 1rem;
@@ -38,7 +38,7 @@
   overflow: hidden;
 }
 
-.tab-button {
+.tab-button-course {
   padding: 1rem;
   border: none;
   background: transparent;
@@ -48,10 +48,9 @@
   transition: background 0.2s;
   color: #4B6B74;
   flex-grow: 1;
-  background-color: #F1F0E8;
 }
 
-.tab-button.active {
+.tab-button-course.active {
   border-bottom: 3px solid #4B6B74;
   color: black;
   font-weight: bold;

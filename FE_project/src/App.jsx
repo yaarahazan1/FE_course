@@ -10,7 +10,6 @@ import CourseManagement from "./view/pages/CourseManagement/CourseManagement";
 import AcademicWriting from "./view/pages/AcademicWriting/AcademicWriting";
 import Login from "./view/pages/Login/Login";
 import Signup from "./view/pages/Signup/Signup";
-import AddTask from "./view/pages/AddTask/AddTask";
 import SocialNetwork from "./view/pages/SocialNetwork/SocialNetwork";
 import AdminManagement from "./view/pages/AdminManagement/AdminManagement";
 import Dashboard from "./view/pages/Dashboard/Dashboard";
@@ -35,7 +34,6 @@ const App = () => (
           <Route path="/SocialNetwork" element={<SocialNetwork />} />
           <Route path="/Login" element={<Login />} />
           <Route path="/Signup" element={<Signup />} />
-          <Route path="/AddTask" element={<AddTask />} />
           <Route path="/AdminManagement" element={<AdminManagement />} />
         </Route>
 

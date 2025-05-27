@@ -1,216 +1,185 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import toast from "react-hot-toast";
+import UserList from "../../components/AdminManagementHelper/UserList/UserList";
+import SummaryList from "../../components/AdminManagementHelper/SummaryList/SummaryList";
+import UserDetailDialog from "../../components/AdminManagementHelper/UserDetailDialog/UserDetailDialog";
+import SummaryDetailDialog from "../../components/AdminManagementHelper/SummaryDetailDialog/SummaryDetailDialog";
+import { mockUsers, mockSummaries } from "../../components/AdminManagementHelper/mockData";
 import "./AdminManagement.css";
-import "../../../styles/styles.css";
-
-const mockUsers = [
-  { id: 1, name: "יוסף כהן", email: "yosef@example.com", institution: "אוניברסיטת תל אביב", field: "פיזיקה", status: "פעיל" },
-  { id: 2, name: "שרה לוי", email: "sara@example.com", institution: "הטכניון", field: "הנדסת תוכנה", status: "פעיל" },
-  { id: 3, name: "מאור ישראלי", email: "maor@example.com", institution: "האוניברסיטה העברית", field: "סוציולוגיה", status: "מוקפא" },
-];
-
-const mockSummaries = [
-  { id: 1, title: "מבוא לפיזיקה", author: "יוסף כהן", date: "12/4/2025" },
-  { id: 2, title: "יסודות המתמטיקה", author: "שרה לוי", date: "11/4/2025" },
-  { id: 3, title: "תיאוריות סוציולוגיות", author: "מאור ישראלי", date: "10/4/2025" },
-];
 
 const AdminManagement = () => {
   const navigate = useNavigate();
   const [userSearchTerm, setUserSearchTerm] = useState("");
   const [summarySearchTerm, setSummarySearchTerm] = useState("");
-  const [selectedSummary, setSelectedSummary] = useState(null);
-  const [feedbackText, setFeedbackText] = useState("");
-  const [activeTab, setActiveTab] = useState("summaries");
   const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedSummary, setSelectedSummary] = useState(null);
+  const [isUserDetailOpen, setIsUserDetailOpen] = useState(false);
+  const [isSummaryDetailOpen, setIsSummaryDetailOpen] = useState(false);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [activeTab, setActiveTab] = useState("users");
+  
+  // State לניהול הנתונים המקומיים
+  const [users, setUsers] = useState(mockUsers);
+  const [summaries, setSummaries] = useState(mockSummaries);
 
   useEffect(() => {
     const isAdmin = localStorage.getItem("isAdmin") === "true";
     if (!isAdmin) {
-      alert("אין הרשאה");
+      toast.error("אין לך הרשאת גישה לדף הניהול");
       navigate("/");
     }
   }, [navigate]);
 
-  const filteredUsers = mockUsers.filter(user =>
+  const filteredUsers = users.filter(user => 
     user.name.includes(userSearchTerm) || user.email.includes(userSearchTerm)
   );
 
-  const filteredSummaries = mockSummaries.filter(summary =>
+  const filteredSummaries = summaries.filter(summary => 
     summary.title.includes(summarySearchTerm) || summary.author.includes(summarySearchTerm)
   );
 
+  const handleUserAction = (action, userId) => {
+    setUsers(prevUsers => {
+      return prevUsers.map(user => {
+        if (user.id === userId) {
+          switch (action) {
+            case 'הקפאה':
+              return { ...user, status: 'קפוא' };
+            case 'הפעלה':
+              return { ...user, status: 'פעיל' };
+            case 'הסרה':
+              return null; 
+            default:
+              return user;
+          }
+        }
+        return user;
+      }).filter(Boolean); 
+    });
+    
+    const actionText = {
+      'הקפאה': 'הקפאת המשתמש',
+      'הפעלה': 'הפעלת המשתמש', 
+      'הסרה': 'מחיקת המשתמש'
+    };
+    
+    toast.success(`${actionText[action]} בוצעה בהצלחה!`);
+    
+    if (isUserDetailOpen) {
+      setIsUserDetailOpen(false);
+    }
+  };
+
   const handleSummaryAction = (action, summaryId) => {
-    alert(`פעולת ${action} בוצעה על סיכום ${summaryId}`);
-    setSelectedSummary(null);
+    setSummaries(prevSummaries => {
+      return prevSummaries.map(summary => {
+        if (summary.id === summaryId) {
+          switch (action) {
+            case 'אישור':
+              return { ...summary, status: 'מאושר' };
+            case 'דחייה':
+              return { ...summary, status: 'נדחה' };
+            case 'מחיקה':
+              return null;
+            default:
+              return summary;
+          }
+        }
+        return summary;
+      }).filter(Boolean); 
+    });
+    
+    const actionText = {
+      'אישור': 'אישור הסיכום',
+      'דחייה': 'דחיית הסיכום',
+      'מחיקה': 'מחיקת הסיכום'
+    };
+    
+    toast.success(`${actionText[action]} בוצעה בהצלחה!`);
+    setIsSummaryDetailOpen(false);
     setFeedbackText("");
+  };
+
+  const openUserDetail = (user) => {
+    setSelectedUser(user);
+    setIsUserDetailOpen(true);
+  };
+
+  const openSummaryDetail = (summary) => {
+    setSelectedSummary(summary);
+    setIsSummaryDetailOpen(true);
   };
 
   return (
     <div className="admin-container">
       <header className="admin-header">
-        <h2>ניהול מערכת</h2>
-        <button onClick={() => navigate("/")}>חזרה לדף הבית</button>
+        <div className="admin-header-content">
+            <a href="/" className="logo">חזרה לדף הבית</a>
+        </div>
       </header>
+      <h1 className="admin-title">ניהול מערכת</h1>
 
-      <nav className="admin-tabs">
-        <button onClick={() => setActiveTab("summaries")} className={activeTab === "summaries" ? "active" : ""}>אישור סיכומים</button>
-        <button onClick={() => setActiveTab("users")} className={activeTab === "users" ? "active" : ""}>ניהול משתמשים</button>
-      </nav>
 
       <main className="admin-main">
-        {activeTab === "users" && (
-          <section>
-            <h2>רשימת משתמשים</h2>
-            <input
-              type="text"
-              placeholder="חיפוש משתמשים..."
-              value={userSearchTerm}
-              onChange={(e) => setUserSearchTerm(e.target.value)}
-            />
-            <table>
-              <thead>
-                <tr>
-                  <th>שם משתמש</th>
-                  <th>אימייל</th>
-                  <th>תחום לימוד</th>
-                  <th>מוסד לימודים</th>
-                  <th>סטטוס</th>
-                  <th>פעולות</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.map(user => (
-                  <tr key={user.id}>
-                    <td onClick={() => setSelectedUser(user)} className="clickable">{user.name}</td>
-                    <td>{user.email}</td>
-                    <td>{user.field}</td>
-                    <td>{user.institution}</td>
-                    <td>{user.status}</td>
-                    <td>
-                      <button>הקפאה</button>
-                      <button>הסרה</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
-        )}
+        <div className="admin-tabs">
+          <div className="admin-tabs-list">
+            <button 
+              className={`admin-tab ${activeTab === "summaries" ? "active" : ""}`}
+              onClick={() => setActiveTab("summaries")}
+            >
+              אישור סיכומים
+            </button>
+            <button 
+              className={`admin-tab ${activeTab === "users" ? "active" : ""}`}
+              onClick={() => setActiveTab("users")}
+            >
+              ניהול משתמשים
+            </button>
+          </div>
 
-        {activeTab === "summaries" && (
-          <section>
-            <h2>רשימת סיכומים לאישור</h2>
-            <input
-              type="text"
-              placeholder="חיפוש סיכומים..."
-              value={summarySearchTerm}
-              onChange={(e) => setSummarySearchTerm(e.target.value)}
-            />
-            <table>
-              <thead>
-                <tr>
-                  <th>כותרת הסיכום</th>
-                  <th>מחבר</th>
-                  <th>תאריך העלאה</th>
-                  <th>סטטוס</th>
-                  <th>פעולות</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredSummaries.map(summary => (
-                  <tr key={summary.id}>
-                    <td onClick={() => setSelectedSummary(summary)} className="clickable">📄 {summary.title}</td>
-                    <td>{summary.author}</td>
-                    <td>{summary.date}</td>
-                    <td>ממתין</td>
-                    <td>
-                      <button onClick={() => handleSummaryAction("אישור", summary.id)}>אישור</button>
-                      <button onClick={() => handleSummaryAction("דחייה", summary.id)}>דחייה</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
-        )}
+          <div className="admin-tab-content">
+            {activeTab === "users" && (
+              <div className="admin-panel">
+                <UserList 
+                  users={filteredUsers}
+                  searchTerm={userSearchTerm}
+                  onSearchChange={(e) => setUserSearchTerm(e.target.value)}
+                  onUserAction={handleUserAction}
+                  onUserSelect={openUserDetail}
+                />
+              </div>
+            )}
+
+            {activeTab === "summaries" && (
+              <div className="admin-panel">
+                <SummaryList 
+                  summaries={filteredSummaries}
+                  searchTerm={summarySearchTerm}
+                  onSearchChange={(e) => setSummarySearchTerm(e.target.value)}
+                  onSummaryAction={handleSummaryAction}
+                  onSummarySelect={openSummaryDetail}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        <UserDetailDialog 
+          user={selectedUser}
+          isOpen={isUserDetailOpen}
+          onOpenChange={setIsUserDetailOpen}
+        />
+
+        <SummaryDetailDialog 
+          summary={selectedSummary}
+          isOpen={isSummaryDetailOpen}
+          onOpenChange={setIsSummaryDetailOpen}
+          feedbackText={feedbackText}
+          onFeedbackChange={(e) => setFeedbackText(e.target.value)}
+          onSummaryAction={handleSummaryAction}
+        />
       </main>
-
-      {selectedSummary && (
-        <div className="modal">
-          <div className="modal-content">
-            <button className="close-btn" onClick={() => setSelectedSummary(null)}>×</button>
-            <h2>פרטי סיכום</h2>
-            <p><strong>כותרת:</strong> {selectedSummary.title}</p>
-            <p><strong>מחבר:</strong> {selectedSummary.author}</p>
-            <p><strong>תאריך העלאה:</strong> {selectedSummary.date}</p>
-            <div className="summary-box">
-              <strong>תוכן הסיכום:</strong>
-              <p>זהו תוכן הסיכום לדוגמה. במערכת אמיתית, כאן יוצג תוכן הסיכום המלא.</p>
-            </div>
-            <label>משוב למשתמש:</label>
-            <textarea
-              value={feedbackText}
-              onChange={(e) => setFeedbackText(e.target.value)}
-              placeholder="הוסף משוב או הערות עבור המשתמש..."
-            />
-            <div className="modal-actions">
-              <button onClick={() => handleSummaryAction("דחייה", selectedSummary.id)}>דחיית הסיכום</button>
-              <button onClick={() => handleSummaryAction("אישור", selectedSummary.id)}>אישור הסיכום</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {selectedUser && (
-        <div className="modal">
-          <div className="modal-content user-modal">
-            <h2>פרטי משתמש</h2>
-            <p className="gray-text">מידע מפורט על המשתמש</p>
-            <div className="user-columns">
-              <div className="user-box">
-                <h3>🗂 פעולות אחרונות</h3>
-                <div>
-                  <strong>10/04/2025:</strong> העלאת סיכום <br />
-                  <small>מבוא לפסיכולוגיה - פרק 1</small>
-                  <hr />
-                  <strong>08/04/2025:</strong> הוספת מטלה <br />
-                  <small>עבודה מסכמת בקורס התפתחות הילד</small>
-                  <hr />
-                  <strong>05/04/2025:</strong> הגיב לשאלה <br />
-                  <small>בפורום של קורס שיטות מחקר</small>
-                </div>
-              </div>
-              <div className="user-details">
-                <div className="user-box">
-                  <h3>📘 פרטים אישיים</h3>
-                  <p><strong>שם:</strong> {selectedUser.name}</p>
-                  <p><strong>אימייל:</strong> {selectedUser.email}</p>
-                  <p><strong>סטטוס:</strong> {selectedUser.status}</p>
-                </div>
-                <div className="user-box">
-                  <h3>📅 פרטי לימודים</h3>
-                  <p><strong>תחום לימוד:</strong> {selectedUser.field}</p>
-                  <p><strong>מוסד לימודים:</strong> {selectedUser.institution}</p>
-                </div>
-              </div>
-            </div>
-            <button onClick={() => setSelectedUser(null)}>סגור</button>
-          </div>
-        </div>
-      )}
-
-      <footer className="footer">
-        <div className="footer-container">
-          <div className="footer-links">
-            <Link to="/HelpSettings" className="footer-link">עזרה והגדרות</Link>
-            <span className="footer-separator">|</span>
-            <div className="footer-item">תנאי שימוש</div>
-            <span className="footer-separator">|</span>
-            <div className="footer-item">מדיניות פרטיות</div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

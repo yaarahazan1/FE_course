@@ -1,5 +1,6 @@
 .calendar-table {
   width: 100%;
+  height: 500px;
   border-collapse: separate;
   border-spacing: 0;
   direction: rtl;
@@ -18,7 +19,7 @@
 .calendar-day {
   border: 1px solid #e5e7eb;
   vertical-align: top;
-  height: 110px;
+  height: 90px;
   padding: 6px;
 }
 
@@ -31,6 +32,7 @@
 
 .today {
   background-color: #f0f9ff;
+  color: #ccc;
 }
 
 .other-month .day-number {
@@ -41,6 +43,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  height: 40px;
 }
 
 .task-item {

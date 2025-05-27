@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import AddTask from "../AddTask/AddTask";
+import AddTask from "../../utils/AddTask/AddTask";
 import "./TimeManagement.css";
 import {
   EventType,
@@ -105,7 +105,8 @@ const TimeManagement = () => {
         isOpen={isAddTaskDialogOpen} 
         onClose={() => setIsAddTaskDialogOpen(false)}
         onAddSuccess={handleAddTaskSuccess} 
-      />    </div>
+      />    
+      </div>
   );
 };
 

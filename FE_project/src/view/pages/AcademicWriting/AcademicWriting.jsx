@@ -480,7 +480,7 @@ const AcademicWriting = () => {
 
       <section className="content-area">
         <aside className="sidebar">
-          <div className="card">
+          <div className="side-card">
             <h4>אפשרויות יצוא</h4>
             <label><input type="radio" name="export" /> PDF</label>
             <label><input type="radio" name="export" /> Word</label>
@@ -488,14 +488,14 @@ const AcademicWriting = () => {
             <button className="export-btn">יצוא מסמך</button>
           </div>
 
-          <div className="card">
+          <div className="side-card">
             <h4>שמירה בענן</h4>
             <label><input type="radio" name="cloud" /> Google Drive</label>
             <label><input type="radio" name="cloud" /> OneDrive</label>
             <button className="cloud-btn">שמירה בענן</button>
           </div>
 
-          <div className="card">
+          <div className="side-card">
             <h4>שיתוף</h4>
             <button className="share-btn">שיתוף למרצה וחברים</button>
           </div>

@@ -1,56 +1,45 @@
-import React from "react";
-import "./TaskList.css";
-import { format } from "date-fns";
-import { PlusCircle } from "lucide-react";
+import React from 'react';
+import { PlusCircle } from 'lucide-react';
+import './TaskList.css';
+
+// Helper function to get color based on task type
+const getTypeColor = (type) => {
+  switch (type) {
+    case "לימודים":
+      return "blue";
+    case "עבודה":
+      return "green";
+    case "אישי":
+      return "purple";
+    default:
+      return "gray";
+  }
+};
 
 const TaskList = ({ filteredTasks, onAddTask }) => {
-  const getTypeColor = (type) => {
-    switch (type) {
-      case "אישי":
-        return "#B3C8CF";
-      case "לימודים":
-        return "#89A8B2";
-      default:
-        return "#ccc";
-    }
-  };
-
   return (
     <div className="task-list-container">
-      <div className="task-list-header">
-        <button className="add-task-btn" onClick={onAddTask}>
-          <PlusCircle className="icon" />
-          הוספת משימה
-        </button>
-      </div>
-
-      <div className="scroll-area">
+      <button className="add-task-button" onClick={onAddTask}>
+        <PlusCircle className="plus-icon" />
+        <span>הוספת משימה</span>
+      </button>
+      
+      <div className="task-list">
         {filteredTasks
           .sort((a, b) => a.deadline.getTime() - b.deadline.getTime())
-          .map((task) => (
-            <div
-              key={task.id}
-              className="task-card"
-              style={{ borderRightColor: getTypeColor(task.type) }}
-            >
-              <div className="badge" style={{ backgroundColor: getTypeColor(task.type) }}>
-                {task.type === "לימודים" ? task.priority : task.type}
+          .map(task => (
+            <div className="task-card" key={task.id}>
+              <div className="task-header">
+                <span className={`task-badge ${getTypeColor(task.type)}`}>
+                  {task.type === "לימודים" ? task.priority : task.type}
+                </span>
               </div>
+              
               <div className="task-content">
-                <div className="task-title">{task.title}</div>
-                {task.course && <div className="task-course">{task.course}</div>}
+                <h3 className="task-title">{task.title}</h3>
+                {task.course && <p className="task-course">{task.course}</p>}
               </div>
-              <div className="task-deadline">
-                <div className="date">{format(task.deadline, "dd/MM/yyyy")}</div>
-                <div className="countdown">
-                  בעוד{" "}
-                  {Math.floor(
-                    (task.deadline.getTime() - new Date().getTime()) /
-                      (1000 * 60 * 60 * 24)
-                  )}{" "}
-                  ימים
-                </div>
-              </div>
+
             </div>
           ))}
       </div>

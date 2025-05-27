@@ -52,7 +52,7 @@
   color: #777;
 }
 
-.search-input {
+.search-input-summery {
   width: 85%;
   padding: 10px 35px 10px 10px;
   border: 1px solid #ddd;
@@ -61,7 +61,7 @@
   transition: border-color 0.2s;
 }
 
-.search-input:focus {
+.search-input-summery:focus {
   border-color: #557a95;
   outline: none;
 }
@@ -385,10 +385,6 @@
   background-color: #476785;
 }
 
-.upload-icon {
-  margin-left: 8px;
-}
-
 /* כפתור העלאה קבוע */
 .fixed-upload-btn {
   position: fixed;
@@ -398,11 +394,11 @@
 }
 
 .upload-btn-floating {
-  padding: 12px 20px;
   background-color: #557a95;
+  padding: 10px;
   color: white;
   border: none;
-  border-radius: 50px;
+  border-radius: 40px;
   font-weight: bold;
   cursor: pointer;
   display: flex;
@@ -414,152 +410,6 @@
   background-color: #476785;
 }
 
-/* דיאלוג העלאה */
-.dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.dialog-content {
-  background-color: #fff;
-  border-radius: 8px;
-  width: 100%;
-  max-width: 500px;
-  padding: 0;
-  overflow: hidden;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
-}
-
-.dialog-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 20px;
-  background-color: #f5f5f5;
-  border-bottom: 1px solid #e6e6e6;
-}
-
-.dialog-title {
-  font-size: 18px;
-  color: #1d3557;
-  margin: 0;
-}
-
-.dialog-close {
-  background: none;
-  border: none;
-  font-size: 22px;
-  color: #888;
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
-}
-
-.dialog-close:hover {
-  color: #555;
-}
-
-.dialog-content form {
-  padding: 20px;
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: bold;
-  color: #444;
-}
-
-.form-group input[type="text"] {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.form-group input[type="text"]:focus {
-  border-color: #557a95;
-  outline: none;
-}
-
-.file-upload {
-  position: relative;
-  display: inline-block;
-  width: 100%;
-}
-
-.file-upload input[type="file"] {
-  position: absolute;
-  top: 0;
-  left: 0;
-  opacity: 0;
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
-}
-
-.file-upload-label {
-  display: flex;
-  align-items: center;
-  padding: 10px 15px;
-  background-color: #f5f5f5;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.upload-icon {
-  margin-left: 8px;
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 30px;
-}
-
-.btn-cancel {
-  padding: 8px 16px;
-  background-color: #f5f5f5;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  color: #555;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.btn-cancel:hover {
-  background-color: #e9e9e9;
-}
-
-.btn-submit {
-  padding: 8px 16px;
-  background-color: #557a95;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.btn-submit:hover {
-  background-color: #476785;
-}
 
 /* התאמה למובייל */
 @media (max-width: 768px) {

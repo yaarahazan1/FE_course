@@ -1,0 +1,18 @@
+.social-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+  
+.social-header h1 {
+    font-size: 1.875rem;
+    font-weight: bold;
+    margin-bottom: 0.75rem;
+    color: #89A8B2;
+}
+  
+.social-header p {
+    max-width: 48rem;
+    margin-left: auto;
+    margin-right: auto;
+}
+  

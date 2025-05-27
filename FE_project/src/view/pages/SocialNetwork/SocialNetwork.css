@@ -1,98 +1,34 @@
 .social-container {
-    direction: rtl;
-    padding: 1rem;
-    font-family: sans-serif;
-    min-height: 100vh;
-  }
-  
-  .social-search {
-    margin: 1rem 0;
-  }
-  
-  .social-search input {
-    padding: 0.5rem;
-    width: 200px;
-  }
-  
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 1rem;
+  direction: rtl;
+  background-color: #F1F0E8;
+}
+
+.social-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+@media (min-width: 768px) {
   .social-layout {
-    display: flex;
-    gap: 2rem;
+    flex-direction: row;
   }
-  
-  .social-sidebar {
-    width: 280px;
-  }
-  
-  .profile-card, .events-card {
-    border: 1px solid #ccc;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    text-align: center;
-  }
-  
-  .avatar {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background: #eee;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 1rem;
-  }
-  
-  .label {
-    background: #f4f4f4;
-    padding: 0.2rem 0.6rem;
-    border-radius: 12px;
-    display: inline-block;
-    margin: 0.5rem 0;
-    font-size: 0.85rem;
-  }
-  
-  .links {
-    text-align: right;
-    font-size: 0.9rem;
-    line-height: 1.8;
-  }
-  
-  .events-card ul {
-    list-style: none;
-    padding: 0;
-  }
-  
-  .social-main {
-    flex: 1;
-  }
-  
-  .post-creator {
-    border: 1px solid #ccc;
-    padding: 1rem;
-    margin-bottom: 2rem;
-  }
-  
-  .post-creator textarea {
-    width: 100%;
-    height: 80px;
-    margin-bottom: 1rem;
-  }
-  
-  .post-options {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: center;
-  }
-  
-  .file-info {
-    margin-top: 0.5rem;
-    font-size: 0.9rem;
-  }
-  
-  .post-card {
-    border: 1px solid #ccc;
-    padding: 1rem;
-    margin-bottom: 1rem;
-  }
-  
+}
+
+.social-sidebar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.social-main {
+  flex: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}

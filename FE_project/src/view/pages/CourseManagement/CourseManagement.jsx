@@ -269,21 +269,21 @@ const CourseManagement = () => {
       />
 
       <div className="tabs">
-        <div className="tabs-list">
+        <div className="tabs-list-course">
           <button 
-            className={`tab-button ${activeTab === "projects" ? "active" : ""}`} 
+            className={`tab-button-course ${activeTab === "projects" ? "active" : ""}`} 
             onClick={() => setActiveTab("projects")}
           >
             פרויקטים
           </button>
           <button 
-            className={`tab-button ${activeTab === "tasks" ? "active" : ""}`} 
+            className={`tab-button-course ${activeTab === "tasks" ? "active" : ""}`} 
             onClick={() => setActiveTab("tasks")}
           >
             משימות
           </button>
           <button 
-            className={`tab-button ${activeTab === "courses" ? "active" : ""}`} 
+            className={`tab-button-course ${activeTab === "courses" ? "active" : ""}`} 
             onClick={() => setActiveTab("courses")}
           >
             קורסים
