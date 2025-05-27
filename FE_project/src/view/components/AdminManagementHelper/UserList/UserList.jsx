@@ -19,7 +19,7 @@ const UserList = ({
             placeholder="חיפוש משתמשים..."
             value={searchTerm}
             onChange={onSearchChange}
-            className="search-input"
+            className="user-search-input"
           />
           <Search className="search-icon" />
         </div>

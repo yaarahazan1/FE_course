@@ -1,5 +1,5 @@
-/* Dialog Overlay */
-.dialog-overlay {
+/* Upload Summary Dialog Overlay */
+.upload-dialog-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -9,23 +9,23 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 50;
+  z-index: 1000;
   padding: 1rem;
 }
 
-/* Dialog Content */
-.dialog-content {
+/* Upload Dialog Content */
+.upload-dialog-content {
   background: white;
   border-radius: 0.5rem;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  max-width: 28rem;
+  max-width: 30rem;
   width: 100%;
-  max-height: 90vh;
+  max-height: 95vh;
   overflow-y: auto;
-  animation: slideIn 0.2s ease-out;
+  animation: uploadSlideIn 0.2s ease-out;
 }
 
-@keyframes slideIn {
+@keyframes uploadSlideIn {
   from {
     opacity: 0;
     transform: scale(0.95) translateY(-10px);
@@ -36,120 +36,119 @@
   }
 }
 
-/* Dialog Header */
-.dialog-header {
-  padding: 1.5rem 1.5rem 0 1.5rem;
-  text-align: center;
+.upload-dialog-header {
+  padding: 1rem 1rem 0 1.5rem;
 }
 
-.dialog-title {
+.upload-dialog-title {
   font-size: 1.125rem;
   font-weight: 600;
   line-height: 1.75rem;
-  margin-bottom: 0.5rem;
   color: #111827;
 }
 
-.dialog-description {
-  font-size: 0.875rem;
+.upload-dialog-description {
+  font-size: 0.75rem;
   color: #6b7280;
   line-height: 1.5;
 }
 
-/* Dialog Body */
-.dialog-body {
-  padding: 1.5rem;
+/* Upload Dialog Body */
+.upload-dialog-body {
+  padding: 1rem;
   display: grid;
   gap: 1rem;
 }
 
-/* Form Fields */
-.form-field {
+/* Upload Form Fields */
+.upload-form-field {
   display: grid;
   gap: 0.5rem;
 }
 
-.form-label {
+.upload-form-label {
   font-size: 0.875rem;
   font-weight: 500;
   color: #374151;
 }
 
-.form-input,
-.form-textarea {
-  width: 100%;
+.upload-form-input,
+.upload-form-textarea {
+  width: 95%;
   border: 1px solid #d1d5db;
   border-radius: 0.375rem;
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
   background-color: #f1f0e8;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  font-family: inherit; 
 }
 
-.form-input:focus,
-.form-textarea:focus {
+.upload-form-input:focus,
+.upload-form-textarea:focus {
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-.form-textarea {
+.upload-form-textarea {
   resize: vertical;
   min-height: 4rem;
 }
 
-/* File Drop Zone */
-.file-drop-zone {
+/* Upload File Drop Zone */
+.upload-file-drop-zone {
   border: 2px dashed #d1d5db;
   border-radius: 0.375rem;
-  padding: 1.5rem;
+  /* padding: 0.3rem; */
   text-align: center;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
   background-color: #fafafa;
 }
 
-.file-drop-zone:hover {
+.upload-file-drop-zone:hover {
   background-color: #f3f4f6;
   border-color: #9ca3af;
 }
 
-.file-drop-zone.drag-over {
+.upload-file-drop-zone.drag-over {
   background-color: #eff6ff;
   border-color: #3b82f6;
 }
 
-.file-icon {
+.upload-file-icon {
   width: 2rem;
   height: 2rem;
+  padding-top: 10px;
   margin: 0 auto 0.5rem;
   color: #6b7280;
 }
 
-.file-drop-text {
+.upload-file-drop-text {
   font-size: 0.875rem;
   font-weight: 500;
   margin-bottom: 0.25rem;
   color: #374151;
 }
 
-.file-drop-subtext {
+.upload-file-drop-subtext {
   font-size: 0.75rem;
   color: #6b7280;
   margin-bottom: 0.5rem;
 }
 
-.file-drop-info {
+.upload-file-drop-info {
   font-size: 0.75rem;
   color: #6b7280;
 }
 
-.hidden-input {
+.upload-hidden-input {
   display: none;
 }
 
-/* File Preview */
-.file-preview {
+/* Upload File Preview */
+.upload-file-preview {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -159,7 +158,7 @@
   background-color: #f9fafb;
 }
 
-.file-info {
+.upload-file-info {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -167,19 +166,19 @@
   min-width: 0;
 }
 
-.file-preview-icon {
+.upload-file-preview-icon {
   width: 1.25rem;
   height: 1.25rem;
   color: #3b82f6;
   flex-shrink: 0;
 }
 
-.file-details {
+.upload-file-details {
   min-width: 0;
   flex: 1;
 }
 
-.file-name {
+.upload-file-name {
   font-size: 0.875rem;
   font-weight: 500;
   color: #374151;
@@ -190,13 +189,13 @@
   max-width: 11.25rem;
 }
 
-.file-size {
+.upload-file-size {
   font-size: 0.75rem;
   color: #6b7280;
   margin: 0;
 }
 
-.remove-file-btn {
+.upload-remove-file-btn {
   background: none;
   border: none;
   cursor: pointer;
@@ -209,26 +208,26 @@
   justify-content: center;
 }
 
-.remove-file-btn:hover {
+.upload-remove-file-btn:hover {
   background-color: #f3f4f6;
   color: #374151;
 }
 
-.remove-file-btn svg {
+.upload-remove-file-btn svg {
   width: 1rem;
   height: 1rem;
 }
 
-/* Dialog Footer */
-.dialog-footer {
+/* Upload Dialog Footer */
+.upload-dialog-footer {
   padding: 0 1.5rem 1.5rem;
   display: flex;
   gap: 0.75rem;
   justify-content: flex-end;
 }
 
-/* Buttons */
-.btn {
+/* Upload Buttons */
+.upload-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -244,38 +243,38 @@
   text-decoration: none;
 }
 
-.btn:disabled {
+.upload-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.btn-outline {
+.upload-btn-outline {
   border-color: #d1d5db;
   background-color: white;
   color: #374151;
 }
 
-.btn-outline:hover:not(:disabled) {
+.upload-btn-outline:hover:not(:disabled) {
   background-color: #f9fafb;
   border-color: #9ca3af;
 }
 
-.btn-primary {
-  background-color: #3b82f6;
+.upload-btn-primary {
+  background-color: #89A8B2;
   color: white;
 }
 
-.btn-primary:hover:not(:disabled) {
-  background-color: #2563eb;
+.upload-btn-primary:hover:not(:disabled) {
+  background-color: rgb(109, 122, 126);
 }
 
-.btn-icon {
+.upload-btn-icon {
   width: 1rem;
   height: 1rem;
 }
 
-/* Toast Notifications */
-.toast {
+/* Upload Toast Notifications */
+.upload-toast {
   position: fixed;
   top: 1rem;
   right: 1rem;
@@ -288,56 +287,56 @@
   max-width: 24rem;
   transform: translateX(100%);
   transition: transform 0.3s ease-in-out;
-  z-index: 100;
+  z-index: 1100;
 }
 
-.toast.show {
+.upload-toast.show {
   transform: translateX(0);
 }
 
-.toast.error {
+.upload-toast.error {
   border-left: 4px solid #ef4444;
 }
 
-.toast.success {
+.upload-toast.success {
   border-left: 4px solid #10b981;
 }
 
-.toast-title {
+.upload-toast-title {
   font-weight: 600;
   font-size: 0.875rem;
   color: #111827;
   margin-bottom: 0.25rem;
 }
 
-.toast-description {
+.upload-toast-description {
   font-size: 0.75rem;
   color: #6b7280;
 }
 
 /* Responsive Design */
 @media (max-width: 640px) {
-  .dialog-content {
+  .upload-dialog-content {
     margin: 0.5rem;
     max-width: none;
   }
   
-  .dialog-header,
-  .dialog-body,
-  .dialog-footer {
+  .upload-dialog-header,
+  .upload-dialog-body,
+  .upload-dialog-footer {
     padding-left: 1rem;
     padding-right: 1rem;
   }
   
-  .dialog-footer {
+  .upload-dialog-footer {
     flex-direction: column-reverse;
   }
   
-  .btn {
+  .upload-btn {
     width: 100%;
   }
   
-  .toast {
+  .upload-toast {
     right: 0.5rem;
     left: 0.5rem;
     min-width: auto;

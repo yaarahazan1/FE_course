@@ -23,7 +23,7 @@
   width: 16rem;
 }
 
-.search-input {
+.user-search-input {
   width: 100%;
   padding: 0.5rem 1rem;
   padding-right: 2.5rem;
@@ -34,7 +34,7 @@
   color: var(--text-primary, #333);
 }
 
-.search-input:focus {
+.user-search-input:focus {
   outline: none;
   border-color: var(--primary-accent, #007bff);
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
@@ -195,7 +195,7 @@
 }
 
 /* RTL Support */
-[dir="rtl"] .search-input {
+[dir="rtl"] .user-search-input {
   padding-left: 2.5rem;
   padding-right: 1rem;
 }

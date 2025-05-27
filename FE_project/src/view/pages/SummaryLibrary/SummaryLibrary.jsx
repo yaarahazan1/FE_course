@@ -303,7 +303,7 @@ const SummaryLibrary = () => {
             כדי לקבל גישה מלאה לכל הסיכומים בספרייה, עליך להעלות לפחות סיכום אחד משלך.
           </p>
           <button 
-            className="upload-btn"
+            className="summary-upload-btn"
             onClick={() => setIsDialogOpen(true)}
           >
             <span className="upload-icon">📤</span>
@@ -313,9 +313,9 @@ const SummaryLibrary = () => {
       )}
 
       {/* כפתור העלאת סיכום - הצג תמיד גם אחרי העלאה */}
-      <div className="fixed-upload-btn">
+      <div className="fixed-summary-upload-btn">
         <button 
-          className="upload-btn-floating"
+          className="summary-upload-btn-floating"
           onClick={() => setIsDialogOpen(true)}
         >
           <span className="upload-icon">📤</span>

@@ -367,7 +367,7 @@
   margin: 0 auto 20px;
 }
 
-.upload-btn {
+.summary-upload-btn {
   padding: 10px 20px;
   background-color: #557a95;
   color: white;
@@ -381,19 +381,19 @@
   /* background-color: #8a8172; */
 }
 
-.upload-btn:hover {
+.summary-upload-btn:hover {
   background-color: #476785;
 }
 
 /* כפתור העלאה קבוע */
-.fixed-upload-btn {
+.fixed-summary-upload-btn {
   position: fixed;
   bottom: 30px;
   left: 30px;
   z-index: 100;
 }
 
-.upload-btn-floating {
+.summary-upload-btn-floating {
   background-color: #557a95;
   padding: 10px;
   color: white;
@@ -406,7 +406,7 @@
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
-.upload-btn-floating:hover {
+.summary-upload-btn-floating:hover {
   background-color: #476785;
 }
 

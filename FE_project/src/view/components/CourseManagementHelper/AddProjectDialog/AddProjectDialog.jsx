@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import DialogComponent from "../DialogComponent/DialogComponent";
 import "./AddProjectDialog.css";
 
 const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {

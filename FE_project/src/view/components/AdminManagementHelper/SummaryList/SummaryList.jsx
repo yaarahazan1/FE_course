@@ -19,7 +19,7 @@ const SummaryList = ({
             placeholder="חיפוש סיכומים..."
             value={searchTerm}
             onChange={onSearchChange}
-            className="search-input"
+            className="summary-search-input"
           />
           <Search className="search-icon" />
         </div>
