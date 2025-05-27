@@ -10,6 +10,7 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess }) => {
   const [isDragOver, setIsDragOver] = useState(false);
 
   const showToast = (title, description, type = "error") => {
+    // יצירת toast פשוט
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.innerHTML = `
@@ -108,16 +109,16 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess }) => {
 
   return (
     <>
-      <div className="dialog-summary-overlay" onClick={onClose}>
-        <div className="dialog-summary-content" onClick={(e) => e.stopPropagation()}>
-          <div className="dialog-summary-header">
-            <div className="dialog-summary-title">העלאת סיכום חדש</div>
-            <div className="dialog-summary-description">
+      <div className="dialog-overlay" onClick={onClose}>
+        <div className="dialog-content" onClick={(e) => e.stopPropagation()}>
+          <div className="dialog-header">
+            <div className="dialog-title">העלאת סיכום חדש</div>
+            <div className="dialog-description">
               שתף את הסיכומים שלך עם סטודנטים אחרים וקבל גישה מלאה לספריית הסיכומים.
             </div>
           </div>
           
-          <div className="dialog-summary-body">
+          <div className="dialog-body">
             <div className="form-field">
               <label htmlFor="title" className="form-label">כותרת הסיכום *</label>
               <input
@@ -125,7 +126,7 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess }) => {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="form-input-summary"
+                className="form-input"
                 placeholder="לדוגמה: סיכום מבוא לסטטיסטיקה - פרק 3"
               />
             </div>
@@ -136,7 +137,7 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess }) => {
                 id="course"
                 type="text"
                 value={course}
-                className="form-input-summary"
+                className="form-input"
                 onChange={(e) => setCourse(e.target.value)}
                 placeholder="שם הקורס"
               />
@@ -148,7 +149,7 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess }) => {
                 id="professor"
                 type="text"
                 value={professor}
-                className="form-input-summary"
+                className="form-input"
                 onChange={(e) => setProfessor(e.target.value)}
                 placeholder="שם המרצה"
               />
@@ -220,7 +221,7 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess }) => {
             </div>
           </div>
           
-          <div className="dialog-summary-footer">
+          <div className="dialog-footer">
             <button className="btn btn-outline" onClick={onClose} type="button">
               ביטול
             </button>

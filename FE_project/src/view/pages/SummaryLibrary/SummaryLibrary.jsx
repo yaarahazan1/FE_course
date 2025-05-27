@@ -158,8 +158,6 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired }) => {
   );
 };
 
-
-
 // רכיב ראשי של ספריית הסיכומים
 const SummaryLibrary = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -223,7 +221,7 @@ const SummaryLibrary = () => {
             placeholder="חפש לפי קורס, מרצה או נושא"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="search-input"
+            className="search-input-summery"
           />
         </div>
         
@@ -300,7 +298,7 @@ const SummaryLibrary = () => {
       {!hasUploaded && (
         <div className="restricted-access">
           <div className="lock-icon-large">🔒</div>
-          <h3 className="restricted-c">גישה מוגבלת</h3>
+          <h3 className="restricted-title">גישה מוגבלת</h3>
           <p className="restricted-message">
             כדי לקבל גישה מלאה לכל הסיכומים בספרייה, עליך להעלות לפחות סיכום אחד משלך.
           </p>
@@ -324,6 +322,7 @@ const SummaryLibrary = () => {
           העלה סיכום
         </button>
       </div>
+
       {/* דיאלוג העלאת סיכום */}
       <UploadSummaryDialog 
         isOpen={isDialogOpen} 

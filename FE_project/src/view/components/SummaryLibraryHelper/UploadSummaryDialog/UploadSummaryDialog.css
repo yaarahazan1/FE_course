@@ -1,5 +1,5 @@
 /* Dialog Overlay */
-.dialog-summary-overlay {
+.dialog-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -14,7 +14,7 @@
 }
 
 /* Dialog Content */
-.dialog-summary-content {
+.dialog-content {
   background: white;
   border-radius: 0.5rem;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
@@ -37,12 +37,12 @@
 }
 
 /* Dialog Header */
-.dialog-summary-header {
+.dialog-header {
   padding: 1.5rem 1.5rem 0 1.5rem;
   text-align: center;
 }
 
-.dialog-summary-title {
+.dialog-title {
   font-size: 1.125rem;
   font-weight: 600;
   line-height: 1.75rem;
@@ -50,14 +50,14 @@
   color: #111827;
 }
 
-.dialog-summary-description {
+.dialog-description {
   font-size: 0.875rem;
   color: #6b7280;
   line-height: 1.5;
 }
 
 /* Dialog Body */
-.dialog-summary-body {
+.dialog-body {
   padding: 1.5rem;
   display: grid;
   gap: 1rem;
@@ -75,7 +75,7 @@
   color: #374151;
 }
 
-.form-input-summary,
+.form-input,
 .form-textarea {
   width: 100%;
   border: 1px solid #d1d5db;
@@ -86,7 +86,7 @@
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
-.form-input-summary:focus,
+.form-input:focus,
 .form-textarea:focus {
   outline: none;
   border-color: #3b82f6;
@@ -220,7 +220,7 @@
 }
 
 /* Dialog Footer */
-.dialog-summary-footer {
+.dialog-footer {
   padding: 0 1.5rem 1.5rem;
   display: flex;
   gap: 0.75rem;
@@ -317,19 +317,19 @@
 
 /* Responsive Design */
 @media (max-width: 640px) {
-  .dialog-summary-content {
+  .dialog-content {
     margin: 0.5rem;
     max-width: none;
   }
   
-  .dialog-summary-header,
-  .dialog-summary-body,
-  .dialog-summary-footer {
+  .dialog-header,
+  .dialog-body,
+  .dialog-footer {
     padding-left: 1rem;
     padding-right: 1rem;
   }
   
-  .dialog-summary-footer {
+  .dialog-footer {
     flex-direction: column-reverse;
   }
   
