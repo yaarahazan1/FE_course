@@ -41,29 +41,30 @@ const AddCourseDialog = ({ isOpen, onClose, onAddSuccess }) => {
     >
       <form onSubmit={handleSubmit} className="dialog-form">
         <div className="form-field">
-          <label className="required">שם הקורס</label>
+          <label>שם הקורס *</label>
           <input
             type="text"
             value={courseName}
             onChange={(e) => setCourseName(e.target.value)}
             placeholder="הכנס שם קורס"
-            required
+            required={true}
             autoFocus
           />
         </div>
         
         <div className="form-field">
-          <label>שם המרצה</label>
+          <label>שם המרצה *</label>
           <input
             type="text"
             value={lecturer}
             onChange={(e) => setLecturer(e.target.value)}
             placeholder="הכנס שם מרצה"
+            required={true}
           />
         </div>
         
         <div className="form-field">
-          <label>נקודות זכות</label>
+          <label>נקודות זכות *</label>
           <input
             type="number"
             min="0"
@@ -72,6 +73,7 @@ const AddCourseDialog = ({ isOpen, onClose, onAddSuccess }) => {
             value={credits}
             onChange={(e) => setCredits(e.target.value)}
             placeholder="מספר נקודות זכות"
+            required={true}
           />
         </div>
         

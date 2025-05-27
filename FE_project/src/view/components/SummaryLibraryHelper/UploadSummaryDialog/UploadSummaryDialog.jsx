@@ -129,7 +129,7 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess }) => {
                 onChange={(e) => setTitle(e.target.value)}
                 className="upload-form-input"
                 placeholder="לדוגמה: סיכום מבוא לסטטיסטיקה - פרק 3"
-              />
+              required={true}/>
             </div>
             
             <div className="upload-form-field">
@@ -141,11 +141,11 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess }) => {
                 className="upload-form-input"
                 onChange={(e) => setCourse(e.target.value)}
                 placeholder="שם הקורס"
-              />
+              required={true}/>
             </div>
             
             <div className="upload-form-field">
-              <label htmlFor="professor" className="upload-form-label">מרצה</label>
+              <label htmlFor="professor" className="upload-form-label">מרצה *</label>
               <input
                 id="professor"
                 type="text"
@@ -153,7 +153,7 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess }) => {
                 className="upload-form-input"
                 onChange={(e) => setProfessor(e.target.value)}
                 placeholder="שם המרצה"
-              />
+              required={true}/>
             </div>
             
             <div className="upload-form-field">
