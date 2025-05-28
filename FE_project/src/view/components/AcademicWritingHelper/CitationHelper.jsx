@@ -46,7 +46,7 @@ const CitationHelper = ({ content, onClose, onApplySuggestion, documentSettings 
       name: "תקן ישראלי לציטוט",
       patterns: {
         inText: /\([^)]*תש["׳][א-ת]|[א-ת]{4,}\s+\d{4}\)/g,
-        reference: /^[א-ת].*תש["׳][א-ת]|[א-ת].*\d{4}/gm
+        reference: /^[א-ת].*תש["׳"][א-ת]|[א-ת].*\d{4}/gm
       },
       requirements: {
         inTextFormat: "(שם המחבר תש\"ג או שנה לועזית)",
@@ -63,9 +63,23 @@ const CitationHelper = ({ content, onClose, onApplySuggestion, documentSettings 
       'literature-review': 'סקירת ספרות',
       'essay': 'חיבור',
       'report': 'דוח',
-      'proposal': 'הצעת מחקר'
+      'proposal': 'הצעת מחקר',
+      'מאמר אקדמי': 'מאמר אקדמי',
+      'תזה / דיסרטציה': 'תזה / דיסרטציה',
+      'עבודה סמינריונית': 'עבודה סמינריונית',
+      'מסמך מחקרי': 'מסמך מחקרי'
     };
     return typeNames[docType] || docType || 'לא צוין';
+  };
+
+  const getDocumentStructureDisplayName = (docStructure) => {
+    const structureNames = {
+      'תבנית בסיסית': 'תבנית בסיסית',
+      'תבנית מורחבת': 'תבנית מורחבת',
+      'מבנה מחקר אמפירי': 'מבנה מחקר אמפירי',
+      'מבנה סקירת ספרות': 'מבנה סקירת ספרות'
+    };
+    return structureNames[docStructure] || docStructure || 'לא צוין';
   };
 
   useEffect(() => {
@@ -76,20 +90,53 @@ const CitationHelper = ({ content, onClose, onApplySuggestion, documentSettings 
     return () => clearTimeout(timer);
   }, [content, documentSettings]);
 
+  // פונקציה חדשה להסרת כפילויות
+  const deduplicateIssues = (issues) => {
+    const seen = new Map();
+    const uniqueIssues = [];
+    
+    issues.forEach(issue => {
+      // יצירת מפתח ייחודי לכל בעיה על בסיס הטקסט המקורי, סוג הבעיה והתיאור
+      const key = `${issue.originalText || ''}_${issue.type}_${issue.description}`;
+      
+      if (!seen.has(key)) {
+        seen.set(key, true);
+        uniqueIssues.push(issue);
+      } else {
+        // אם יש כפילות, נבחר את הבעיה עם החומרה הגבוהה יותר
+        const existingIndex = uniqueIssues.findIndex(existing => 
+          `${existing.originalText || ''}_${existing.type}_${existing.description}` === key
+        );
+        
+        if (existingIndex !== -1) {
+          const existing = uniqueIssues[existingIndex];
+          const severityOrder = { 'high': 3, 'medium': 2, 'low': 1 };
+          
+          if (severityOrder[issue.severity] > severityOrder[existing.severity]) {
+            uniqueIssues[existingIndex] = issue; // החלף בבעיה החמורה יותר
+          }
+        }
+      }
+    });
+    
+    return uniqueIssues;
+  };
+
   const analyzeCitations = () => {
     const issues = [];
     const suggestionsList = [];
     
-    const selectedStyle = documentSettings?.citationStyle;
+    const selectedStyle = documentSettings?.citationStyle || 'APA';
     const currentStyle = citationStyles[selectedStyle];
     
     const documentType = documentSettings?.documentType;
-    const citationRequired = ['research-paper', 'thesis', 'academic-article', 'literature-review'].includes(documentType);
+    const documentStructure = documentSettings?.documentStructure;
+    const citationRequired = ['research-paper', 'thesis', 'academic-article', 'literature-review', 'מאמר אקדמי', 'תזה / דיסרטציה', 'עבודה סמינריונית', 'מסמך מחקרי'].includes(documentType);
     
     const potentialClaims = findPotentialClaims(content);
     const existingCitations = findExistingCitations(content, currentStyle);
     
-    const informalCitations = findInformalCitations(content);
+    const informalCitations = findInformalCitations(content, selectedStyle);
     issues.push(...informalCitations);
     
     const formatIssues = checkCitationFormat(content, currentStyle);
@@ -105,14 +152,17 @@ const CitationHelper = ({ content, onClose, onApplySuggestion, documentSettings 
       issues.push(bibliographyCheck);
     }
     
-    const styleSuggestions = generateStyleSuggestions(content, currentStyle, documentType);
+    // הוספת דדפליקציה - הסרת כפילויות
+    const uniqueIssues = deduplicateIssues(issues);
+    
+    const styleSuggestions = generateStyleSuggestions(content, currentStyle, documentType, documentStructure);
     suggestionsList.push(...styleSuggestions);
     
-    setCitationIssues(issues);
+    setCitationIssues(uniqueIssues); // שימוש ברשימה המסוננת
     setSuggestions(suggestionsList);
     
     let updatedContent = content;
-    issues.forEach(issue => {
+    uniqueIssues.forEach(issue => { // שימוש ברשימה המסוננת
       if (issue.correction && issue.originalText) {
         updatedContent = updatedContent.replace(
           issue.originalText,
@@ -136,7 +186,11 @@ const CitationHelper = ({ content, onClose, onApplySuggestion, documentSettings 
       /נתונים מצביעים/g,
       /ממצאים מראים/g,
       /הראה כי/g,
-      /מצאו ש/g
+      /מצאו ש/g,
+      /מחקר מצא/g,
+      /המחקר הראה/g,
+      /על פי המחקר/g,
+      /מחקרים מעידים/g
     ];
     
     const claims = [];
@@ -155,68 +209,105 @@ const CitationHelper = ({ content, onClose, onApplySuggestion, documentSettings 
     return claims;
   };
 
-  const findInformalCitations = (text) => {
+  const findInformalCitations = (text, selectedStyle) => {
     const issues = [];
+    const processedPositions = new Set(); // מעקב אחר מיקומים שכבר עובדו
     
-    // Look for informal citation patterns like: כמו שאמר X: "quote"
+    // תבניות ציטוט לא פורמליות - עודכן לזיהוי טוב יותר
     const informalPatterns = [
       {
-        pattern: /כמו שאמר\s+[^:]+:\s*[""][^""]+[""]/g,
+        pattern: /כמו שאמר\s+[^:]+:\s*["״"][^""״״]+["״"]/g,
         type: 'informal-quote',
-        description: 'ציטוט לא פורמלי - צריך להמיר לפורמט אקדמי'
+        description: 'ציטוט לא פורמלי - דורש פורמט אקדמי עם שנה ועמוד'
       },
       {
-        pattern: /לפי\s+[^,]+,\s*[""][^""]+[""]/g,
+        pattern: /לפי\s+[^,]+,\s*["״"][^""״״]+["״"]/g,
         type: 'informal-attribution',
-        description: 'ייחוס לא פורמלי - חסר מידע על מקור'
+        description: 'ייחוס לא פורמלי - חסרים פרטי מקור (שנה, עמוד)'
       },
       {
-        pattern: /אמר\s+[^:]+:\s*[""][^""]+[""]/g,
+        // זה יתפוס את "משה אמר: שלום לכולם" עם גרשיים
+        pattern: /[א-ת]+\s+אמר\s*:\s*["״"][^""״״]+["״"]/g,
         type: 'direct-speech',
-        description: 'ציטוט ישיר ללא מקור אקדמי'
+        description: 'ציטוט ישיר ללא הפניה אקדמית - חסרים שנת פרסום ומספר עמוד'
       },
       {
-        pattern: /[""][^""]+[""]\s*-\s*[^.!?]+/g,
+        // גם ללא גרשיים - "משה אמר: שלום לכולם"
+        pattern: /[א-ת]+\s+אמר\s*:\s*[^.!?""״״\n]+/g,
+        type: 'direct-speech-no-quotes',
+        description: 'ציטוט ישיר ללא הפניה אקדמית - דורש פורמט מלא עם שנה ועמוד'
+      },
+      {
+        pattern: /["״"][^""״״]+["״"]\s*-\s*[^.!?]+/g,
         type: 'quote-with-dash',
-        description: 'ציטוט עם קו מפריד - לא בפורמט אקדמי'
+        description: 'ציטוט עם קו מפריד - לא בפורמט אקדמי תקני'
+      },
+      {
+        pattern: /(?:לדברי|לפי דברי|לדעת)\s+[א-ת\s]+(?:,|\s)["״"][^""״״]+["״"]/g,
+        type: 'opinion-quote',
+        description: 'ציטוט דעה ללא הפניה מלאה - נדרש מקור אקדמי'
+      },
+      {
+        // תוספת: זיהוי "X טוען", "Y סבור" וכדומה
+        pattern: /[א-ת]+\s+(?:טוען|סבור|מאמין|חושב)\s*[:]*\s*["״"][^""״״]+["״"]/g,
+        type: 'claim-without-source',
+        description: 'טענה או דעה ללא מקור אקדמי - נדרש ציטוט'
       }
     ];
     
     informalPatterns.forEach(patternObj => {
       const matches = [...text.matchAll(patternObj.pattern)];
       matches.forEach(match => {
-        issues.push({
-          type: patternObj.type,
-          severity: 'high',
-          originalText: match[0],
-          description: patternObj.description,
-          suggestion: `המר לפורמט אקדמי: ${getCurrentStyleExample()}`,
-          correction: null // לא ניתן לתקן אוטומטית - צריך מידע נוסף
-        });
+        const position = match.index;
+        const endPosition = position + match[0].length;
+        
+        // בדוק אם המיקום הזה כבר עובד
+        let isOverlapping = false;
+        for (let pos of processedPositions) {
+          if ((position >= pos.start && position <= pos.end) || 
+              (endPosition >= pos.start && endPosition <= pos.end)) {
+            isOverlapping = true;
+            break;
+          }
+        }
+        
+        if (!isOverlapping) {
+          processedPositions.add({ start: position, end: endPosition });
+          issues.push({
+            type: patternObj.type,
+            severity: 'high',
+            originalText: match[0],
+            description: patternObj.description,
+            suggestion: `המר לפורמט ${selectedStyle}: ${getCurrentStyleExample(selectedStyle)}`,
+            correction: null, // לא ניתן לתקן אוטומטית - צריך מידע נוסף
+            position: position // הוספת מידע על המיקום
+          });
+        }
       });
     });
     
     return issues;
   };
 
-  const getCurrentStyleExample = () => {
-    const selectedStyle = documentSettings?.citationStyle || 'APA';
+  const getCurrentStyleExample = (selectedStyle = 'APA') => {
     switch(selectedStyle) {
       case 'APA':
-        return '(שם המחבר, שנה, עמ\' X) או שם המחבר (שנה) טוען ש"..."';
+        return 'לפי משה (2023), "שלום לכולם" (עמ\' 15) או (משה, 2023, עמ\' 15)';
       case 'MLA':
-        return '(שם המחבר X) או שם המחבר כותב ש"..." (X)';
+        return 'משה כותב: "שלום לכולם" (15) או "שלום לכולם" (משה 15)';
       case 'Chicago':
-        return 'הערת שוליים או שם המחבר כותב ש"..."¹';
+        return 'כפי שכתב משה: "שלום לכולם"¹ (הערת שוליים)';
       case 'Hebrew':
-        return '(שם המחבר, תש"ג) או שם המחבר (תש"ג) כותב ש"..."';
+        return 'לפי משה (תש"ג): "שלום לכולם" (עמ\' 15)';
       default:
-        return 'פורמט ציטוט אקדמי מתאים';
+        return 'פורמט ציטוט אקדמי עם שנה ועמוד';
     }
   };
 
   const findExistingCitations = (text, style) => {
     const citations = [];
+    if (!style || !style.patterns) return citations;
+    
     const matches = [...text.matchAll(style.patterns.inText)];
     
     matches.forEach(match => {
@@ -244,7 +335,7 @@ const CitationHelper = ({ content, onClose, onApplySuggestion, documentSettings 
           severity: 'high',
           originalText: claim.text,
           description: `הטענה "${claim.indicator}" דורשת ציטוט מקור`,
-          suggestion: `הוסף ציטוט בסוף המשפט: ${claim.text} (שם המחבר, שנה).`,
+          suggestion: `הוסף ציטוט בסוף המשפט לפי ${documentSettings?.citationStyle || 'APA'}`,
           correction: null
         });
       }
@@ -255,31 +346,45 @@ const CitationHelper = ({ content, onClose, onApplySuggestion, documentSettings 
 
   const checkCitationFormat = (text, style) => {
     const issues = [];
+    if (!style || !style.patterns) return issues;
+    
     const citations = [...text.matchAll(style.patterns.inText)];
     
     citations.forEach(citation => {
       const citationText = citation[0];
       
-      // Check for common formatting issues
+      // בדיקת בעיות פורמט נפוצות
       if (citationText.includes('ע״מ') || citationText.includes('עמ\'')) {
         issues.push({
           type: 'format-error',
           severity: 'medium',
           originalText: citationText,
-          description: 'פורמט ציטוט לא תקין - השתמש בפורמט התקני',
+          description: 'פורמט עמוד לא תקין',
           correction: citationText.replace(/ע״מ|עמ'/g, 'עמ\''),
-          suggestion: `פורמט נכון לפי ${style.name}: ${style.requirements.inTextFormat}`
+          suggestion: `פורמט נכון: ${style.requirements.inTextFormat}`
         });
       }
       
-      // Check for missing year in APA style
+      // בדיקת חוסר שנה בסגנון APA
       if (style.name.includes('APA') && !/\d{4}/.test(citationText)) {
         issues.push({
           type: 'missing-year',
           severity: 'high',
           originalText: citationText,
-          description: 'חסרה שנת פרסום בציטוט',
+          description: 'חסרה שנת פרסום בציטוט APA',
           suggestion: 'הוסף שנת פרסום: (שם המחבר, 2023)',
+          correction: null
+        });
+      }
+
+      // בדיקת ציטוטים ללא מחבר
+      if (/^\(\s*\d{4}\s*\)/.test(citationText)) {
+        issues.push({
+          type: 'missing-author',
+          severity: 'high',
+          originalText: citationText,
+          description: 'ציטוט ללא שם מחבר',
+          suggestion: 'הוסף שם המחבר: (שם המחבר, 2023)',
           correction: null
         });
       }
@@ -289,14 +394,24 @@ const CitationHelper = ({ content, onClose, onApplySuggestion, documentSettings 
   };
 
   const checkBibliography = (text, citations, required) => {
-    const hasBibliography = /ביבליוגרפיה|רשימת מקורות|מקורות|רשימת הפניות/.test(text);
+    const hasBibliography = /ביבליוגרפיה|רשימת מקורות|מקורות|רשימת הפניות|References|Bibliography/i.test(text);
     
     if (required && citations.length > 0 && !hasBibliography) {
       return {
         type: 'missing-bibliography',
         severity: 'high',
         description: 'חסרה רשימת מקורות בסוף המסמך',
-        suggestion: 'הוסף רשימת מקורות מלאה בסוף המסמך',
+        suggestion: 'הוסף רשימת מקורות מלאה בסוף המסמך לפי הסגנון הנבחר',
+        correction: null
+      };
+    }
+    
+    if (required && citations.length === 0) {
+      return {
+        type: 'no-citations',
+        severity: 'high',
+        description: 'מסמך אקדמי ללא ציטוטים כלל',
+        suggestion: 'הוסף ציטוטים מתאימים לתמיכה בטענות במסמך',
         correction: null
       };
     }
@@ -304,25 +419,58 @@ const CitationHelper = ({ content, onClose, onApplySuggestion, documentSettings 
     return null;
   };
 
-  const generateStyleSuggestions = (text, style, docType) => {
+  const generateStyleSuggestions = (text, style, docType, docStructure) => {
     const suggestions = [];
     
-    // Document type specific suggestions
-    if (docType === 'thesis') {
+    // המלצות לפי סוג מסמך
+    if (docType === 'thesis' || docType === 'תזה / דיסרטציה') {
       suggestions.push({
         type: 'style-recommendation',
         title: 'המלצה לעבודת גמר',
-        description: `בעבודת גמר מומלץ להשתמש ב-${style.requirements.referenceFormat}`,
-        action: 'בדוק עקביות הציטוטים לאורך העבודה'
+        description: 'ודא עקביות ציטוטים לאורך העבודה ושימוש במינימום 20-30 מקורות',
+        action: 'בדוק שכל פרק מכיל ציטוטים רלוונטיים'
       });
     }
     
-    if (docType === 'research-paper') {
+    if (docType === 'research-paper' || docType === 'מסמך מחקרי' || docType === 'מאמר אקדמי') {
       suggestions.push({
         type: 'style-recommendation',
         title: 'המלצה למאמר מחקר',
-        description: 'ודא שכל הטענות המחקריות מגובות בציטוטים מתאימים',
-        action: 'בדוק שיש לפחות 10-15 מקורות במאמר מחקרי'
+        description: 'כל הטענות המחקריות חייבות להיות מגובות בציטוטים',
+        action: 'ודא מינימום 10-15 מקורות עדכניים (5 שנים אחרונות)'
+      });
+    }
+
+    // המלצות לפי מבנה מסמך
+    if (docStructure === 'מבנה מחקר אמפירי') {
+      suggestions.push({
+        type: 'structure-recommendation',
+        title: 'המלצה למחקר אמפירי',
+        description: 'ודא ציטוטים בכל חלק: רקע תיאורטי, שיטה, ממצאים ודיון',
+        action: 'בדוק שכל פרק מכיל ציטוטים מתאימים לתוכן'
+      });
+    }
+
+    if (docStructure === 'מבנה סקירת ספרות') {
+      suggestions.push({
+        type: 'structure-recommendation',
+        title: 'המלצה לסקירת ספרות',
+        description: 'נדרש מספר גבוה של מקורות עדכניים ומגוונים',
+        action: 'כלול 30-50 מקורות, 70% עדכניים (5 שנים אחרונות)'
+      });
+    }
+
+    // המלצות כלליות
+    const citationCount = (text.match(/\([^)]*\d{4}[^)]*\)/g) || []).length;
+    const wordCount = text.split(/\s+/).length;
+    const citationRatio = citationCount / (wordCount / 100); // citations per 100 words
+
+    if (citationRatio < 1 && ['research-paper', 'thesis', 'academic-article', 'מאמר אקדמי', 'תזה / דיסרטציה'].includes(docType)) {
+      suggestions.push({
+        type: 'citation-density',
+        title: 'צפיפות ציטוטים נמוכה',
+        description: 'מומלץ על ציטוט אחד לכל 100-150 מילים במסמך אקדמי',
+        action: 'הוסף ציטוטים נוספים לתמיכה בטענות'
       });
     }
     
@@ -342,7 +490,7 @@ const CitationHelper = ({ content, onClose, onApplySuggestion, documentSettings 
   const handleApplyAll = () => {
     let updatedContent = content;
     
-    // Apply only corrections that have actual correction text
+    // החל רק תיקונים שיש להם טקסט תיקון ממשי
     citationIssues.forEach(issue => {
       if (issue.correction && issue.originalText) {
         updatedContent = updatedContent.replace(
@@ -407,8 +555,9 @@ const CitationHelper = ({ content, onClose, onApplySuggestion, documentSettings 
           ) : (
             <>
               <div className="citation-settings-info">
-                <p><strong>סגנון ציטוט נבחר:</strong> {citationStyles[documentSettings?.citationStyle || 'APA'].name}</p>
+                <p><strong>סגנון ציטוט:</strong> {citationStyles[documentSettings?.citationStyle || 'APA'].name}</p>
                 <p><strong>סוג מסמך:</strong> {getDocumentTypeDisplayName(documentSettings?.documentType)}</p>
+                <p><strong>מבנה מסמך:</strong> {getDocumentStructureDisplayName(documentSettings?.documentStructure)}</p>
               </div>
 
               {citationIssues.length > 0 || suggestions.length > 0 ? (
@@ -448,11 +597,11 @@ const CitationHelper = ({ content, onClose, onApplySuggestion, documentSettings 
                               </div>
                               {issue.originalText && (
                                 <div className="original-text">
-                                  <em>טקסט מקורי:</em> "{issue.originalText}"
+                                  <em>טקסט בעייתי:</em> "{issue.originalText}"
                                 </div>
                               )}
                               <div className="suggestion-text">
-                                {issue.suggestion}
+                                <strong>פתרון:</strong> {issue.suggestion}
                               </div>
                             </div>
                             {issue.correction && (
@@ -509,7 +658,7 @@ const CitationHelper = ({ content, onClose, onApplySuggestion, documentSettings 
                 <div className="ai-tool-empty">
                   <p>מצוין! לא נמצאו בעיות ציטוט 🎉</p>
                   <p>
-                    {['research-paper', 'thesis', 'academic-article', 'literature-review'].includes(documentSettings?.documentType)
+                    {['research-paper', 'thesis', 'academic-article', 'literature-review', 'מאמר אקדמי', 'תזה / דיסרטציה', 'עבודה סמינריונית', 'מסמך מחקרי'].includes(documentSettings?.documentType)
                       ? 'הציטוטים במסמך נראים תקינים ועקביים עם הסגנון הנבחר.'
                       : 'לסוג המסמך הנוכחי, רמת הציטוט מתאימה.'
                     }

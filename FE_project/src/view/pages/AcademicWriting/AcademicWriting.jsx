@@ -284,11 +284,15 @@ const AcademicWriting = () => {
   };
 
   const renderActiveTool = () => {
+    const documentSettings = {
+      documentType,
+      documentStructure,
+      citationStyle
+    };
+    
     const toolProps = {
       content,
-      documentType,
-      documentStructure, // הוספת פרמטר חדש
-      citationStyle,
+      documentSettings,
       onClose: handleCloseAITool,
       onApplySuggestion: handleApplyAIToolSuggestion
     };
