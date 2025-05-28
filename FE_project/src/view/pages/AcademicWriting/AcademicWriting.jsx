@@ -8,6 +8,7 @@ import { getDocumentStructureRequirements } from "../../utils/textAnalysis";
 
 const AcademicWriting = () => {
   const [documentType, setDocumentType] = useState("מאמר אקדמי");
+  const [documentStructure, setDocumentStructure] = useState("תבנית בסיסית"); // הוספת state חדש
   const [citationStyle, setCitationStyle] = useState("APA");
   const [content, setContent] = useState("");
   const [analysis, setAnalysis] = useState([]);
@@ -16,7 +17,6 @@ const AcademicWriting = () => {
   const [wordCount, setWordCount] = useState(0);
   const [activeAITool, setActiveAITool] = useState(null);
 
-  // Analyze text whenever content changes
   useEffect(() => {
     const timer = setTimeout(() => {
       if (content.trim().length > 0) {
@@ -24,26 +24,17 @@ const AcademicWriting = () => {
       } else {
         setAnalysis([]);
       }
-      
-      // Update word count
+
       setWordCount(content.trim() ? content.trim().split(/\s+/).length : 0);
     }, 1000);
-
     return () => clearTimeout(timer);
-  }, [content, documentType, citationStyle]);
-
-  // AI analysis function - improved to be more generic and adaptable
+  }, [content, documentType, documentStructure, citationStyle]); 
   const analyzeText = (text) => {
     setIsAnalyzing(true);
     
-    // Reset previous analysis
     const newAnalysis = [];
     
-    // Get the paragraphs
     const paragraphs = text.split(/\n+/).filter(p => p.trim().length > 0);
-    
-    // Check for sentence structure issues (using natural language processing concepts)
-    // This is more sophisticated than just checking sentence length
     const sentenceAnalysis = analyzeSentenceStructure(text);
     if (sentenceAnalysis.hasIssues) {
       newAnalysis.push({
@@ -53,8 +44,7 @@ const AcademicWriting = () => {
         icon: "⚠️"
       });
     }
-    
-    // Check paragraph length balance using statistical methods rather than fixed rules
+
     if (paragraphs.length > 1) {
       const paragraphAnalysis = analyzeParagraphBalance(paragraphs);
       if (paragraphAnalysis.isUnbalanced) {
@@ -67,7 +57,6 @@ const AcademicWriting = () => {
       }
     }
     
-    // Use NLP to detect formal vs informal language instead of fixed word lists
     const formalityAnalysis = analyzeTextFormality(text);
     if (formalityAnalysis.isInformal) {
       newAnalysis.push({
@@ -78,7 +67,6 @@ const AcademicWriting = () => {
       });
     }
     
-    // Use NLP to detect claims and assertions that might need evidence
     const claimAnalysis = analyzeClaimsAndEvidence(text);
     if (claimAnalysis.hasUnsupportedClaims) {
       newAnalysis.push({
@@ -89,8 +77,7 @@ const AcademicWriting = () => {
       });
     }
     
-    // Check document structure based on document type requirements
-    const structureRequirements = getDocumentStructureRequirements(documentType);
+    const structureRequirements = getDocumentStructureRequirements(documentType, documentStructure); // העברת שני הפרמטרים
     const structureAnalysis = analyzeDocumentStructure(text, structureRequirements);
     if (structureAnalysis.hasMissingElements) {
       newAnalysis.push({
@@ -101,7 +88,6 @@ const AcademicWriting = () => {
       });
     }
     
-    // Citation style analysis - use more sophisticated patterns based on citation style
     const citationAnalysis = analyzeCitations(text, citationStyle);
     if (citationAnalysis.hasIssues) {
       newAnalysis.push({
@@ -112,17 +98,11 @@ const AcademicWriting = () => {
       });
     }
     
-    // Make sure we don't overwhelm with too many suggestions at once
     setAnalysis(newAnalysis.slice(0, 4));
     setIsAnalyzing(false);
   };
 
-  // Helper functions for text analysis - these would be implemented in separate utility files
-
-  // Analyze sentence structure using NLP techniques
   const analyzeSentenceStructure = (text) => {
-    // This would use NLP to analyze sentence complexity, length, and readability
-    // For now, we'll implement a simple version that checks for long sentences
     const sentences = text.split(/[.!?]+/);
     const longSentences = sentences.filter(s => {
       const words = s.trim().split(/\s+/);
@@ -138,7 +118,6 @@ const AcademicWriting = () => {
     };
   };
 
-  // Analyze paragraph balance using statistical methods
   const analyzeParagraphBalance = (paragraphs) => {
     if (paragraphs.length <= 1) return { isUnbalanced: false };
     
@@ -148,7 +127,6 @@ const AcademicWriting = () => {
       lengths.reduce((sum, len) => sum + Math.pow(len - avg, 2), 0) / lengths.length
     );
     
-    // Use standard deviation to identify outliers rather than fixed percentages
     const outliers = lengths.filter(len => Math.abs(len - avg) > stdDev * 1.5).length;
     const isUnbalanced = outliers > Math.max(1, paragraphs.length * 0.2);
     
@@ -169,13 +147,9 @@ const AcademicWriting = () => {
     // For demo purposes, we'll implement a simple detection 
     // that looks at common informal patterns in Hebrew and English
     const informalityIndicators = [
-      // Hebrew informal words (example only, not comprehensive)
       /\bמדהים\b/i, /\bנהדר\b/i, /\bגרוע\b/i, /\bנורא\b/i, /\bסבבה\b/i, /\bבסדר\b/i,
-      // Common contractions and slang in English (for multi-language support)
       /\bdon't\b/i, /\bwon't\b/i, /\bcan't\b/i, /\bgonna\b/i, /\bwanna\b/i,
-      // Excessive use of exclamation points
       /!!+/,
-      // Emoji pattern
       /[\u{1F300}-\u{1F6FF}]/u
     ];
     
@@ -185,7 +159,6 @@ const AcademicWriting = () => {
       if (matches) informalCount += matches.length;
     }
     
-    // The threshold should be proportional to text length
     const wordCount = text.split(/\s+/).length;
     const normalizedThreshold = Math.max(1, Math.floor(wordCount / 100));
     
@@ -198,17 +171,11 @@ const AcademicWriting = () => {
     };
   };
 
-  // Analyze claims and evidence using NLP techniques
   const analyzeClaimsAndEvidence = (text) => {
-    // This would use NLP to detect assertions, opinions and claims
     
-    // For demonstration, we'll implement basic pattern detection
     const claimIndicators = [
-      // Hebrew claim indicators
       /אני טוען/i, /אני חושב/i, /לדעתי/i, /ניתן לומר ש/i, /ברור ש/i,
-      // English claim indicators (for multi-language support)
       /I believe/i, /I think/i, /in my opinion/i, /clearly/i, /obviously/i,
-      // General claim structures
       /מוכיח ש/i, /מראה ש/i, /must be/i, /should be/i, /יש להניח/i
     ];
     
@@ -218,10 +185,9 @@ const AcademicWriting = () => {
       if (matches) claimCount += matches.length;
     }
     
-    // Check if there are citations or evidence markers near claims
     const evidenceIndicators = [
-      /\(\d{4}\)/,  // Year in parentheses
-      /לפי /i, /על פי/i, /\(.*\d+.*\)/,  // Citation-like patterns
+      /\(\d{4}\)/,  
+      /לפי /i, /על פי/i, /\(.*\d+.*\)/,  
       /מחקרים הראו/i, /studies show/i
     ];
     
@@ -231,7 +197,6 @@ const AcademicWriting = () => {
       if (matches) evidenceCount += matches.length;
     }
     
-    // If we have more claims than evidence markers, suggest adding support
     return {
       hasUnsupportedClaims: claimCount > 0 && claimCount > evidenceCount,
       title: "טענות הדורשות ביסוס",
@@ -241,18 +206,14 @@ const AcademicWriting = () => {
     };
   };
 
-  // Analyze document structure based on document type requirements
   const analyzeDocumentStructure = (text, requirements) => {
     if (!requirements || !requirements.sections) {
       return { hasMissingElements: false };
     }
     
-    // Check for required sections based on document type
     const missingElements = [];
     
     for (const section of requirements.sections) {
-      // Look for section headers or content patterns that would indicate this section exists
-      // This would be more sophisticated in a real implementation
       const sectionPattern = new RegExp(`\\b${section}\\b`, 'i');
       if (!sectionPattern.test(text)) {
         missingElements.push(section);
@@ -268,9 +229,7 @@ const AcademicWriting = () => {
     };
   };
 
-  // Analyze citations based on the selected citation style
   const analyzeCitations = (text, style) => {
-    // Each citation style has its own patterns and requirements
     const citationPatterns = {
       "APA": {
         inText: /\([^)]*\d{4}[^)]*\)/,
@@ -294,11 +253,9 @@ const AcademicWriting = () => {
       }
     };
     
-    // Get the appropriate pattern for the selected style
     const pattern = citationPatterns[style];
     if (!pattern) return { hasIssues: false };
     
-    // Check if text has citations but they don't match the required pattern
     const hasCitations = text.includes("(") || text.includes("[") || /\d+/.test(text);
     const hasCorrectFormat = pattern.inText.test(text);
     
@@ -313,27 +270,24 @@ const AcademicWriting = () => {
     };
   };
 
-  // Handler for activating AI tools
   const handleActivateAITool = (toolName) => {
     setActiveAITool(toolName);
   };
   
-  // Handler for closing active AI tool
   const handleCloseAITool = () => {
     setActiveAITool(null);
   };
   
-  // Function to apply AI tool suggestions to content
   const handleApplyAIToolSuggestion = (updatedContent) => {
     setContent(updatedContent);
     handleCloseAITool();
   };
 
-  // Render the appropriate AI tool component
   const renderActiveTool = () => {
     const toolProps = {
       content,
       documentType,
+      documentStructure, // הוספת פרמטר חדש
       citationStyle,
       onClose: handleCloseAITool,
       onApplySuggestion: handleApplyAIToolSuggestion
@@ -371,6 +325,7 @@ const AcademicWriting = () => {
         <div className="ai-panel-section">
           <h3>ניתוח כללי</h3>
           <p>{wordCountRecommendation}</p>
+          <p>מבנה נבחר: {documentStructure}</p> {/* הצגת המבנה הנבחר */}
         </div>
         
         <div className="ai-panel-section">
@@ -487,14 +442,12 @@ const AcademicWriting = () => {
             <label><input type="radio" name="export" /> LaTeX</label>
             <button className="export-btn">יצוא מסמך</button>
           </div>
-
           <div className="side-card">
             <h4>שמירה בענן</h4>
             <label><input type="radio" name="cloud" /> Google Drive</label>
             <label><input type="radio" name="cloud" /> OneDrive</label>
             <button className="cloud-btn">שמירה בענן</button>
           </div>
-
           <div className="side-card">
             <h4>שיתוף</h4>
             <button className="share-btn">שיתוף למרצה וחברים</button>
@@ -525,7 +478,10 @@ const AcademicWriting = () => {
             </div>
             <div>
               <label>מבנה מסמך</label>
-              <select>
+              <select 
+                value={documentStructure} 
+                onChange={(e) => setDocumentStructure(e.target.value)}
+              >
                 <option>תבנית בסיסית</option>
                 <option>תבנית מורחבת</option>
                 <option>מבנה מחקר אמפירי</option>
