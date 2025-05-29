@@ -1,29 +1,62 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { collection, addDoc, query, orderBy, onSnapshot } from "firebase/firestore";
+import { db, auth } from "../../../../firebase/config";
 import "./ProjectChat.css";
 
-const ProjectChat = ({ messages: initialMessages = [] }) => {
-  const [messages, setMessages] = useState(initialMessages);
+const ProjectChat = ({ projectId }) => {
+  const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
 
-  const handleSendMessage = (e) => {
+  // קבלת ID המשתמש
+  const getCurrentUserId = () => auth.currentUser?.uid || "demo-user";
+
+  // טעינת הודעות מה־Firebase
+  useEffect(() => {
+    if (!projectId) return;
+
+    const q = query(
+      collection(db, "projects", projectId, "messages"),
+      orderBy("createdAt", "asc")
+    );
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const msgs = [];
+      querySnapshot.forEach((doc) => {
+        msgs.push({ id: doc.id, ...doc.data() });
+      });
+      setMessages(msgs);
+    }, (error) => {
+      console.error("שגיאה בטעינת הודעות:", error);
+    });
+
+    return () => unsubscribe();
+  }, [projectId]);
+
+  const handleSendMessage = async (e) => {
     e.preventDefault();
-    e.stopPropagation(); // מונע מהאירוע להתפשט למעלה לכרטיס הפרויקט
+    e.stopPropagation();
+
     if (!newMessage.trim()) return;
-    
+
+    const userId = getCurrentUserId();
+    const userName = auth.currentUser?.displayName || "אני";
     const currentTime = new Date();
-    const timeString = `${currentTime.getHours()}:${String(currentTime.getMinutes()).padStart(2, '0')}`;
-    
-    // בעתיד, כאן תהיה קריאה ל-API שתשמור את ההודעה ב-DB
-    const newMsg = {
-      id: Date.now(), // משמש כ-unique id זמני
-      sender: "אני", // בעתיד יגיע משם המשתמש המחובר
+
+    const msgData = {
+      sender: userName,
+      userId,
       message: newMessage,
-      time: timeString,
-      isMine: true // סימון שזו הודעה שלי
+      createdAt: currentTime,
+      time: `${currentTime.getHours()}:${String(currentTime.getMinutes()).padStart(2, '0')}`,
+      isMine: true
     };
-    
-    setMessages([...messages, newMsg]);
-    setNewMessage("");
+
+    try {
+      await addDoc(collection(db, "projects", projectId, "messages"), msgData);
+      setNewMessage("");
+    } catch (error) {
+      console.error("שגיאה בשליחת הודעה:", error);
+    }
   };
 
   return (
@@ -31,24 +64,24 @@ const ProjectChat = ({ messages: initialMessages = [] }) => {
       <div className="chat-header">
         <h3>צ'אט צוות</h3>
       </div>
-      
+
       <div className="chat-messages">
         {messages.map((msg) => (
           <div 
             key={msg.id} 
-            className={`chat-message ${msg.isMine ? 'my-message' : 'other-message'}`}
+            className={`chat-message ${msg.userId === getCurrentUserId() ? 'my-message' : 'other-message'}`}
           >
             <div className="message-content">
               <p>{msg.message}</p>
               <div className="message-meta">
                 <span className="message-time">{msg.time}</span>
-                {!msg.isMine && <span className="message-sender">{msg.sender}</span>}
+                {msg.userId !== getCurrentUserId() && <span className="message-sender">{msg.sender}</span>}
               </div>
             </div>
           </div>
         ))}
       </div>
-      
+
       <form className="chat-input-form" onSubmit={handleSendMessage}>
         <input
           type="text"

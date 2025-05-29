@@ -6,9 +6,24 @@ import PlagiarismChecker from "../../components/AcademicWritingHelper/Plagiarism
 import StructureImprover from "../../components/AcademicWritingHelper/StructureImprover";
 import { getDocumentStructureRequirements } from "../../utils/textAnalysis";
 
+// Firebase imports
+import { 
+  collection, 
+  addDoc, 
+  getDocs, 
+  updateDoc, 
+  deleteDoc, 
+  doc, 
+  query, 
+  orderBy, 
+  serverTimestamp 
+} from 'firebase/firestore';
+import { db } from '../../../firebase/config'; // נניח שקובץ ה-config נמצא בתיקייה הזו
+
 const AcademicWriting = () => {
+  // States קיימים
   const [documentType, setDocumentType] = useState("מאמר אקדמי");
-  const [documentStructure, setDocumentStructure] = useState("תבנית בסיסית"); // הוספת state חדש
+  const [documentStructure, setDocumentStructure] = useState("תבנית בסיסית");
   const [citationStyle, setCitationStyle] = useState("APA");
   const [content, setContent] = useState("");
   const [analysis, setAnalysis] = useState([]);
@@ -17,6 +32,21 @@ const AcademicWriting = () => {
   const [wordCount, setWordCount] = useState(0);
   const [activeAITool, setActiveAITool] = useState(null);
 
+  // States חדשים ל-Firebase
+  const [documents, setDocuments] = useState([]);
+  const [currentDocumentId, setCurrentDocumentId] = useState(null);
+  const [documentTitle, setDocumentTitle] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showDocumentsList, setShowDocumentsList] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
+
+  // טעינת מסמכים מ-Firebase בעת טעינת הקומפוננטה
+  useEffect(() => {
+    loadDocuments();
+  }, []);
+
+  // Effect קיים - ניתוח טקסט
   useEffect(() => {
     const timer = setTimeout(() => {
       if (content.trim().length > 0) {
@@ -28,7 +58,134 @@ const AcademicWriting = () => {
       setWordCount(content.trim() ? content.trim().split(/\s+/).length : 0);
     }, 1000);
     return () => clearTimeout(timer);
-  }, [content, documentType, documentStructure, citationStyle]); 
+  }, [content, documentType, documentStructure, citationStyle]);
+
+  // שמירה אוטומטית כל 30 שניות אם יש תוכן
+  useEffect(() => {
+    const autoSaveTimer = setInterval(() => {
+      if (content.trim() && documentTitle.trim() && currentDocumentId) {
+        saveDocument(false); // שמירה שקטה
+      }
+    }, 30000); // 30 שניות
+
+    return () => clearInterval(autoSaveTimer);
+  }, [content, documentTitle, currentDocumentId, documentType, documentStructure, citationStyle]);
+
+  // פונקציות Firebase
+  const loadDocuments = async () => {
+    setIsLoading(true);
+    try {
+      const q = query(
+        collection(db, 'academicDocuments'), 
+        orderBy('updatedAt', 'desc')
+      );
+      
+      const querySnapshot = await getDocs(q);
+      const documentsData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        updatedAt: doc.data().updatedAt?.toDate() || new Date()
+      }));
+      
+      setDocuments(documentsData);
+    } catch (error) {
+      console.error("שגיאה בטעינת מסמכים:", error);
+      setSaveMessage("שגיאה בטעינת מסמכים");
+    }
+    setIsLoading(false);
+  };
+
+  const saveDocument = async (showMessage = true) => {
+    if (!content.trim() && !documentTitle.trim()) {
+      if (showMessage) setSaveMessage("אין תוכן לשמירה");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const documentData = {
+        title: documentTitle || `מסמך ${new Date().toLocaleDateString('he-IL')}`,
+        content,
+        documentType,
+        documentStructure,
+        citationStyle,
+        wordCount,
+        analysis,
+        updatedAt: serverTimestamp()
+      };
+
+      if (currentDocumentId) {
+        // עדכון מסמך קיים
+        await updateDoc(doc(db, 'academicDocuments', currentDocumentId), documentData);
+        if (showMessage) setSaveMessage("המסמך נשמר בהצלחה!");
+      } else {
+        // יצירת מסמך חדש
+        const docRef = await addDoc(collection(db, 'academicDocuments'), {
+          ...documentData,
+          createdAt: serverTimestamp()
+        });
+        setCurrentDocumentId(docRef.id);
+        if (showMessage) setSaveMessage("המסמך נוצר ונשמר בהצלחה!");
+      }
+
+      await loadDocuments(); // רענון הרשימה
+      
+      if (showMessage) {
+        setTimeout(() => setSaveMessage(""), 3000);
+      }
+    } catch (error) {
+      console.error("שגיאה בשמירת מסמך:", error);
+      if (showMessage) setSaveMessage("שגיאה בשמירת המסמך");
+    }
+    setIsSaving(false);
+  };
+
+  const loadDocument = (document) => {
+    setContent(document.content || "");
+    setDocumentTitle(document.title || "");
+    setDocumentType(document.documentType || "מאמר אקדמי");
+    setDocumentStructure(document.documentStructure || "תבנית בסיסית");
+    setCitationStyle(document.citationStyle || "APA");
+    setCurrentDocumentId(document.id);
+    setShowDocumentsList(false);
+    setSaveMessage(`נטען: ${document.title}`);
+    setTimeout(() => setSaveMessage(""), 3000);
+  };
+
+  const deleteDocument = async (documentId) => {
+    if (!window.confirm("האם אתה בטוח שברצונך למחוק את המסמך?")) return;
+    
+    try {
+      await deleteDoc(doc(db, 'academicDocuments', documentId));
+      await loadDocuments();
+      
+      if (currentDocumentId === documentId) {
+        // אם המסמך הנוכחי נמחק, נקה את הטופס
+        newDocument();
+      }
+      
+      setSaveMessage("המסמך נמחק בהצלחה");
+      setTimeout(() => setSaveMessage(""), 3000);
+    } catch (error) {
+      console.error("שגיאה במחיקת מסמך:", error);
+      setSaveMessage("שגיאה במחיקת המסמך");
+    }
+  };
+
+  const newDocument = () => {
+    setContent("");
+    setDocumentTitle("");
+    setCurrentDocumentId(null);
+    setDocumentType("מאמר אקדמי");
+    setDocumentStructure("תבנית בסיסית");
+    setCitationStyle("APA");
+    setAnalysis([]);
+    setWordCount(0);
+    setSaveMessage("מסמך חדש נוצר");
+    setTimeout(() => setSaveMessage(""), 3000);
+  };
+
+  // כל הפונקציות הקיימות נשארות כפי שהן
   const analyzeText = (text) => {
     setIsAnalyzing(true);
     
@@ -77,7 +234,7 @@ const AcademicWriting = () => {
       });
     }
     
-    const structureRequirements = getDocumentStructureRequirements(documentType, documentStructure); // העברת שני הפרמטרים
+    const structureRequirements = getDocumentStructureRequirements(documentType, documentStructure);
     const structureAnalysis = analyzeDocumentStructure(text, structureRequirements);
     if (structureAnalysis.hasMissingElements) {
       newAnalysis.push({
@@ -139,13 +296,7 @@ const AcademicWriting = () => {
     };
   };
 
-  // Analyze text formality using NLP techniques
   const analyzeTextFormality = (text) => {
-    // In a real implementation, this would use language models or NLP libraries
-    // to detect informal language patterns
-    
-    // For demo purposes, we'll implement a simple detection 
-    // that looks at common informal patterns in Hebrew and English
     const informalityIndicators = [
       /\bמדהים\b/i, /\bנהדר\b/i, /\bגרוע\b/i, /\bנורא\b/i, /\bסבבה\b/i, /\bבסדר\b/i,
       /\bdon't\b/i, /\bwon't\b/i, /\bcan't\b/i, /\bgonna\b/i, /\bwanna\b/i,
@@ -172,7 +323,6 @@ const AcademicWriting = () => {
   };
 
   const analyzeClaimsAndEvidence = (text) => {
-    
     const claimIndicators = [
       /אני טוען/i, /אני חושב/i, /לדעתי/i, /ניתן לומר ש/i, /ברור ש/i,
       /I believe/i, /I think/i, /in my opinion/i, /clearly/i, /obviously/i,
@@ -186,8 +336,8 @@ const AcademicWriting = () => {
     }
     
     const evidenceIndicators = [
-      /\(\d{4}\)/,  
-      /לפי /i, /על פי/i, /\(.*\d+.*\)/,  
+      /\(\d{4}\)/,
+      /לפי /i, /על פי/i, /\(.*\d+.*\)/,
       /מחקרים הראו/i, /studies show/i
     ];
     
@@ -311,7 +461,6 @@ const AcademicWriting = () => {
     }
   };
 
-  // Provide a dynamic analysis of the document based on its characteristics
   const getAIAnalysisContent = () => {
     if (!content.trim().length) {
       return (
@@ -321,7 +470,6 @@ const AcademicWriting = () => {
       );
     }
     
-    // Get appropriate word count recommendation based on document type
     const wordCountRecommendation = getWordCountRecommendation(documentType, wordCount);
     
     return (
@@ -329,7 +477,7 @@ const AcademicWriting = () => {
         <div className="ai-panel-section">
           <h3>ניתוח כללי</h3>
           <p>{wordCountRecommendation}</p>
-          <p>מבנה נבחר: {documentStructure}</p> {/* הצגת המבנה הנבחר */}
+          <p>מבנה נבחר: {documentStructure}</p>
         </div>
         
         <div className="ai-panel-section">
@@ -383,7 +531,6 @@ const AcademicWriting = () => {
     );
   };
 
-  // Helper function to get dynamic word count recommendations
   const getWordCountRecommendation = (docType, count) => {
     const recommendations = {
       "מאמר אקדמי": {
@@ -439,6 +586,44 @@ const AcademicWriting = () => {
 
       <section className="content-area">
         <aside className="sidebar">
+          {/* כלים חדשים ל-Firebase */}
+          <div className="side-card">
+            <h4>ניהול מסמכים</h4>
+            <input
+              type="text"
+              placeholder="שם המסמך..."
+              value={documentTitle}
+              onChange={(e) => setDocumentTitle(e.target.value)}
+              className="document-title-input"
+            />
+            <div className="document-actions">
+              <button 
+                className="action-btn save-btn" 
+                onClick={() => saveDocument(true)}
+                disabled={isSaving}
+              >
+                {isSaving ? "שומר..." : "💾 שמירה"}
+              </button>
+              <button 
+                className="action-btn new-btn" 
+                onClick={newDocument}
+              >
+                📄 מסמך חדש
+              </button>
+              <button 
+                className="action-btn load-btn" 
+                onClick={() => setShowDocumentsList(!showDocumentsList)}
+              >
+                📂 המסמכים שלי ({documents.length})
+              </button>
+            </div>
+            {saveMessage && (
+              <div className={`save-message ${saveMessage.includes('שגיאה') ? 'error' : 'success'}`}>
+                {saveMessage}
+              </div>
+            )}
+          </div>
+
           <div className="side-card">
             <h4>אפשרויות יצוא</h4>
             <label><input type="radio" name="export" /> PDF</label>
@@ -446,12 +631,7 @@ const AcademicWriting = () => {
             <label><input type="radio" name="export" /> LaTeX</label>
             <button className="export-btn">יצוא מסמך</button>
           </div>
-          <div className="side-card">
-            <h4>שמירה בענן</h4>
-            <label><input type="radio" name="cloud" /> Google Drive</label>
-            <label><input type="radio" name="cloud" /> OneDrive</label>
-            <button className="cloud-btn">שמירה בענן</button>
-          </div>
+          
           <div className="side-card">
             <h4>שיתוף</h4>
             <button className="share-btn">שיתוף למרצה וחברים</button>
@@ -517,9 +697,59 @@ const AcademicWriting = () => {
           <div className="word-count">
             <span>מילים: {wordCount}</span>
             {isAnalyzing && <span>מנתח טקסט...</span>}
+            {currentDocumentId && <span>מסמך שמור</span>}
           </div>
         </main>
       </section>
+      
+      {/* רשימת מסמכים */}
+      {showDocumentsList && (
+        <div className="documents-list-overlay">
+          <div className="documents-list">
+            <div className="documents-list-header">
+              <h3>המסמכים שלי</h3>
+              <button 
+                className="close-list-btn"
+                onClick={() => setShowDocumentsList(false)}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="documents-list-content">
+              {isLoading ? (
+                <div className="loading">טוען מסמכים...</div>
+              ) : documents.length === 0 ? (
+                <div className="empty-list">אין מסמכים שמורים</div>
+              ) : (
+                documents.map(doc => (
+                  <div key={doc.id} className="document-item">
+                    <div className="document-info">
+                      <h4>{doc.title}</h4>
+                      <p>{doc.documentType} • {doc.wordCount} מילים</p>
+                      <small>עודכן: {doc.updatedAt.toLocaleDateString('he-IL')}</small>
+                    </div>
+                    <div className="document-actions">
+                      <button 
+                        className="load-doc-btn"
+                        onClick={() => loadDocument(doc)}
+                      >
+                        פתח
+                      </button>
+                      <button 
+                        className="delete-doc-btn"
+                        onClick={() => deleteDocument(doc.id)}
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* AI Help Panel */}
       {showAIPanel && (
@@ -537,7 +767,6 @@ const AcademicWriting = () => {
               </button>
             </div>
             
-            {/* Dynamic content based on the current state */}
             {getAIAnalysisContent()}
           </div>
         </div>

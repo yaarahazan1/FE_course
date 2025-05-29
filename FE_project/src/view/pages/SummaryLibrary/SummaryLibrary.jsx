@@ -1,61 +1,18 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { 
+  collection, 
+  getDocs, 
+  addDoc, 
+  updateDoc,
+  doc,
+  increment
+} from "firebase/firestore";
+import { auth, db } from "../../../firebase/config"; 
+import { onAuthStateChanged } from "firebase/auth";
 import UploadSummaryDialog from "../../components/SummaryLibraryHelper/UploadSummaryDialog/UploadSummaryDialog";
 import "./SummaryLibrary.css";
 
-const demoSummaries = [
-  {
-    id: 1,
-    title: "מבוא לסטטיסטיקה",
-    author: "עדי לוי",
-    date: "15 בינואר 2025",
-    course: "סטטיסטיקה למדעי החברה",
-    professor: "פרופ׳ יעקב כהן",
-    rating: 5,
-    downloads: 142,
-    pages: 15,
-    isLocked: false,
-  },
-  {
-    id: 2,
-    title: "סיכום סמסטר א׳ - פסיכולוגיה חברתית",
-    author: "מיכל גולן",
-    date: "3 בפברואר 2025",
-    course: "פסיכולוגיה חברתית",
-    professor: "ד״ר שרה לוינסון",
-    rating: 4.5,
-    downloads: 89,
-    pages: 23,
-    isLocked: false,
-  },
-  {
-    id: 3,
-    title: "מבנה נתונים ואלגוריתמים - סיכום מבחן",
-    author: "אייל דורון",
-    date: "20 בדצמבר 2024",
-    course: "מבנה נתונים",
-    professor: "פרופ׳ דוד ישראלי",
-    rating: 4,
-    downloads: 210,
-    pages: 18,
-    isLocked: true,
-  },
-  {
-    id: 4,
-    title: "אלגברה לינארית - נוסחאון מורחב",
-    author: "רונית כהן",
-    date: "5 בינואר 2025",
-    course: "אלגברה לינארית",
-    professor: "ד״ר משה אברהם",
-    rating: 5,
-    downloads: 320,
-    pages: 8,
-    isLocked: true,
-  },
-];
-
-// רכיב כרטיס סיכום
-const SummaryCard = ({ summary, hasAccess, onAccessRequired }) => {
-  // פונקציה להצגת כוכבי דירוג
+const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDownload }) => {
   const renderRatingStars = (rating) => {
     const stars = [];
     const fullStars = Math.floor(rating);
@@ -77,11 +34,11 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired }) => {
     return stars;
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (summary.isLocked && !hasAccess) {
       onAccessRequired();
     } else {
-      // בהמשך: לוגיקת הורדה
+      await onDownload(summary.id);
       alert("מוריד את הסיכום: " + summary.title);
     }
   };
@@ -90,9 +47,26 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired }) => {
     if (summary.isLocked && !hasAccess) {
       onAccessRequired();
     } else {
-      // בהמשך: לוגיקת תצוגה מקדימה
       alert("מציג תצוגה מקדימה של: " + summary.title);
     }
+  };
+
+  // תיקון הצגת כמות העמודים
+  const formatPages = (pages) => {
+    if (!pages || pages === 0) {
+      return "לא צוין";
+    }
+    if (typeof pages === 'string') {
+      const numPages = parseInt(pages);
+      if (isNaN(numPages)) {
+        return "לא צוין";
+      }
+      return `${numPages} עמודים`;
+    }
+    if (typeof pages === 'number') {
+      return `${pages} עמודים`;
+    }
+    return "לא צוין";
   };
 
   return (
@@ -105,10 +79,7 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired }) => {
         ) : null}
         
         <div className="summary-type">
-          {summary.course.includes("פסיכולוגיה") ? "פסיכולוגיה חברתית" : 
-           summary.course.includes("סטטיסטיקה") ? "סטטיסטיקה למדעי החברה" :
-           summary.course.includes("נתונים") ? "מבנה נתונים" :
-           "אלגברה לינארית"}
+          {summary.course}
         </div>
       </div>
 
@@ -125,14 +96,14 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired }) => {
         <div className="summary-stats">
           <div className="summary-pages">
             <span className="pages-icon">📄</span>
-            <span>{summary.pages} עמודים</span>
+            <span>{formatPages(summary.pages)}</span>
           </div>
           <div className="summary-rating">
-            <div className="rating-value">{summary.rating}</div>
-            <div className="rating-stars">{renderRatingStars(summary.rating)}</div>
+            <div className="rating-value">{summary.rating || 0}</div>
+            <div className="rating-stars">{renderRatingStars(summary.rating || 0)}</div>
           </div>
           <div className="summary-downloads">
-            <span className="downloads-count">{summary.downloads}</span>
+            <span className="downloads-count">{summary.downloads || 0}</span>
             <span className="downloads-icon">⬇️</span>
           </div>
         </div>
@@ -158,21 +129,85 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired }) => {
   );
 };
 
-// רכיב ראשי של ספריית הסיכומים
 const SummaryLibrary = () => {
+  const [summaries, setSummaries] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCourse, setSelectedCourse] = useState("");
   const [selectedProfessor, setSelectedProfessor] = useState("");
   const [sortBy, setSortBy] = useState("recent");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [hasUploaded, setHasUploaded] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
-  // פונקציה לסינון וחיפוש סיכומים
-  const filteredSummaries = demoSummaries.filter(summary => {
+  useEffect(() => {
+    loadSummaries();
+    checkUserUploadStatus();
+    
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      setAuthLoading(false);
+      console.log("Current user:", user);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const loadSummaries = async () => {
+    try {
+      setLoading(true);
+      const summariesCollection = collection(db, "summaries");
+      const summariesSnapshot = await getDocs(summariesCollection);
+      const summariesList = summariesSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          // וידוא שכל הערכים מוגדרים כראוי
+          pages: data.pages || 0,
+          downloads: data.downloads || 0,
+          rating: data.rating || 0,
+          author: data.author || "לא צוין",
+          professor: data.professor || "לא צוין",
+          course: data.course || "לא צוין"
+        };
+      });
+      setSummaries(summariesList);
+    } catch (error) {
+      console.error("שגיאה בטעינת הסיכומים:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkUserUploadStatus = async () => {
+    const userHasUploaded = localStorage.getItem("userHasUploaded") === "true";
+    setHasUploaded(userHasUploaded);
+  };
+
+  const handleDownload = async (summaryId) => {
+    try {
+      const summaryDoc = doc(db, "summaries", summaryId);
+      await updateDoc(summaryDoc, {
+        downloads: increment(1)
+      });
+      
+      setSummaries(prev => prev.map(summary => 
+        summary.id === summaryId 
+          ? { ...summary, downloads: summary.downloads + 1 }
+          : summary
+      ));
+    } catch (error) {
+      console.error("שגיאה בעדכון ההורדות:", error);
+    }
+  };
+
+  const filteredSummaries = summaries.filter(summary => {
     const matchesSearch = searchQuery === "" || 
-      summary.title.includes(searchQuery) || 
-      summary.course.includes(searchQuery) || 
-      summary.professor.includes(searchQuery);
+      summary.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      summary.course.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      summary.professor.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesCourse = selectedCourse === "" || summary.course === selectedCourse;
     const matchesProfessor = selectedProfessor === "" || summary.professor === selectedProfessor;
@@ -180,10 +215,9 @@ const SummaryLibrary = () => {
     return matchesSearch && matchesCourse && matchesProfessor;
   });
 
-  // מיון סיכומים
   const sortedSummaries = [...filteredSummaries].sort((a, b) => {
     if (sortBy === "recent") {
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
+      return new Date(b.createdAt?.toDate?.() || b.createdAt) - new Date(a.createdAt?.toDate?.() || a.createdAt);
     }
     if (sortBy === "rating") {
       return b.rating - a.rating;
@@ -194,14 +228,52 @@ const SummaryLibrary = () => {
     return 0;
   });
 
-  const handleUploadSuccess = () => {
-    setHasUploaded(true);
-    alert("הסיכום הועלה בהצלחה! כעת יש לך גישה מלאה לכל הסיכומים בספרייה.");
-    setIsDialogOpen(false);
+  const handleUploadSuccess = async (summaryData) => {
+    try {
+      // וידוא שכל הנתונים מוגדרים כראוי לפני השמירה
+      const summaryToSave = {
+        ...summaryData,
+        createdAt: new Date(),
+        downloads: 0,
+        rating: summaryData.rating || 5,
+        isLocked: false,
+        pages: summaryData.pages ? parseInt(summaryData.pages) : 0, // וידוא שהעמודים הם מספר
+        author: summaryData.author || "לא צוין",
+        professor: summaryData.professor || "לא צוין",
+        course: summaryData.course || "לא צוין"
+      };
+
+      const docRef = await addDoc(collection(db, "summaries"), summaryToSave);
+
+      const newSummary = {
+        id: docRef.id,
+        ...summaryToSave
+      };
+
+      setSummaries(prev => [newSummary, ...prev]);
+      setHasUploaded(true);
+      localStorage.setItem("userHasUploaded", "true");
+      alert("הסיכום הועלה בהצלחה! כעת יש לך גישה מלאה לכל הסיכומים בספרייה.");
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error("שגיאה בהעלאת הסיכום:", error);
+      alert("אירעה שגיאה בהעלאת הסיכום. אנא נסה שוב.");
+    }
   };
 
-  const uniqueCourses = [...new Set(demoSummaries.map(summary => summary.course))];
-  const uniqueProfessors = [...new Set(demoSummaries.map(summary => summary.professor))];
+  const uniqueCourses = [...new Set(summaries.map(summary => summary.course))];
+  const uniqueProfessors = [...new Set(summaries.map(summary => summary.professor))];
+
+  if (loading || authLoading) {
+    return (
+      <div className="container">
+        <div className="loading-spinner">
+          <div className="spinner"></div>
+          <p>טוען סיכומים...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container">
@@ -210,9 +282,13 @@ const SummaryLibrary = () => {
         <p className="subtitle">
           גישה מהירה לחומרי לימוד מסוכמים שנאספו על ידי סטודנטים. חפשו, סננו וגלו סיכומים איכותיים לקורסים שלכם.
         </p>
+        {currentUser && (
+          <div style={{ fontSize: '0.9em', color: '#666', marginTop: '10px' }}>
+            משתמש מחובר: {currentUser.displayName || currentUser.email || "משתמש אנונימי"}
+          </div>
+        )}
       </header>
 
-      {/* חיפוש וסינון */}
       <div className="search-filters">
         <div className="search-bar">
           <span className="search-icon">🔍</span>
@@ -264,7 +340,6 @@ const SummaryLibrary = () => {
         </div>
       </div>
 
-      {/* רשימת הסיכומים */}
       {sortedSummaries.length > 0 ? (
         <div className="summaries-grid">
           {sortedSummaries.map(summary => (
@@ -273,6 +348,7 @@ const SummaryLibrary = () => {
               summary={summary} 
               hasAccess={hasUploaded}
               onAccessRequired={() => setIsDialogOpen(true)}
+              onDownload={handleDownload}
             />
           ))}
         </div>
@@ -294,7 +370,6 @@ const SummaryLibrary = () => {
         </div>
       )}
 
-      {/* אזור גישה מוגבלת */}
       {!hasUploaded && (
         <div className="restricted-access">
           <div className="lock-icon-large">🔒</div>
@@ -312,7 +387,6 @@ const SummaryLibrary = () => {
         </div>
       )}
 
-      {/* כפתור העלאת סיכום - הצג תמיד גם אחרי העלאה */}
       <div className="fixed-summary-upload-btn">
         <button 
           className="summary-upload-btn-floating"
@@ -323,11 +397,11 @@ const SummaryLibrary = () => {
         </button>
       </div>
 
-      {/* דיאלוג העלאת סיכום */}
       <UploadSummaryDialog 
         isOpen={isDialogOpen} 
         onClose={() => setIsDialogOpen(false)}
         onUploadSuccess={handleUploadSuccess}
+        currentUser={currentUser}
       />
     </div>
   );

@@ -60,7 +60,11 @@ function generateStudySuggestions(tasks) {
 
   const sortedTasks = [...tasks]
     .sort((a, b) => {
-      const deadlineDiff = new Date(a.deadline) - new Date(b.deadline);
+      // שימוש בשדה dueDate במקום deadline (או deadline אם קיים)
+      const dateA = new Date(a.deadline || a.dueDate);
+      const dateB = new Date(b.deadline || b.dueDate);
+      const deadlineDiff = dateA - dateB;
+      
       if (deadlineDiff === 0) {
         const priorityOrder = {
           "דחוף מאוד": 1,
@@ -78,7 +82,9 @@ function generateStudySuggestions(tasks) {
   const days = ["ראשון", "שני", "שלישי", "רביעי", "חמישי"];
 
   return sortedTasks.slice(0, 4).map((task, i) => {
-    const daysUntilDeadline = Math.floor((new Date(task.deadline) - today) / (1000 * 60 * 60 * 24));
+    // שימוש בשדה dueDate במקום deadline
+    const taskDeadline = new Date(task.deadline || task.dueDate);
+    const daysUntilDeadline = Math.floor((taskDeadline - today) / (1000 * 60 * 60 * 24));
     let timeSlot = "יום " + days[i % days.length] + ", 17:00-19:00";
 
     if (daysUntilDeadline <= 1) timeSlot = "היום, 18:00-20:00";

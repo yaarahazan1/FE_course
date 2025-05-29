@@ -1,84 +1,468 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 import { Star, User, Trophy, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
+import { collection, query, where, getDocs, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { auth, db } from '../../../firebase/config'; 
+import { useAuthState } from 'react-firebase-hooks/auth';
 import "./Dashboard.css";
 
 const Dashboard = () => {
-  // מידע סטטיסטי לדוגמה
-  const tasksData = {
-    completed: 75,
-    pending: 25
+  // State management for Firebase data
+  const [user, loading] = useAuthState(auth);
+  const [dashboardData, setDashboardData] = useState({
+    tasks: { completed: 0, pending: 0 },
+    recentSummaries: [],
+    recentActivities: [],
+    timeSpentData: [],
+    summaryUploadData: [],
+    summaryRatings: [],
+    userEngagement: { visitors: 24, activeUsers: 8, newUsers: 5 },
+    currentUserData: {
+      name: "משתמש אלמוני",
+      tasksCompleted: 0,
+      tasksTotal: 0,
+      studyHours: 0,
+      summariesUploaded: 0,
+      lastActive: new Date().toLocaleDateString('he-IL'),
+      progress: [],
+      topCourses: []
+    }
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [dataError, setDataError] = useState(null);
+
+  // Fetch user tasks from Firebase
+  const fetchUserTasks = async (userId) => {
+    try {
+      const tasksRef = collection(db, 'tasks');
+      const q = query(tasksRef, where('userId', '==', userId));
+      const querySnapshot = await getDocs(q);
+      
+      let completed = 0;
+      let pending = 0;
+      let totalTasks = 0;
+      
+      querySnapshot.forEach((doc) => {
+        const task = doc.data();
+        totalTasks++;
+        if (task.status === 'completed' || task.completed === true) {
+          completed++;
+        } else {
+          pending++;
+        }
+      });
+
+      return { completed, pending, totalTasks };
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+      return { completed: 0, pending: 0, totalTasks: 0 };
+    }
   };
+
+  // Fetch recent summaries from Firebase
+  const fetchRecentSummaries = async () => {
+    try {
+      const summariesRef = collection(db, 'summaries');
+      const q = query(summariesRef, orderBy('createdAt', 'desc'), limit(3));
+      const querySnapshot = await getDocs(q);
+      
+      const summaries = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        summaries.push({
+          id: doc.id,
+          title: data.title || data.name || 'סיכום ללא כותרת',
+          date: data.createdAt?.toDate ? data.createdAt.toDate().toLocaleDateString('he-IL') : new Date().toLocaleDateString('he-IL'),
+          author: data.authorName || data.uploadedBy || 'משתמש אלמוני'
+        });
+      });
+
+      return summaries;
+    } catch (error) {
+      console.error("Error fetching summaries:", error);
+      return [];
+    }
+  };
+
+  // Fetch user activities from Firebase
+  const fetchUserActivities = async (userId) => {
+    try {
+      // נסה קודם activities, אם לא קיים - צור פעילויות מדומות מנתונים אחרים
+      const activitiesRef = collection(db, 'activities');
+      const q = query(
+        activitiesRef, 
+        where('userId', '==', userId),
+        orderBy('timestamp', 'desc'),
+        limit(3)
+      );
+      const querySnapshot = await getDocs(q);
+      
+      const activities = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        activities.push({
+          id: doc.id,
+          activity: data.activityType || 'פעילות',
+          details: data.details || data.description || 'פעילות במערכת',
+          date: data.timestamp?.toDate ? data.timestamp.toDate().toLocaleDateString('he-IL') : new Date().toLocaleDateString('he-IL')
+        });
+      });
+
+      // אם אין פעילויות, צור כמה דוגמאות
+      if (activities.length === 0) {
+        return [
+          { id: '1', activity: 'כניסה למערכת', details: 'התחברת למערכת', date: new Date().toLocaleDateString('he-IL') },
+          { id: '2', activity: 'צפייה בלוח מחוונים', details: 'צפית בנתונים האישיים', date: new Date().toLocaleDateString('he-IL') }
+        ];
+      }
+
+      return activities;
+    } catch (error) {
+      console.error("Error fetching activities:", error);
+      // החזר פעילויות דמה במקרה של שגיאה
+      return [
+        { id: '1', activity: 'כניסה למערכת', details: 'התחברת למערכת', date: new Date().toLocaleDateString('he-IL') }
+      ];
+    }
+  };
+
+  // Fetch time spent data from Firebase
+  const fetchTimeSpentData = async (userId) => {
+    try {
+      const timeRef = collection(db, 'studyTime');
+      const q = query(timeRef, where('userId', '==', userId));
+      const querySnapshot = await getDocs(q);
+      
+      const courseTime = {};
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const courseName = data.courseName || data.course || data.subject || 'קורס כללי';
+        const hours = data.hours || data.duration || data.time || 0;
+        
+        if (courseTime[courseName]) {
+          courseTime[courseName] += hours;
+        } else {
+          courseTime[courseName] = hours;
+        }
+      });
+
+      const result = Object.entries(courseTime).map(([name, hours]) => ({ name, hours }));
+      
+      // אם אין נתונים, החזר דוגמאות
+      if (result.length === 0) {
+        return [
+          { name: 'מתמטיקה', hours: 5 },
+          { name: 'פיזיקה', hours: 3 },
+          { name: 'כימיה', hours: 4 }
+        ];
+      }
+      
+      return result;
+    } catch (error) {
+      console.error("Error fetching time data:", error);
+      return [
+        { name: 'מתמטיקה', hours: 5 },
+        { name: 'פיזיקה', hours: 3 }
+      ];
+    }
+  };
+
+  // Fetch summary ratings from Firebase
+  const fetchSummaryRatings = async (userId) => {
+    try {
+      const ratingsRef = collection(db, 'summaryRatings');
+      const q = query(ratingsRef, where('userId', '==', userId));
+      const querySnapshot = await getDocs(q);
+      
+      const ratings = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        ratings.push({
+          id: doc.id,
+          title: data.summaryTitle || data.title || 'סיכום',
+          rating: data.rating || Math.floor(Math.random() * 5) + 1
+        });
+      });
+
+      // אם אין דירוגים, החזר כמה דוגמאות
+      if (ratings.length === 0) {
+        return [
+          { id: '1', title: 'סיכום מתמטיקה', rating: 4 },
+          { id: '2', title: 'סיכום פיזיקה', rating: 5 }
+        ];
+      }
+
+      return ratings;
+    } catch (error) {
+      console.error("Error fetching ratings:", error);
+      return [];
+    }
+  };
+
+  // Fetch user profile data
+  const fetchUserProfile = async (userId) => {
+    try {
+      const userRef = collection(db, 'users');
+      const q = query(userRef, where('uid', '==', userId));
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        const userData = querySnapshot.docs[0].data();
+        return {
+          name: userData.displayName || userData.name || user?.displayName || 'משתמש אלמוני',
+          lastActive: userData.lastActive?.toDate ? userData.lastActive.toDate().toLocaleDateString('he-IL') : new Date().toLocaleDateString('he-IL')
+        };
+      }
+      return { 
+        name: user?.displayName || 'משתמש אלמוני', 
+        lastActive: new Date().toLocaleDateString('he-IL') 
+      };
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      return { 
+        name: user?.displayName || 'משתמש אלמוני', 
+        lastActive: new Date().toLocaleDateString('he-IL') 
+      };
+    }
+  };
+
+  // Main data fetching function
+  const fetchAllData = async () => {
+    if (!user) return;
+
+    setIsLoading(true);
+    setDataError(null);
+    
+    try {
+      // שימוש ב-Promise.allSettled במקום Promise.all כדי שאם אחד נכשל, השאר יעבוד
+      const results = await Promise.allSettled([
+        fetchUserTasks(user.uid),
+        fetchRecentSummaries(),
+        fetchUserActivities(user.uid),
+        fetchTimeSpentData(user.uid),
+        fetchSummaryRatings(user.uid),
+        fetchUserProfile(user.uid)
+      ]);
+
+      // חילוץ התוצאות
+      const [
+        tasksResult,
+        summariesResult,
+        activitiesResult,
+        timeDataResult,
+        ratingsResult,
+        userProfileResult
+      ] = results;
+
+      const tasksData = tasksResult.status === 'fulfilled' ? tasksResult.value : { completed: 0, pending: 0, totalTasks: 0 };
+      const summaries = summariesResult.status === 'fulfilled' ? summariesResult.value : [];
+      const activities = activitiesResult.status === 'fulfilled' ? activitiesResult.value : [];
+      const timeData = timeDataResult.status === 'fulfilled' ? timeDataResult.value : [];
+      const ratings = ratingsResult.status === 'fulfilled' ? ratingsResult.value : [];
+      const userProfile = userProfileResult.status === 'fulfilled' ? userProfileResult.value : { name: 'משתמש אלמוני', lastActive: new Date().toLocaleDateString('he-IL') };
+
+      // Calculate progress data (last 7 days)
+      const progressData = [];
+      const days = ['יום א\'', 'יום ב\'', 'יום ג\'', 'יום ד\'', 'יום ה\'', 'יום ו\'', 'שבת'];
+      for (let i = 0; i < 7; i++) {
+        progressData.push({
+          day: days[i],
+          hours: Math.floor(Math.random() * 6) + 1 // זמני - ניתן להחליף בנתונים אמיתיים
+        });
+      }
+
+      // Calculate top courses distribution
+      const totalHours = timeData.reduce((sum, course) => sum + course.hours, 0);
+      const topCourses = timeData.map(course => ({
+        name: course.name,
+        percent: totalHours > 0 ? Math.round((course.hours / totalHours) * 100) : 0
+      }));
+
+      setDashboardData({
+        tasks: { completed: tasksData.completed, pending: tasksData.pending },
+        recentSummaries: summaries,
+        recentActivities: activities,
+        timeSpentData: timeData,
+        summaryUploadData: [
+          { month: "ינואר", uploads: Math.max(1, Math.floor(summaries.length * 0.3)) },
+          { month: "פברואר", uploads: Math.max(1, Math.floor(summaries.length * 0.5)) },
+          { month: "מרץ", uploads: Math.max(1, Math.floor(summaries.length * 0.8)) },
+          { month: "אפריל", uploads: Math.max(1, summaries.length) }
+        ],
+        summaryRatings: ratings,
+        userEngagement: { 
+          visitors: 24,
+          activeUsers: 8, 
+          newUsers: 5 
+        },
+        currentUserData: {
+          name: userProfile.name,
+          tasksCompleted: tasksData.completed,
+          tasksTotal: tasksData.totalTasks,
+          studyHours: timeData.reduce((sum, course) => sum + course.hours, 0),
+          summariesUploaded: summaries.length,
+          lastActive: userProfile.lastActive,
+          progress: progressData,
+          topCourses: topCourses
+        }
+      });
+
+      console.log('Dashboard data loaded successfully');
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      setDataError('שגיאה בטעינת הנתונים');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Setup real-time listeners
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubscribers = [];
+
+    try {
+      // Real-time listener for tasks
+      const tasksRef = collection(db, 'tasks');
+      const tasksQuery = query(tasksRef, where('userId', '==', user.uid));
+      
+      const unsubscribeTasks = onSnapshot(tasksQuery, (snapshot) => {
+        let completed = 0;
+        let pending = 0;
+        
+        snapshot.forEach((doc) => {
+          const task = doc.data();
+          if (task.status === 'completed' || task.completed === true) {
+            completed++;
+          } else {
+            pending++;
+          }
+        });
+
+        setDashboardData(prev => ({
+          ...prev,
+          tasks: { completed, pending },
+          currentUserData: {
+            ...prev.currentUserData,
+            tasksCompleted: completed,
+            tasksTotal: completed + pending
+          }
+        }));
+      }, (error) => {
+        console.error("Error listening to tasks:", error);
+      });
+
+      unsubscribers.push(unsubscribeTasks);
+
+      // Real-time listener for summaries
+      const summariesRef = collection(db, 'summaries');
+      const summariesQuery = query(summariesRef, orderBy('createdAt', 'desc'), limit(3));
+      
+      const unsubscribeSummaries = onSnapshot(summariesQuery, (snapshot) => {
+        const summaries = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          summaries.push({
+            id: doc.id,
+            title: data.title || data.name || 'סיכום ללא כותרת',
+            date: data.createdAt?.toDate ? data.createdAt.toDate().toLocaleDateString('he-IL') : new Date().toLocaleDateString('he-IL'),
+            author: data.authorName || data.uploadedBy || 'משתמש אלמוני'
+          });
+        });
+
+        setDashboardData(prev => ({
+          ...prev,
+          recentSummaries: summaries
+        }));
+      }, (error) => {
+        console.error("Error listening to summaries:", error);
+      });
+
+      unsubscribers.push(unsubscribeSummaries);
+
+    } catch (error) {
+      console.error("Error setting up listeners:", error);
+    }
+
+    return () => {
+      unsubscribers.forEach(unsubscribe => {
+        if (typeof unsubscribe === 'function') {
+          unsubscribe();
+        }
+      });
+    };
+  }, [user]);
+
+  // Initial data fetch
+  useEffect(() => {
+    if (user && !loading) {
+      fetchAllData();
+    }
+  }, [user, loading]);
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="dashboard-container">
+        <div className="loading-state">
+          <h2>מתחבר למערכת...</h2>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login prompt if not authenticated
+  if (!user) {
+    return (
+      <div className="dashboard-container">
+        <div className="auth-required">
+          <h2>נדרשת כניסה למערכת</h2>
+          <p>כדי לצפות בלוח המחוונים, יש להתחבר למערכת</p>
+          <Link to="/Login" className="login-link">
+            <button className="navButton">כניסה למערכת</button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state for data
+  if (isLoading) {
+    return (
+      <div className="dashboard-container">
+        <div className="loading-state">
+          <h2>טוען נתונים...</h2>
+          <p>אנא המתן, טוען את הנתונים שלך מהמסד נתונים</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (dataError) {
+    return (
+      <div className="dashboard-container">
+        <div className="error-state">
+          <h2>שגיאה בטעינת הנתונים</h2>
+          <p>{dataError}</p>
+          <button onClick={fetchAllData} className="retry-button">נסה שוב</button>
+        </div>
+      </div>
+    );
+  }
+
+  const { tasks, recentSummaries, recentActivities, timeSpentData, summaryUploadData, summaryRatings, userEngagement, currentUserData } = dashboardData;
 
   const pieData = [
-    { name: "הושלמו", value: tasksData.completed, color: "#10B981" },
-    { name: "ממתינות", value: tasksData.pending, color: "#EF4444" }
+    { name: "הושלמו", value: tasks.completed, color: "#10B981" },
+    { name: "ממתינות", value: tasks.pending, color: "#EF4444" }
   ];
 
-  const recentSummaries = [
-    { id: 1, title: "מבוא לפסיכולוגיה", date: "10/04/2025", author: "רונית כהן" },
-    { id: 2, title: "אלגוריתמים", date: "08/04/2025", author: "משה לוי" },
-    { id: 3, title: "סטטיסטיקה", date: "05/04/2025", author: "יעל גולדמן" }
-  ];
-
-  const recentActivities = [
-    { id: 1, activity: "השלמת משימה", details: "מבוא לפיזיקה - הגשת תרגיל", date: "11/04/2025" },
-    { id: 2, activity: "העלאת סיכום", details: "תכנות מונחה עצמים", date: "10/04/2025" },
-    { id: 3, activity: "עדכון פרופיל", details: "שינוי תחום לימודים", date: "09/04/2025" }
-  ];
-
-  const timeSpentData = [
-    { name: "אלגברה", hours: 10 },
-    { name: "פיזיקה", hours: 8 },
-    { name: "תכנות", hours: 6 },
-    { name: "אנגלית", hours: 4 }
-  ];
-
-  const summaryUploadData = [
-    { month: "חודש 1", uploads: 1 },
-    { month: "חודש 2", uploads: 2 },
-    { month: "חודש 3", uploads: 3 },
-    { month: "חודש 4", uploads: 1 }
-  ];
-
-  const summaryRatings = [
-    { id: 1, title: "תכנות מונחה עצמים", rating: 5 },
-    { id: 2, title: "מבנה נתונים", rating: 3 }
-  ];
-
-  const userEngagement = {
-    visitors: 24,
-    activeUsers: 8,
-    newUsers: 5
-  };
-
-  const completionRate = 92;
-
-  // נתונים עבור המשתמש הנוכחי
-  const currentUserData = {
-    name: "יעל ישראלי",
-    tasksCompleted: 12,
-    tasksTotal: 16,
-    studyHours: 28,
-    summariesUploaded: 5,
-    lastActive: "11/04/2025",
-    progress: [
-      { day: "יום א'", hours: 2 },
-      { day: "יום ב'", hours: 5 },
-      { day: "יום ג'", hours: 3 },
-      { day: "יום ד'", hours: 4 },
-      { day: "יום ה'", hours: 6 },
-      { day: "יום ו'", hours: 2 },
-      { day: "שבת", hours: 0 },
-    ],
-    topCourses: [
-      { name: "פיזיקה", percent: 40 },
-      { name: "אלגברה", percent: 30 },
-      { name: "תכנות", percent: 20 },
-      { name: "אנגלית", percent: 10 },
-    ]
-  };
+  const completionRate = currentUserData.tasksTotal > 0 
+    ? Math.round((currentUserData.tasksCompleted / currentUserData.tasksTotal) * 100) 
+    : 0;
 
   return (
     <div className="dashboard-container">
@@ -98,7 +482,7 @@ const Dashboard = () => {
           <div className="user-header">
             <h2 className="user-title">
               <User className="icon" />
-              הנתונים שלי
+              הנתונים שלי - {currentUserData.name}
             </h2>
             <span className="last-update">עדכון אחרון: {currentUserData.lastActive}</span>
           </div>
@@ -120,7 +504,7 @@ const Dashboard = () => {
               <div className="stat-sublabel">בחודש האחרון</div>
             </div>
             <div className="stat-card">
-              <div className="stat-number">{Math.round((currentUserData.tasksCompleted / currentUserData.tasksTotal) * 100)}%</div>
+              <div className="stat-number">{completionRate}%</div>
               <div className="stat-label">השלמת משימות</div>
               <div className="stat-sublabel">מתוך היעד</div>
             </div>
@@ -175,7 +559,10 @@ const Dashboard = () => {
           <div className="recommendation-card">
             <div className="recommendation-title">המלצה אישית:</div>
             <p className="recommendation-text">
-              בהתבסס על הנתונים שלך, כדאי להקדיש יותר זמן לקורס אנגלית בשבוע הקרוב
+              {currentUserData.topCourses.length > 0 
+                ? `בהתבסס על הנתונים שלך, כדאי להקדיש יותר זמן לקורס ${currentUserData.topCourses[currentUserData.topCourses.length - 1]?.name || 'הבא'} בשבוע הקרוב`
+                : 'התחל לעקוב אחרי זמני הלמידה שלך כדי לקבל המלצות מותאמות אישית'
+              }
             </p>
           </div>
         </div>
@@ -209,11 +596,11 @@ const Dashboard = () => {
               <div className="pie-legend">
                 <div className="legend-item">
                   <div className="legend-dot completed"></div>
-                  <span>הושלמו</span>
+                  <span>הושלמו ({tasks.completed})</span>
                 </div>
                 <div className="legend-item">
                   <div className="legend-dot pending"></div>
-                  <span>ממתינות</span>
+                  <span>ממתינות ({tasks.pending})</span>
                 </div>
               </div>
             </div>
@@ -225,15 +612,19 @@ const Dashboard = () => {
           <div className="card-content">
             <h2 className="card-title">סיכומים חדשים</h2>
             <div className="summaries-list">
-              {recentSummaries.map(summary => (
-                <div key={summary.id} className="summary-item">
-                  <div className="summary-title">{summary.title}</div>
-                  <div className="summary-details">
-                    <span>מועלה ע"י: {summary.author}</span>
-                    <span>{summary.date}</span>
+              {recentSummaries.length > 0 ? (
+                recentSummaries.map(summary => (
+                  <div key={summary.id} className="summary-item">
+                    <div className="summary-title">{summary.title}</div>
+                    <div className="summary-details">
+                      <span>מועלה ע"י: {summary.author}</span>
+                      <span>{summary.date}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <div className="empty-state">אין סיכומים חדשים</div>
+              )}
             </div>
           </div>
         </div>
@@ -243,15 +634,19 @@ const Dashboard = () => {
           <div className="card-content">
             <h2 className="card-title">פעילות אחרונה</h2>
             <div className="activities-list">
-              {recentActivities.map(activity => (
-                <div key={activity.id} className="activity-item">
-                  <div className="activity-title">{activity.activity}</div>
-                  <div className="activity-details">
-                    <span>{activity.details}</span>
-                    <span>{activity.date}</span>
+              {recentActivities.length > 0 ? (
+                recentActivities.map(activity => (
+                  <div key={activity.id} className="activity-item">
+                    <div className="activity-title">{activity.activity}</div>
+                    <div className="activity-details">
+                      <span>{activity.details}</span>
+                      <span>{activity.date}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <div className="empty-state">אין פעילות אחרונה</div>
+              )}
             </div>
           </div>
         </div>
@@ -266,16 +661,20 @@ const Dashboard = () => {
           <div className="card-content">
             <h2 className="card-title">זמן שהוקדש לקורסים</h2>
             <div className="chart-container">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={timeSpentData} layout="vertical">
-                  <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" width={80} direction={"ltr"}/>
-                  <Tooltip />
-                  <Bar dataKey="hours" fill="#89A8B2" />
-                </BarChart>
-              </ResponsiveContainer>
+              {timeSpentData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={timeSpentData} layout="vertical">
+                    <XAxis type="number" />
+                    <YAxis dataKey="name" type="category" width={80} direction={"ltr"}/>
+                    <Tooltip />
+                    <Bar dataKey="hours" fill="#89A8B2" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="empty-chart">אין נתוני זמן למידה</div>
+              )}
               <div className="chart-footer">
-                סה"כ: 42 שעות למידה השבוע
+                סה"כ: {currentUserData.studyHours} שעות למידה השבוע
               </div>
             </div>
           </div>
@@ -295,7 +694,7 @@ const Dashboard = () => {
                 </LineChart>
               </ResponsiveContainer>
               <div className="chart-footer">
-                7 סיכומים הועלו בחודש האחרון
+                {currentUserData.summariesUploaded} סיכומים הועלו בחודש האחרון
               </div>
             </div>
           </div>
@@ -312,7 +711,7 @@ const Dashboard = () => {
                 </div>
               </div>
               <div className="completion-details">
-                <div>12 משימות הושלמו מתוך 16</div>
+                <div>{currentUserData.tasksCompleted} משימות הושלמו מתוך {currentUserData.tasksTotal}</div>
               </div>
             </div>
           </div>
@@ -321,29 +720,36 @@ const Dashboard = () => {
 
       {/* מעורבות משתמשים ופידבק */}
       <div className="engagement-grid">
-        {/* פידבק וציונים על סיכומים */}
         <div className="dashboard-card">
           <div className="card-content">
             <h2 className="card-title">פידבק וציונים על סיכומים</h2>
             <div className="ratings-list">
-              {summaryRatings.map(summary => (
-                <div key={summary.id} className="rating-item">
-                  <span className="rating-title">{summary.title}</span>
-                  <div className="rating-stars-dashboard">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        size={18}
-                        className={i < summary.rating ? "star-filled" : "star-empty-dashboard"}
-                      />
-                    ))}
-                    <span className="rating-score">({summary.rating} מתוך 5)</span>
+              {summaryRatings.length > 0 ? (
+                summaryRatings.map(summary => (
+                  <div key={summary.id} className="rating-item">
+                    <span className="rating-title">{summary.title}</span>
+                    <div className="rating-stars-dashboard">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          size={18}
+                          className={i < summary.rating ? "star-filled" : "star-empty-dashboard"}
+                        />
+                      ))}
+                      <span className="rating-score">({summary.rating} מתוך 5)</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <div className="empty-state">אין דירוגים עדיין</div>
+              )}
             </div>
             <div className="overall-satisfaction">
-              <div className="satisfaction-rate">{completionRate}%</div>
+              <div className="satisfaction-rate">
+                {summaryRatings.length > 0 
+                  ? Math.round(summaryRatings.reduce((sum, s) => sum + s.rating, 0) / summaryRatings.length * 20)
+                  : 0}%
+              </div>
               <div className="satisfaction-label">שביעות רצון כללית</div>
             </div>
           </div>

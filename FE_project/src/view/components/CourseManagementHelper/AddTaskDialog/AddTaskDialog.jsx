@@ -6,24 +6,33 @@ import { useDatePicker, formatDateForDisplay, months } from "../calender";
 const AddTaskDialog = ({ isOpen, onClose, onAddSuccess, projects = [] }) => {
   const [taskName, setTaskName] = useState("");
   const [description, setDescription] = useState("");
+  const [course, setCourse] = useState("");
   const [priority, setPriority] = useState("נמוכה");
   const [status, setStatus] = useState("ממתין");
+  const [taskType, setTaskType] = useState("אישי");
   const [projectId, setProjectId] = useState("");
   const [isPriorityOpen, setIsPriorityOpen] = useState(false);
   const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const [isTaskTypeOpen, setIsTaskTypeOpen] = useState(false);
   
 
   const priorityOptions = ["גבוהה", "בינונית", "נמוכה"];
   const statusOptions = ["ממתין", "בתהליך", "הושלם"];
+  const taskTypeOptions = ["אישי", "לימודים"];
 
   const handlePrioritySelect = (selectedPriority) => {
     setPriority(selectedPriority);
     setIsPriorityOpen(false);
   };
 
-    const handleStatusSelect = (selectedPriority) => {
-    setStatus(selectedPriority);
+  const handleStatusSelect = (selectedStatus) => {
+    setStatus(selectedStatus);
     setIsStatusOpen(false);
+  };
+
+    const handleTaskTypeSelect = (selectedStatus) => {
+    setTaskType(selectedStatus);
+    setIsTaskTypeOpen(false);
   };
 
   const {
@@ -47,14 +56,14 @@ const AddTaskDialog = ({ isOpen, onClose, onAddSuccess, projects = [] }) => {
     const selectedProject = projectId ? projects.find(p => p.id.toString() === projectId) : null;
 
     const newTask = {
-      id: Date.now(), // Temporary ID for demonstration
-      name: taskName,
+      title: taskName,
       description,
       dueDate,
       priority,
       status,
       projectId: projectId || null,
-      projectName: selectedProject ? selectedProject.name : null
+      projectName: selectedProject ? selectedProject.name : null,
+      course: selectedProject ? selectedProject.course : course // אם יש קורס קשור לפרויקט
     };
 
     onAddSuccess(newTask);
@@ -65,11 +74,14 @@ const AddTaskDialog = ({ isOpen, onClose, onAddSuccess, projects = [] }) => {
   const resetForm = () => {
     setTaskName("");
     setDescription("");
+    setCourse("");
     setDueDate("");
-    setPriority("");
-    setStatus("");
+    setPriority("נמוכה");
+    setStatus("ממתין");
     setProjectId("");
     setIsDatePickerOpen(false);
+    setIsPriorityOpen(false);
+    setIsStatusOpen(false);
   };
 
   const handleCancel = () => {
@@ -105,6 +117,16 @@ const AddTaskDialog = ({ isOpen, onClose, onAddSuccess, projects = [] }) => {
             placeholder="הזן תיאור מפורט למשימה"
             rows="3"
             required={true}/>
+        </div>
+
+        <div className="form-field">
+          <label>קורס קשור*</label>
+          <textarea
+            value={course}
+            onChange={(e) => setCourse(e.target.value)}
+            onFocus={() => setIsDatePickerOpen(false)}
+            required={true}/>
+            autoFocus
         </div>
 
         <div className="form-field">
@@ -194,14 +216,16 @@ const AddTaskDialog = ({ isOpen, onClose, onAddSuccess, projects = [] }) => {
           </div>
         </div>
 
-        <label>
-          רמת עדיפות:
+        <div className="form-field">
+          <label>רמת עדיפות:</label>
           <div className="custom-select">
             <div 
               className="select-header" 
               onClick={() => {
                 setIsPriorityOpen(!isPriorityOpen);
                 setIsDatePickerOpen(false);
+                setIsStatusOpen(false);
+                setIsTaskTypeOpen(false);
               }}
             >
               <span>{priority}</span>
@@ -222,7 +246,7 @@ const AddTaskDialog = ({ isOpen, onClose, onAddSuccess, projects = [] }) => {
                 {priorityOptions.map((option) => (
                   <div
                     key={option}
-                    className={`select-option ${option === status ? 'selected' : ''}`}
+                    className={`select-option ${option === priority ? 'selected' : ''}`}
                     onClick={() => handlePrioritySelect(option)}
                   >
                     {option}
@@ -231,16 +255,18 @@ const AddTaskDialog = ({ isOpen, onClose, onAddSuccess, projects = [] }) => {
               </div>
             )}
           </div>
-        </label>
+        </div>
 
-        <label>
-          סטטוס:
+        <div className="form-field">
+          <label>סטטוס:</label>
           <div className="custom-select">
             <div 
               className="select-header" 
               onClick={() => {
-                setStatus(!isStatusOpen);
+                setIsStatusOpen(!isStatusOpen);
                 setIsDatePickerOpen(false);
+                setIsPriorityOpen(false);
+                setIsTaskTypeOpen(false);
               }}
             >
               <span>{status}</span>
@@ -270,7 +296,48 @@ const AddTaskDialog = ({ isOpen, onClose, onAddSuccess, projects = [] }) => {
               </div>
             )}
           </div>
-        </label>
+        </div>
+
+        <div className="form-field">
+          <label>סוג משימה:</label>
+          <div className="custom-select">
+            <div 
+              className="select-header" 
+              onClick={() => {
+                setIsTaskTypeOpen(!isStatusOpen);
+                setIsDatePickerOpen(false);
+                setIsPriorityOpen(false);
+                setIsStatusOpen(false);
+              }}
+            >
+              <span>{taskType}</span>
+              <svg 
+                className={`select-arrow ${isTaskTypeOpen ? 'open' : ''}`}
+                width="16" 
+                height="16" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="#666" 
+                strokeWidth="2"
+              >
+                <path d="M6 9l6 6 6-6"/>
+              </svg>
+            </div>
+            {isTaskTypeOpen && (
+              <div className="select-options">
+                {taskTypeOptions.map((option) => (
+                  <div
+                    key={option}
+                    className={`select-option ${option === taskType ? 'selected' : ''}`}
+                    onClick={() => handleTaskTypeSelect(option)}
+                  >
+                    {option}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
 
         {projects.length > 0 && (
           <div className="form-field">
@@ -278,7 +345,11 @@ const AddTaskDialog = ({ isOpen, onClose, onAddSuccess, projects = [] }) => {
             <select
               value={projectId}
               onChange={(e) => setProjectId(e.target.value)}
-              onFocus={() => setIsDatePickerOpen(false)}
+              onFocus={() => {
+                setIsDatePickerOpen(false);
+                setIsPriorityOpen(false);
+                setIsStatusOpen(false);
+              }}
             >
               <option value="">לא משויך לפרויקט</option>
               {projects.map((project) => (

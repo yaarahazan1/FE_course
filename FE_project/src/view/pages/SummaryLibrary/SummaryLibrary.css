@@ -302,9 +302,8 @@
 .no-results {
   text-align: center;
   padding: 60px 0;
-  background-color: #fff;
   border-radius: 8px;
-  border: 1px solid #e6e6e6;
+  margin-bottom: 30px;
 }
 
 .no-results-icon {

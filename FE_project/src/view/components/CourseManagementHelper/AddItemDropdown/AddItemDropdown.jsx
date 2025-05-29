@@ -14,7 +14,6 @@ const AddItemDropdown = ({ onAddCourse, onAddProject, onAddTask }) => {
     action();
   };
 
-  // סגירת הדרופדאון כאשר לוחצים מחוץ לאזור שלו
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {

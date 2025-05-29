@@ -1,49 +1,31 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../../../../firebase/config";
 import "./TasksTab.css";
 
-const TasksTab = ({ tasks = [] }) => {
-  // Sample data for demonstration
-  const sampleTasks = [
-    {
-      id: 1,
-      name: "בניית טופס בחירת מצב רוח",
-      description: "יצירת טופס אינטראקטיבי שמאפשר למשתמש לבחור את מצב הרוח הנוכחי שלו",
-      dueDate: "2025-05-25",
-      priority: "גבוהה",
-      status: "בתהליך",
-      projectName: "SnackMatch"
-    },
-    {
-      id: 2,
-      name: "ניתוח תוצאות הסקר",
-      description: "ניתוח של תוצאות הסקר מקבוצת המיקוד והכנת מצגת עם התובנות העיקריות",
-      dueDate: "2025-05-22",
-      priority: "בינונית",
-      status: "ממתין",
-      projectName: "מחקר מגמות דיגיטליות"
-    },
-    {
-      id: 3,
-      name: "אפיון אלגוריתם התאמה",
-      description: "פיתוח אלגוריתם שמתאים בין מצב רוח לסוגי חטיפים לפי העדפות המשתמש",
-      dueDate: "2025-06-01",
-      priority: "גבוהה",
-      status: "ממתין",
-      projectName: "SnackMatch"
-    },
-    {
-      id: 4,
-      name: "עיצוב דף הבית",
-      description: "עיצוב ממשק משתמש אטרקטיבי עבור דף הבית של האפליקציה",
-      dueDate: "2025-05-20",
-      priority: "נמוכה",
-      status: "הושלם",
-      projectName: "SnackMatch"
-    }
-  ];
+const TasksTab = () => {
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Use provided tasks or sample tasks if none provided
-  const displayTasks = tasks.length > 0 ? tasks : sampleTasks;
+  const fetchTasks = async () => {
+    try {
+      const tasksCol = collection(db, "tasks");
+      const snapshot = await getDocs(tasksCol);
+      const tasksData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setTasks(tasksData);
+    } catch (error) {
+      console.error("שגיאה בעת שליפת משימות:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
 
   const getPriorityClass = (priority) => {
     switch (priority) {
@@ -86,23 +68,25 @@ const TasksTab = ({ tasks = [] }) => {
         <h2>רשימת משימות</h2>
       </div>
 
-      {displayTasks.length === 0 ? (
+      {loading ? (
+        <p>טוען משימות...</p>
+      ) : tasks.length === 0 ? (
         <div className="tasks-empty-message">
-          <p>אין משימות כרגע. הוסף משימה חדשה להתחלה!</p>
+          <p>אין משימות כרגע. לחץ על כפתור "הוסף משימה" כדי להתחיל.</p>
         </div>
       ) : (
         <div className="tasks-list">
-          {displayTasks.map((task) => (
+          {tasks.map((task) => (
             <div key={task.id} className="task-card">
               <div className="task-header">
-                <sapn title={task.name}>{task.name}</sapn>
+                <span title={task.title}>{task.title}</span>
               </div>
-                <sapn className={`task-priority ${getPriorityClass(task.priority)}`}>
-                  חשיבות: {task.priority}
-                </sapn>
-              <sapn className="task-description" title={task.description}>
+              <span className={`task-priority ${getPriorityClass(task.priority)}`}>
+                חשיבות: {task.priority}
+              </span>
+              <span className="task-description" title={task.description}>
                 {task.description}
-              </sapn>
+              </span>
               <div className="task-info">
                 <div className="task-info-item">
                   <span>תאריך יעד:</span>
@@ -115,7 +99,9 @@ const TasksTab = ({ tasks = [] }) => {
                   </span>
                 </div>
                 <div className="task-info-item">
-                  <span className={`task-status ${getStatusClass(task.status)}`}>סטטוס: {task.status}</span>
+                  <span className={`task-status ${getStatusClass(task.status)}`}>
+                    סטטוס: {task.status}
+                  </span>
                 </div>
               </div>
             </div>

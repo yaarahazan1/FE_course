@@ -8,10 +8,14 @@ const MonthView = ({ date, daysInMonth, filteredTasks }) => {
   const getPriorityColor = (priority) => {
     switch (priority) {
       case "גבוהה":
+      case "דחוף מאוד":
+      case "דחוף":
         return "priority-high";
       case "בינונית":
+      case "חשוב":
         return "priority-medium";
       case "נמוכה":
+      case "פחות דחוף":
         return "priority-low";
       default:
         return "priority-default";
@@ -24,11 +28,12 @@ const MonthView = ({ date, daysInMonth, filteredTasks }) => {
         return "type-personal";
       case "לימודים":
         return "type-study";
+      case "עבודה":
+        return "type-work";
       default:
         return "type-default";
     }
   };
-
 
   return (
     <table className="calendar-table">
@@ -52,10 +57,24 @@ const MonthView = ({ date, daysInMonth, filteredTasks }) => {
                 .map((day, dayIndex) => {
                   const isToday = day.toDateString() === new Date().toDateString();
                   const isCurrentMonth = isSameMonth(day, date);
+                  
+                  // סינון משימות לפי יום - בדיקה אם קיים deadline ושהוא תקין
                   const tasksForDay = filteredTasks
-                    ? filteredTasks.filter(
-                        (task) => task?.deadline?.toDateString() === day.toDateString()
-                      )
+                    ? filteredTasks.filter((task) => {
+                        if (!task || !task.deadline) return false;
+                        
+                        try {
+                          const taskDate = task.deadline instanceof Date 
+                            ? task.deadline 
+                            : new Date(task.deadline);
+                          
+                          return taskDate.toDateString() === day.toDateString();
+                        } catch (error) {
+                          console.error("שגיאה בפענוח תאריך משימה:", error);
+                          console.warn("שגיאה בפענוח תאריך משימה:", task);
+                          return false;
+                        }
+                      })
                     : [];
 
                   return (
@@ -69,24 +88,35 @@ const MonthView = ({ date, daysInMonth, filteredTasks }) => {
 
                       {tasksForDay && tasksForDay.length > 0 && (
                         <div className="tasks-container">
-                          {tasksForDay.map((task, taskIndex) => (
+                          {tasksForDay.slice(0, 3).map((task, taskIndex) => (
                             <div
-                              key={`task-${dayIndex}-${taskIndex}`}
+                              key={`task-${task.id || dayIndex}-${taskIndex}`}
                               className={`task-item ${
                                 task.type === "לימודים"
                                   ? getPriorityColor(task.priority)
                                   : getTypeColor(task.type)
                               }`}
-                              style={{
-                                backgroundColor: getTypeColor(task.type),
-                              }}
+                              title={`${task.title}${task.course ? ` - ${task.course}` : ''}`}
                             >
-                              <div className="task-title">{task.title}</div>
+                              <div className="task-title">
+                                {task.title && task.title.length > 20 
+                                  ? task.title.substring(0, 20) + '...' 
+                                  : task.title}
+                              </div>
                               {task.course && (
-                                <div className="task-course">{task.course}</div>
+                                <div className="task-course">
+                                  {task.course.length > 15 
+                                    ? task.course.substring(0, 15) + '...' 
+                                    : task.course}
+                                </div>
                               )}
                             </div>
                           ))}
+                          {tasksForDay.length > 3 && (
+                            <div className="more-tasks">
+                              +{tasksForDay.length - 3} נוספות
+                            </div>
+                          )}
                         </div>
                       )}
                     </td>

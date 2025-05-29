@@ -1,4 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { 
+  collection, 
+  addDoc, 
+  updateDoc, 
+  doc, 
+  onSnapshot,
+  getDocs,
+  query,
+  where,
+  orderBy 
+} from "firebase/firestore";
+import { db, auth } from "../../../firebase/config"; 
 import AddTaskDialog from "../../components/CourseManagementHelper/AddTaskDialog/AddTaskDialog";
 import SearchBar from "../../components/CourseManagementHelper/SearchBar/SearchBar";
 import AddCourseDialog from "../../components/CourseManagementHelper/AddCourseDialog/AddCourseDialog";
@@ -14,236 +26,315 @@ const CourseManagement = () => {
   const [isAddProjectDialogOpen, setIsAddProjectDialogOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [activeTab, setActiveTab] = useState("projects");
+  const [loading, setLoading] = useState(true);
   
-  // מידע חדש - משימות
-  const [tasks, setTasks] = useState([
-    {
-      id: 1,
-      name: "הגשת מטלה בסטטיסטיקה",
-      description: "לסיים את כל התרגילים בפרק 5",
-      dueDate: new Date(2025, 5, 15).toISOString().split('T')[0],
-      priority: "גבוהה",
-      status: "ממתין",
-      projectName: "לימודים",
-      course: "סטטיסטיקה"
-    },
-    {
-      id: 2,
-      name: "מבחן אמצע סמסטר",
-      description: "לסכם את כל החומר עד כה",
-      dueDate: new Date(2025, 4, 20).toISOString().split('T')[0],
-      priority: "גבוהה",
-      status: "בתהליך",
-      projectName: "לימודים",
-      course: "פסיכולוגיה חברתית"
-    },
-    {
-      id: 3,
-      name: "פגישה עם המנחה",
-      description: "להכין שאלות ונושאים לשיחה",
-      dueDate: new Date(2025, 5, 18).toISOString().split('T')[0],
-      priority: "בינונית",
-      status: "ממתין",
-      projectName: "לימודים"
-    },
-    {
-      id: 4,
-      name: "הכנת מצגת",
-      description: "לסיים את המצגת לקורס שיטות מחקר",
-      dueDate: new Date(2025, 4, 25).toISOString().split('T')[0],
-      priority: "נמוכה",
-      status: "בתהליך",
-      projectName: "לימודים",
-      course: "שיטות מחקר"
-    },
-    {
-      id: 5,
-      name: "פגישה משפחתית",
-      description: "ארוחת ערב משפחתית",
-      dueDate: new Date(2025, 4, 17).toISOString().split('T')[0],
-      priority: "בינונית",
-      status: "ממתין",
-      projectName: "אישי"
-    },
-    {
-      id: 6,
-      name: "תור לרופא",
-      description: "בדיקה שנתית",
-      dueDate: new Date(2025, 5, 22).toISOString().split('T')[0],
-      priority: "בינונית",
-      status: "ממתין",
-      projectName: "אישי"
-    }
-  ]);
+  // State לנתונים מFirebase
+  const [tasks, setTasks] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [projects, setProjects] = useState([]);
 
-  // מידע חדש - קורסים
-  const [courses, setCourses] = useState([
-    {
-      id: 1,
-      name: "פסיכולוגיה חברתית",
-      lecturer: "דר. פטריק גינזבורג",
-      semester: "סמסטר ב'",
-      credits: 3,
-      assignments: [
-        { name: "מבחן אמצע סמסטר", dueDate: "20/05/2025", isCompleted: false },
-        { name: "עבודת סיום", dueDate: "01/07/2025", isCompleted: false }
-      ]
-    },
-    {
-      id: 2,
-      name: "שיטות מחקר מתקדמות",
-      lecturer: "פרופ. אלישע",
-      semester: "סמסטר ב'",
-      credits: 4,
-      assignments: [
-        { name: "הכנת מצגת", dueDate: "25/04/2025", isCompleted: false },
-        { name: "הצגת פרויקט", dueDate: "10/06/2025", isCompleted: false },
-        { name: "עבודה סופית", dueDate: "20/07/2025", isCompleted: false }
-      ]
-    },
-    {
-      id: 3,
-      name: "סטטיסטיקה יישומית",
-      lecturer: "דר. רונית כהן",
-      semester: "סמסטר ב'",
-      credits: 3,
-      assignments: [
-        { name: "הגשת מטלה", dueDate: "15/06/2025", isCompleted: false },
-        { name: "תרגיל 1", dueDate: "01/05/2025", isCompleted: true },
-        { name: "תרגיל 2", dueDate: "15/05/2025", isCompleted: false },
-        { name: "מבחן סופי", dueDate: "10/07/2025", isCompleted: false }
-      ]
-    }
-  ]);
+  // פונקציה לקבלת ID המשתמש הנוכחי
+  const getCurrentUserId = () => {
+    return auth.currentUser?.uid || "demo-user"; // fallback למצב demo
+  };
 
-  // המידע של הפרויקטים עם תמיכה בצ'אט
-  const [projects, setProjects] = useState([
-    {
-      id: 1,
-      name: "SnackMatch",
-      dueDate: '2025-07-31',
-      description: "אפליקציה שמתאימה חטיפים לפי מצב הרוח",
-      status: "פעיל",
-      tasks: 7,
-      teamMembers: [
-        { id: 1, name: "רונית כהן גולדמן", role: "מנהלת צוות", avatar: "RC" },
-        { id: 2, name: "משה לוינסקי", role: "חבר צוות", avatar: "ML" },
-        { id: 3, name: "יעל אבוטבול", role: "חברת צוות", avatar: "YA" }
-      ],
-      messages: [
+  useEffect(() => {
+     loadTasks();
+   }, []);
+ 
+   const loadTasks = async () => {
+     try {
+       setLoading(true);
+       
+       const tasksCollection = collection(db, "tasks");
+       const tasksQuery = query(tasksCollection, orderBy("dueDate", "asc"));
+       const tasksSnapshot = await getDocs(tasksQuery);
+       
+       const tasksList = tasksSnapshot.docs.map(doc => {
+         const data = doc.data();
+         return {
+           id: doc.id,
+           ...data,
+           // המרת Timestamp ל-Date אם צריך
+           dueDate: data.dueDate?.toDate ? data.dueDate.toDate() : new Date(data.dueDate),
+           deadline: data.dueDate?.toDate ? data.dueDate.toDate() : new Date(data.dueDate), // הוספת deadline לתאימות
+           createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt || Date.now())
+         };
+       });
+       
+       setTasks(tasksList);
+       console.log("נטענו משימות:", tasksList); // לדיבוג
+     } catch (error) {
+       console.error("שגיאה בטעינת המשימות:", error);
+       
+       // במקרה של שגיאה, הוסף משימות לדוגמה
+       const sampleTasks = [
+         {
+           id: "sample1",
+           title: "הכנה למבחן במתמטיקה",
+           type: "לימודים",
+           course: "מתמטיקה",
+           priority: "דחוף",
+           dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+           deadline: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+           completed: false
+         },
+         {
+           id: "sample2",
+           title: "כתיבת עבודה בהיסטוריה",
+           type: "לימודים",
+           course: "היסטוריה",
+           priority: "חשוב",
+           dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+           deadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+           completed: false
+         }
+       ];
+       setTasks(sampleTasks);
+     } finally {
+       setLoading(false);
+     }
+   };
+
+  // טעינת קורסים מFirebase
+  const loadCourses = async () => {
+    try {
+      const userId = getCurrentUserId();
+      const q = query(
+        collection(db, "courses"),
+        where("userId", "==", userId)
+      );
+      
+      const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const coursesData = [];
+        querySnapshot.forEach((doc) => {
+          coursesData.push({ id: doc.id, ...doc.data() });
+        });
+        setCourses(coursesData);
+      });
+
+      return unsubscribe;
+    } catch (error) {
+      console.error("שגיאה בטעינת קורסים:", error);
+      // נתונים דמה במקרה של שגיאה
+      setCourses([
         {
-          id: 1,
-          sender: "רונית כהן גולדמן",
-          senderAvatar: "RC",
-          message: "בוקר טוב! זוכרים שהמשימה - 'בניית טופס בחירת מצב רוח' צריכה להיות מוגשת עד סוף השבוע",
-          timestamp: new Date(2025, 4, 15, 9, 30).getTime()
-        },
-        {
-          id: 2,
-          sender: "משה לוינסקי",
-          senderAvatar: "ML",
-          message: "התחלתי לעבוד על הטופס, אסיים עד יום חמישי.",
-          timestamp: new Date(2025, 4, 15, 10, 15).getTime()
-        },
-        {
-          id: 3,
-          sender: "יעל אבוטבול",
-          senderAvatar: "YA",
-          message: "אני אעבור על הטופס אחרי שתסיים בבקשה. הכנתי כבר את העיצוב.",
-          timestamp: new Date(2025, 4, 15, 11, 5).getTime()
+          id: "demo-1",
+          name: "פסיכולוגיה חברתית",
+          lecturer: "דר. פטריק גינזבורג",
+          semester: "סמסטר ב'",
+          credits: 3,
+          assignments: []
         }
-      ],
-      newMessage: ""
-    },
-    {
-      id: 2,
-      name: "מחקר מגמות דיגיטליות",
-      dueDate: '2025-07-01',
-      description: "ניתוח מגמות בשוק הדיגיטלי",
-      status: "בתהליך",
-      tasks: 4,
-      teamMembers: [
-        { id: 3, name: "שמחה ליאון סויסה", role: "מנהל צוות", avatar: "SL" },
-        { id: 2, name: "משה לוינסקי", role: "חבר צוות", avatar: "ML" },
-        { id: 4, name: "נועה ברק", role: "חברת צוות", avatar: "NB" }
-      ],
-      messages: [
-        {
-          id: 1,
-          sender: "שמחה ליאון סויסה",
-          senderAvatar: "SL",
-          message: "שלחתי לכם מסמך עם הממצאים הראשוניים של הסקר",
-          timestamp: new Date(2025, 4, 14, 10, 15).getTime()
-        },
-        {
-          id: 2,
-          sender: "נועה ברק",
-          senderAvatar: "NB",
-          message: "תודה שמחה, אני מתחילה לעבור עליו. נראה מעניין מאוד!",
-          timestamp: new Date(2025, 4, 14, 13, 30).getTime()
-        }
-      ],
-      newMessage: ""
+      ]);
     }
-  ]);
-
-  // טיפול בהוספת משימה חדשה
-  const handleAddTask = (newTask) => {
-    const taskWithId = {
-      ...newTask,
-      id: tasks.length + 1
-    };
-    setTasks([...tasks, taskWithId]);
   };
 
-  // טיפול בהוספת קורס חדש
-  const handleAddCourse = (newCourse) => {
-    const courseWithId = {
-      ...newCourse,
-      id: courses.length + 1,
-      semester: "סמסטר ב'",
-      credits: 3,
-      assignments: []
-    };
-    setCourses([...courses, courseWithId]);
+  // טעינת פרויקטים מFirebase
+  const loadProjects = async () => {
+    try {
+      const userId = getCurrentUserId();
+      const q = query(
+        collection(db, "projects"),
+        where("userId", "==", userId),
+        orderBy("dueDate", "asc")
+      );
+      
+      const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const projectsData = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          projectsData.push({ 
+            id: doc.id, 
+            ...data,
+            messages: data.messages || [],
+            newMessage: ""
+          });
+        });
+        setProjects(projectsData);
+      });
+
+      return unsubscribe;
+    } catch (error) {
+      console.error("שגיאה בטעינת פרויקטים:", error);
+      // נתונים דמה במקרה של שגיאה
+      setProjects([
+        {
+          id: "demo-1",
+          name: "SnackMatch",
+          dueDate: '2025-07-31',
+          description: "אפליקציה שמתאימה חטיפים לפי מצב הרוח",
+          status: "פעיל",
+          tasks: 7,
+          teamMembers: [],
+          messages: [],
+          newMessage: ""
+        }
+      ]);
+    }
   };
 
-  // טיפול בהוספת פרויקט חדש
-  const handleAddProject = (newProject) => {
-    const projectWithId = {
-      ...newProject,
-      id: projects.length + 1,
-      status: "חדש",
-      tasks: 0,
-      teamMembers: [],
-      messages: [],
-      newMessage: ""
+  // useEffect לטעינת כל הנתונים
+  useEffect(() => {
+    const loadAllData = async () => {
+      setLoading(true);
+      const unsubscribes = await Promise.all([
+        loadTasks(),
+        loadCourses(),
+        loadProjects()
+      ]);
+      setLoading(false);
+
+      // ניקוי listeners כשהקומפוננטה נמחקת
+      return () => {
+        unsubscribes.forEach(unsubscribe => {
+          if (typeof unsubscribe === 'function') {
+            unsubscribe();
+          }
+        });
+      };
     };
-    setProjects([...projects, projectWithId]);
+
+    loadAllData();
+  }, []);
+
+  // הוספת משימה חדשה לFirebase
+  const handleAddTask = async (newTask) => {
+    try {
+      const userId = getCurrentUserId();
+      const taskData = {
+        ...newTask,
+        userId,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      await addDoc(collection(db, "tasks"), taskData);
+      console.log("משימה נוספה בהצלחה");
+    } catch (error) {
+      console.error("שגיאה בהוספת משימה:", error);
+      // במקרה של שגיאה, נוסיף לוקלית
+      const taskWithId = {
+        ...newTask,
+        id: `local-${Date.now()}`,
+        userId: getCurrentUserId()
+      };
+      setTasks([...tasks, taskWithId]);
+    }
   };
 
-  // טיפול בשליחת הודעה חדשה בצ'אט של פרויקט
-  const handleSendMessage = (projectId, message) => {
+  // הוספת קורס חדש לFirebase
+  const handleAddCourse = async (newCourse) => {
+    try {
+      const userId = getCurrentUserId();
+      const courseData = {
+        ...newCourse,
+        userId,
+        semester: "סמסטר ב'",
+        credits: 3,
+        assignments: [],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      await addDoc(collection(db, "courses"), courseData);
+      console.log("קורס נוסף בהצלחה");
+    } catch (error) {
+      console.error("שגיאה בהוספת קורס:", error);
+      // במקרה של שגיאה, נוסיף לוקלית
+      const courseWithId = {
+        ...newCourse,
+        id: `local-${Date.now()}`,
+        userId: getCurrentUserId(),
+        semester: "סמסטר ב'",
+        credits: 3,
+        assignments: []
+      };
+      setCourses([...courses, courseWithId]);
+    }
+  };
+
+  // הוספת פרויקט חדש לFirebase
+  const handleAddProject = async (newProject) => {
+    try {
+      const userId = getCurrentUserId();
+      const projectData = {
+        ...newProject,
+        userId,
+        status: "חדש",
+        tasks: 0,
+        teamMembers: [],
+        messages: [],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      await addDoc(collection(db, "projects"), projectData);
+      console.log("פרויקט נוסף בהצלחה");
+    } catch (error) {
+      console.error("שגיאה בהוספת פרויקט:", error);
+      // במקרה של שגיאה, נוסיף לוקלית
+      const projectWithId = {
+        ...newProject,
+        id: `local-${Date.now()}`,
+        userId: getCurrentUserId(),
+        status: "חדש",
+        tasks: 0,
+        teamMembers: [],
+        messages: [],
+        newMessage: ""
+      };
+      setProjects([...projects, projectWithId]);
+    }
+  };
+
+  // שליחת הודעה חדשה בצ'אט פרויקט
+  const handleSendMessage = async (projectId, message) => {
     if (!message.trim()) return;
     
-    setProjects(projects.map(project => {
-      if (project.id === projectId) {
-        const newMessage = {
-          id: project.messages.length + 1,
-          sender: "משתמש נוכחי", // בפרויקט אמיתי זה יהיה שם המשתמש המחובר
-          senderAvatar: "ME",
-          message: message,
-          timestamp: new Date().getTime()
-        };
-        
-        return {
-          ...project,
-          messages: [...project.messages, newMessage],
-          newMessage: ""
-        };
-      }
-      return project;
-    }));
+    try {
+      const project = projects.find(p => p.id === projectId);
+      if (!project) return;
+
+      const newMessage = {
+        id: (project.messages?.length || 0) + 1,
+        sender: "משתמש נוכחי", // בפרויקט אמיתי זה יהיה שם המשתמש המחובר
+        senderAvatar: "ME",
+        message: message,
+        timestamp: new Date().getTime()
+      };
+
+      const updatedMessages = [...(project.messages || []), newMessage];
+      
+      // עדכון ב-Firebase
+      await updateDoc(doc(db, "projects", projectId), {
+        messages: updatedMessages,
+        updatedAt: new Date()
+      });
+
+      console.log("הודעה נשלחה בהצלחה");
+    } catch (error) {
+      console.error("שגיאה בשליחת הודעה:", error);
+      // עדכון לוקלי במקרה של שגיאה
+      setProjects(projects.map(project => {
+        if (project.id === projectId) {
+          const newMessage = {
+            id: (project.messages?.length || 0) + 1,
+            sender: "משתמש נוכחי",
+            senderAvatar: "ME",
+            message: message,
+            timestamp: new Date().getTime()
+          };
+          
+          return {
+            ...project,
+            messages: [...(project.messages || []), newMessage],
+            newMessage: ""
+          };
+        }
+        return project;
+      }));
+    }
   };
 
   // עדכון ערך הודעה חדשה בשדה הקלט
@@ -252,6 +343,16 @@ const CourseManagement = () => {
       project.id === projectId ? { ...project, newMessage: value } : project
     ));
   };
+
+  if (loading) {
+    return (
+      <div className="course-management-container">
+        <div className="loading-spinner">
+          <p>טוען נתונים...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="course-management-container">
@@ -274,19 +375,19 @@ const CourseManagement = () => {
             className={`tab-button-course ${activeTab === "projects" ? "active" : ""}`} 
             onClick={() => setActiveTab("projects")}
           >
-            פרויקטים
+            פרויקטים ({projects.length})
           </button>
           <button 
             className={`tab-button-course ${activeTab === "tasks" ? "active" : ""}`} 
             onClick={() => setActiveTab("tasks")}
           >
-            משימות
+            משימות ({tasks.length})
           </button>
           <button 
             className={`tab-button-course ${activeTab === "courses" ? "active" : ""}`} 
             onClick={() => setActiveTab("courses")}
           >
-            קורסים
+            קורסים ({courses.length})
           </button>
         </div>
 

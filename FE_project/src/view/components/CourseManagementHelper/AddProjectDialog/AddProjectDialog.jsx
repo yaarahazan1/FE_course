@@ -1,12 +1,16 @@
 import React, { useState } from "react";
+import { collection, addDoc } from "firebase/firestore";
+import { db, auth } from "../../../../firebase/config";
 import DialogComponent from "../DialogComponent/DialogComponent";
 import "./AddProjectDialog.css";
-import { useDatePicker, formatDateForDisplay, months } from "../calender"
+import { useDatePicker, formatDateForDisplay, months } from "../calender";
+
 const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
   const [projectName, setProjectName] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("פעיל");
   const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   // שימוש בhook של לוח השנה
   const {
@@ -25,17 +29,49 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
   
   const statusOptions = ["פעיל", "בתהליך", "הושלם", "מופסק"];
 
-  const handleSubmit = (e) => {
+  // פונקציה לקבלת ID המשתמש הנוכחי
+  const getCurrentUserId = () => {
+    return auth.currentUser?.uid || "demo-user";
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!projectName.trim()) return;
-    onAddSuccess({ 
-      name: projectName, 
-      description,
-      dueDate,
-      status
-    });
-    resetForm();
-    onClose();
+    if (!projectName.trim() || !description.trim()) return;
+    
+    setIsLoading(true);
+    
+    try {
+      const userId = getCurrentUserId();
+      const newProject = {
+        name: projectName.trim(),
+        description: description.trim(),
+        dueDate: dueDate || null,
+        status,
+        userId,
+        tasks: 0,
+        teamMembers: [],
+        messages: [],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      // הוספה ל-Firebase
+      const docRef = await addDoc(collection(db, "projects"), newProject);
+      console.log("פרויקט נוסף בהצלחה עם ID:", docRef.id);
+      
+      // קריאה לפונקציה מהקומפוננטה האב אם נדרש
+      if (onAddSuccess) {
+        onAddSuccess(newProject);
+      }
+      
+      resetForm();
+      onClose();
+    } catch (error) {
+      console.error("שגיאה בהוספת פרויקט:", error);
+      alert("שגיאה בהוספת הפרויקט. אנא נסה שוב.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleStatusSelect = (selectedStatus) => {
@@ -49,6 +85,7 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
     setDueDate("");
     setStatus("פעיל");
     setIsDatePickerOpen(false);
+    setIsStatusOpen(false);
   };
 
   const handleCancel = () => {
@@ -74,6 +111,7 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
               onChange={(e) => setProjectName(e.target.value)}
               onFocus={() => setIsDatePickerOpen(false)}
               required={true}
+              disabled={isLoading}
             />
           </label>
         </div>
@@ -87,6 +125,7 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
               onFocus={() => setIsDatePickerOpen(false)}
               rows="3"
               required={true}
+              disabled={isLoading}
             />
           </label>
         </div>
@@ -98,8 +137,10 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
               <div 
                 className="select-header" 
                 onClick={() => {
-                  setIsStatusOpen(!isStatusOpen);
-                  setIsDatePickerOpen(false);
+                  if (!isLoading) {
+                    setIsStatusOpen(!isStatusOpen);
+                    setIsDatePickerOpen(false);
+                  }
                 }}
               >
                 <span>{status}</span>
@@ -115,7 +156,7 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
                   <path d="M6 9l6 6 6-6"/>
                 </svg>
               </div>
-              {isStatusOpen && (
+              {isStatusOpen && !isLoading && (
                 <div className="select-options">
                   {statusOptions.map((option) => (
                     <div
@@ -139,8 +180,10 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
               <div 
                 className="date-input-header"
                 onClick={() => {
-                  setIsDatePickerOpen(!isDatePickerOpen);
-                  setIsStatusOpen(false);
+                  if (!isLoading) {
+                    setIsDatePickerOpen(!isDatePickerOpen);
+                    setIsStatusOpen(false);
+                  }
                 }}
               >
                 <span>{formatDateForDisplay(dueDate)}</span>
@@ -160,7 +203,7 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
                 </svg>
               </div>
               
-              {isDatePickerOpen && (
+              {isDatePickerOpen && !isLoading && (
                 <div className="calendar-dropdown">
                   <div className="calendar-header">
                     <button 
@@ -225,11 +268,20 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
         </div>
           
         <div className="modal-actions">
-          <button type="button" onClick={handleCancel} className="cancel-button">
+          <button 
+            type="button" 
+            onClick={handleCancel} 
+            className="cancel-button"
+            disabled={isLoading}
+          >
             ביטול
           </button>
-          <button type="submit" className="confirm-button">
-            הוסף פרויקט
+          <button 
+            type="submit" 
+            className="confirm-button"
+            disabled={isLoading || !projectName.trim() || !description.trim()}
+          >
+            {isLoading ? "מוסיף..." : "הוסף פרויקט"}
           </button>
         </div>
       </form>

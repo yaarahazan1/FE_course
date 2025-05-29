@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { collection, addDoc } from "firebase/firestore";
+import { db, auth } from "../../../../firebase/config";
 import DialogComponent from "../DialogComponent/DialogComponent";
 import "./AddCourseDialog.css";
 
@@ -6,20 +8,49 @@ const AddCourseDialog = ({ isOpen, onClose, onAddSuccess }) => {
   const [courseName, setCourseName] = useState("");
   const [lecturer, setLecturer] = useState("");
   const [credits, setCredits] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  // פונקציה לקבלת ID המשתמש הנוכחי
+  const getCurrentUserId = () => {
+    return auth.currentUser?.uid || "demo-user";
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!courseName.trim()) return;
+    if (!courseName.trim() || !lecturer.trim() || !credits) return;
     
-    const newCourse = {
-      name: courseName,
-      lecturer,
-      credits: credits ? Number(credits) : null
-    };
+    setIsLoading(true);
     
-    onAddSuccess(newCourse);
-    resetForm();
-    onClose();
+    try {
+      const userId = getCurrentUserId();
+      const newCourse = {
+        name: courseName.trim(),
+        lecturer: lecturer.trim(),
+        credits: Number(credits),
+        userId,
+        semester: "סמסטר ב'",
+        assignments: [],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      // הוספה ל-Firebase
+      const docRef = await addDoc(collection(db, "courses"), newCourse);
+      console.log("קורס נוסף בהצלחה עם ID:", docRef.id);
+      
+      // קריאה לפונקציה מהקומפוננטה האב אם נדרש
+      if (onAddSuccess) {
+        onAddSuccess(newCourse);
+      }
+      
+      resetForm();
+      onClose();
+    } catch (error) {
+      console.error("שגיאה בהוספת קורס:", error);
+      alert("שגיאה בהוספת הקורס. אנא נסה שוב.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const resetForm = () => {
@@ -49,6 +80,7 @@ const AddCourseDialog = ({ isOpen, onClose, onAddSuccess }) => {
             placeholder="הכנס שם קורס"
             required={true}
             autoFocus
+            disabled={isLoading}
           />
         </div>
         
@@ -60,6 +92,7 @@ const AddCourseDialog = ({ isOpen, onClose, onAddSuccess }) => {
             onChange={(e) => setLecturer(e.target.value)}
             placeholder="הכנס שם מרצה"
             required={true}
+            disabled={isLoading}
           />
         </div>
         
@@ -74,15 +107,25 @@ const AddCourseDialog = ({ isOpen, onClose, onAddSuccess }) => {
             onChange={(e) => setCredits(e.target.value)}
             placeholder="מספר נקודות זכות"
             required={true}
+            disabled={isLoading}
           />
         </div>
         
         <div className="dialog-actions">
-          <button type="button" onClick={handleCancel} className="button button-secondary">
+          <button 
+            type="button" 
+            onClick={handleCancel} 
+            className="button button-secondary"
+            disabled={isLoading}
+          >
             ביטול
           </button>
-          <button type="submit" className="button button-primary">
-            הוסף קורס
+          <button 
+            type="submit" 
+            className="button button-primary"
+            disabled={isLoading || !courseName.trim() || !lecturer.trim() || !credits}
+          >
+            {isLoading ? "מוסיף..." : "הוסף קורס"}
           </button>
         </div>
       </form>

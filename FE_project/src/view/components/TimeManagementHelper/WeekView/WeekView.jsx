@@ -1,15 +1,19 @@
 import React from "react";
 import { format } from "date-fns";
-import "./WeekView.css"; // קובץ CSS חיצוני
+import "./WeekView.css";
 
 const WeekView = ({ currentWeekDays, filteredTasks }) => {
   const getPriorityColor = (priority) => {
     switch (priority) {
       case "גבוהה":
+      case "דחוף מאוד":
+      case "דחוף":
         return "priority-high";
       case "בינונית":
+      case "חשוב":
         return "priority-medium";
       case "נמוכה":
+      case "פחות דחוף":
         return "priority-low";
       default:
         return "priority-default";
@@ -22,6 +26,8 @@ const WeekView = ({ currentWeekDays, filteredTasks }) => {
         return "type-personal";
       case "לימודים":
         return "type-study";
+      case "עבודה":
+        return "type-work";
       default:
         return "type-default";
     }
@@ -49,29 +55,58 @@ const WeekView = ({ currentWeekDays, filteredTasks }) => {
       <div className="weekview-grid">
         {currentWeekDays.map((day, i) => {
           const isToday = day.toDateString() === new Date().toDateString();
-          const tasksForDay = filteredTasks.filter(
-            (task) => task.deadline.toDateString() === day.toDateString()
-          );
+          
+          // סינון משימות לפי יום עם בדיקות בטיחות
+          const tasksForDay = filteredTasks.filter((task) => {
+            if (!task || !task.deadline) return false;
+            
+            try {
+              const taskDate = task.deadline instanceof Date 
+                ? task.deadline 
+                : new Date(task.deadline);
+              
+              return taskDate.toDateString() === day.toDateString();
+            } catch (error) {
+              console.error("שגיאה בפענוח תאריך משימה:", error);
+              console.warn("שגיאה בפענוח תאריך משימה:", task);
+              return false;
+            }
+          });
 
           return (
             <div key={i} className={`weekview-column ${isToday ? "highlight" : ""}`}>
               <div className="weekview-tasks">
-                {tasksForDay.map((task) => (
-                  <div
-                    key={task.id}
-                    className={`task-item ${
-                      task.type === "לימודים"
-                        ? getPriorityColor(task.priority)
-                        : getTypeColor(task.type)
-                    }`}
-                  >
-                    <div className="task-title">{task.title}</div>
-                    {task.course && (
-                      <div className="task-course">{task.course}</div>
-                    )}
-                  </div>
-                ))}
-                {tasksForDay.length === 0 && (
+                {tasksForDay.length > 0 ? (
+                  tasksForDay.map((task) => (
+                    <div
+                      key={task.id || `task-${i}-${task.title}`}
+                      className={`task-item ${
+                        task.type === "לימודים"
+                          ? getPriorityColor(task.priority)
+                          : getTypeColor(task.type)
+                      }`}
+                      title={`${task.title}${task.course ? ` - ${task.course}` : ''}`}
+                    >
+                      <div className="task-title">
+                        {task.title && task.title.length > 25 
+                          ? task.title.substring(0, 25) + '...' 
+                          : task.title}
+                      </div>
+                      {task.course && (
+                        <div className="task-course">
+                          {task.course.length > 20 
+                            ? task.course.substring(0, 20) + '...' 
+                            : task.course}
+                        </div>
+                      )}
+                      {task.type === "לימודים" && task.priority && (
+                        <div className="task-priority">
+                          {task.priority}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
                   <div className="no-tasks">אין אירועים</div>
                 )}
               </div>
