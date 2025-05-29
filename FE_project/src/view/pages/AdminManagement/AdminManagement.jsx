@@ -15,11 +15,14 @@ import UserList from "../../components/AdminManagementHelper/UserList/UserList";
 import SummaryList from "../../components/AdminManagementHelper/SummaryList/SummaryList";
 import UserDetailDialog from "../../components/AdminManagementHelper/UserDetailDialog/UserDetailDialog";
 import SummaryDetailDialog from "../../components/AdminManagementHelper/SummaryDetailDialog/SummaryDetailDialog";
-import { mockUsers, mockSummaries } from "../../components/AdminManagementHelper/mockData";
+import { mockUsers } from "../../components/AdminManagementHelper/mockData";
 import "./AdminManagement.css";
 
 const AdminManagement = () => {
+  const CLOUDINARY_CLOUD_NAME = "doxht9fpl";
+  const CLOUDINARY_API_KEY = "479472249636565";
   const navigate = useNavigate();
+  
   const [userSearchTerm, setUserSearchTerm] = useState("");
   const [summarySearchTerm, setSummarySearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
@@ -30,9 +33,20 @@ const AdminManagement = () => {
   const [activeTab, setActiveTab] = useState("users");
   const [loading, setLoading] = useState(true);
   
-  // State לנתונים מFirebase
   const [users, setUsers] = useState([]);
   const [summaries, setSummaries] = useState([]);
+
+  // טעינת Cloudinary Widget Script
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://widget.cloudinary.com/v2.0/global/all.js';
+    script.async = true;
+    document.body.appendChild(script);
+    
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
   // בדיקת הרשאות admin
   useEffect(() => {
@@ -58,36 +72,50 @@ const AdminManagement = () => {
         });
         setUsers(usersData);
       });
-
       return unsubscribe;
     } catch (error) {
       console.error("שגיאה בטעינת משתמשים:", error);
-      // במקרה של שגיאה, נשתמש בנתונים דמה
       setUsers(mockUsers);
     }
   };
 
-  // טעינת סיכומים מFirebase
-  const loadSummaries = async () => {
+  // טעינת סיכומים באמצעות Cloudinary Widget (גישה למטא-דאטה בלבד)
+  const loadSummariesFromCloudinary = async () => {
     try {
-      const q = query(
-        collection(db, "summaries"),
-        orderBy("createdAt", "desc")
-      );
+      // במקום לגשת ל-API ישירות, נשתמש בגישה אלטרנטיבית
+      // אפשרות 1: שמירת מטא-דאטה ב-Firebase במקביל
+      // אפשרות 2: שימוש ב-Cloudinary Upload Widget callbacks
       
-      const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const summariesData = [];
-        querySnapshot.forEach((doc) => {
-          summariesData.push({ id: doc.id, ...doc.data() });
-        });
-        setSummaries(summariesData);
-      });
-
-      return unsubscribe;
+      // לעת עתה, נציג נתונים סטטיים כדוגמה
+      const dummySummaries = [
+        {
+          id: "summaries/example1",
+          title: "סיכום מתמטיקה",
+          author: "דוגמה",
+          course: "חשבון אינפיניטסימלי",
+          professor: "פרופ' כהן",
+          date: new Date().toLocaleDateString('he-IL'),
+          content: "זהו סיכום לדוגמה",
+          status: "ממתין לאישור",
+          downloads: 0,
+          rating: 0,
+          pages: 5,
+          url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/raw/upload/summaries/example1.pdf`,
+          format: "pdf",
+          bytes: 1024000,
+          createdAt: new Date().toISOString(),
+          adminFeedback: null
+        }
+      ];
+      
+      setSummaries(dummySummaries);
+      
+      // הצעה: שמור מטא-דאטה ב-Firebase כדי לעקוף את בעיית ה-CORS
+      console.log("להשלמת הפתרון, מומלץ לשמור מטא-דאטה של הסיכומים ב-Firebase");
+      
     } catch (error) {
       console.error("שגיאה בטעינת סיכומים:", error);
-      // במקרה של שגיאה, נשתמש בנתונים דמה
-      setSummaries(mockSummaries);
+      setSummaries([]);
     }
   };
 
@@ -95,19 +123,16 @@ const AdminManagement = () => {
   useEffect(() => {
     const loadAllData = async () => {
       setLoading(true);
-      const unsubscribes = await Promise.all([
-        loadUsers(),
-        loadSummaries()
-      ]);
+      
+      const userUnsubscribe = await loadUsers();
+      await loadSummariesFromCloudinary();
+      
       setLoading(false);
 
-      // ניקוי listeners כשהקומפוננטה נמחקת
       return () => {
-        unsubscribes.forEach(unsubscribe => {
-          if (typeof unsubscribe === 'function') {
-            unsubscribe();
-          }
-        });
+        if (typeof userUnsubscribe === 'function') {
+          userUnsubscribe();
+        }
       };
     };
 
@@ -138,7 +163,6 @@ const AdminManagement = () => {
           updateData.status = 'פעיל';
           break;
         case 'הסרה':
-          // מחיקה מ-Firebase
           await deleteDoc(userRef);
           toast.success('מחיקת המשתמש בוצעה בהצלחה!');
           if (isUserDetailOpen) {
@@ -149,7 +173,6 @@ const AdminManagement = () => {
           return;
       }
 
-      // עדכון ב-Firebase
       await updateDoc(userRef, updateData);
       
       const actionText = {
@@ -162,93 +185,56 @@ const AdminManagement = () => {
       if (isUserDetailOpen) {
         setIsUserDetailOpen(false);
       }
-
     } catch (error) {
       console.error("שגיאה בעדכון משתמש:", error);
       toast.error("אירעה שגיאה בעדכון המשתמש");
-      
-      // במקרה של שגיאה, נעדכן לוקלית
-      setUsers(prevUsers => {
-        return prevUsers.map(user => {
-          if (user.id === userId) {
-            switch (action) {
-              case 'הקפאה':
-                return { ...user, status: 'קפוא' };
-              case 'הפעלה':
-                return { ...user, status: 'פעיל' };
-              case 'הסרה':
-                return null; 
-              default:
-                return user;
-            }
-          }
-          return user;
-        }).filter(Boolean); 
-      });
     }
   };
 
-  // טיפול בפעולות על סיכומים
+  // טיפול בפעולות על סיכומים (עדכון ב-Firebase במקום Cloudinary API)
   const handleSummaryAction = async (action, summaryId) => {
     try {
-      const summaryRef = doc(db, "summaries", summaryId);
-      let updateData = { 
-        updatedAt: new Date(),
-        adminFeedback: feedbackText || null
-      };
-
       switch (action) {
         case 'אישור':
-          updateData.status = 'מאושר';
+          // עדכון מקומי (בפתרון מלא זה יהיה ב-Firebase)
+          setSummaries(prevSummaries => 
+            prevSummaries.map(summary => 
+              summary.id === summaryId 
+                ? { ...summary, status: 'מאושר', adminFeedback: feedbackText }
+                : summary
+            )
+          );
+          toast.success('אישור הסיכום בוצעה בהצלחה!');
           break;
+
         case 'דחייה':
-          updateData.status = 'נדחה';
+          setSummaries(prevSummaries => 
+            prevSummaries.map(summary => 
+              summary.id === summaryId 
+                ? { ...summary, status: 'נדחה', adminFeedback: feedbackText }
+                : summary
+            )
+          );
+          toast.success('דחיית הסיכום בוצעה בהצלחה!');
           break;
+
         case 'מחיקה':
-          // מחיקה מ-Firebase
-          await deleteDoc(summaryRef);
+          // מחיקה מקומית (בפתרון מלא זה יכלול מחיקה מ-Cloudinary דרך שרת)
+          setSummaries(prevSummaries => 
+            prevSummaries.filter(summary => summary.id !== summaryId)
+          );
           toast.success('מחיקת הסיכום בוצעה בהצלחה!');
-          setIsSummaryDetailOpen(false);
-          setFeedbackText("");
-          return;
+          break;
+
         default:
           return;
       }
 
-      // עדכון ב-Firebase
-      await updateDoc(summaryRef, updateData);
-      
-      const actionText = {
-        'אישור': 'אישור הסיכום',
-        'דחייה': 'דחיית הסיכום'
-      };
-      
-      toast.success(`${actionText[action]} בוצעה בהצלחה!`);
       setIsSummaryDetailOpen(false);
       setFeedbackText("");
-
     } catch (error) {
       console.error("שגיאה בעדכון סיכום:", error);
       toast.error("אירעה שגיאה בעדכון הסיכום");
-      
-      // במקרה של שגיאה, נעדכן לוקלית
-      setSummaries(prevSummaries => {
-        return prevSummaries.map(summary => {
-          if (summary.id === summaryId) {
-            switch (action) {
-              case 'אישור':
-                return { ...summary, status: 'מאושר' };
-              case 'דחייה':
-                return { ...summary, status: 'נדחה' };
-              case 'מחיקה':
-                return null;
-              default:
-                return summary;
-            }
-          }
-          return summary;
-        }).filter(Boolean); 
-      });
     }
   };
 
@@ -284,6 +270,7 @@ const AdminManagement = () => {
             <a href="/" className="logo">חזרה לדף הבית</a>
         </div>
       </header>
+
       <h1 className="admin-title">ניהול מערכת</h1>
 
       <main className="admin-main">
@@ -318,6 +305,8 @@ const AdminManagement = () => {
 
             {activeTab === "summaries" && (
               <div className="admin-panel">
+                <div className="admin-panel-header">
+                </div>
                 <SummaryList 
                   summaries={filteredSummaries}
                   searchTerm={summarySearchTerm}

@@ -1,5 +1,5 @@
 import React from "react";
-import { XCircle, CheckCircle } from "lucide-react";
+import { XCircle, CheckCircle, Trash2 } from "lucide-react";
 import "./SummaryDetailDialog.css";
 
 const SummaryDetailDialog = ({
@@ -15,6 +15,12 @@ const SummaryDetailDialog = ({
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
       onOpenChange(false);
+    }
+  };
+
+  const handleDeleteClick = () => {
+    if (window.confirm("האם אתה בטוח שברצונך למחוק את הסיכום? פעולה זו לא ניתנת לביטול.")) {
+      onSummaryAction("מחיקה", summary.id);
     }
   };
 
@@ -40,6 +46,44 @@ const SummaryDetailDialog = ({
               <div className="summary-info-label">תאריך העלאה:</div>
               <div className="summary-info-value">{summary.date}</div>
             </div>
+            <div className="summary-info-row">
+              <div className="summary-info-label">קורס:</div>
+              <div className="summary-info-value">{summary.course}</div>
+            </div>
+            <div className="summary-info-row">
+              <div className="summary-info-label">מרצה:</div>
+              <div className="summary-info-value">{summary.professor}</div>
+            </div>
+            <div className="summary-info-row">
+              <div className="summary-info-label">סטטוס:</div>
+              <div className="summary-info-value">
+                <span className={`status-badge ${summary.status === 'מאושר' ? 'approved' : summary.status === 'נדחה' ? 'rejected' : 'pending'}`}>
+                  {summary.status}
+                </span>
+              </div>
+            </div>
+            <div className="summary-info-row">
+              <div className="summary-info-label">עמודים:</div>
+              <div className="summary-info-value">{summary.pages || 'לא צוין'}</div>
+            </div>
+            <div className="summary-info-row">
+              <div className="summary-info-label">הורדות:</div>
+              <div className="summary-info-value">{summary.downloads || 0}</div>
+            </div>
+            <div className="summary-info-row">
+              <div className="summary-info-label">דירוג:</div>
+              <div className="summary-info-value">{summary.rating || 0}/5</div>
+            </div>
+            {summary.url && (
+              <div className="summary-info-row">
+                <div className="summary-info-label">קובץ:</div>
+                <div className="summary-info-value">
+                  <a href={summary.url} target="_blank" rel="noopener noreferrer" className="file-link">
+                    צפה בקובץ
+                  </a>
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="summary-content-section">
@@ -48,7 +92,16 @@ const SummaryDetailDialog = ({
               {summary.content || "זהו תוכן הסיכום לדוגמה. במערכת אמיתית, כאן יוצג תוכן הסיכום המלא שהועלה על ידי המשתמש."}
             </div>
             
-            <div className="summary-feedback-title">משוב למשתמש:</div>
+            {summary.adminFeedback && (
+              <div className="existing-feedback-section">
+                <div className="summary-feedback-title">משוב קיים:</div>
+                <div className="existing-feedback-box">
+                  {summary.adminFeedback}
+                </div>
+              </div>
+            )}
+            
+            <div className="summary-feedback-title">משוב חדש למשתמש:</div>
             <textarea
               className="summary-feedback-textarea"
               placeholder="הוסף משוב או הערות עבור המשתמש..."
@@ -60,20 +113,33 @@ const SummaryDetailDialog = ({
         </div>
         
         <div className="summary-dialog-footer">
-          <button 
-            className="summary-dialog-btn summary-reject-btn"
-            onClick={() => onSummaryAction("דחייה", summary.id)}
-          >
-            <XCircle className="btn-icon" />
-            דחיית הסיכום
-          </button>
-          <button 
-            className="summary-dialog-btn summary-approve-btn"
-            onClick={() => onSummaryAction("אישור", summary.id)}
-          >
-            <CheckCircle className="btn-icon" />
-            אישור הסיכום
-          </button>
+          <div className="summary-dialog-actions-left">
+            <button 
+              className="summary-dialog-btn summary-delete-btn"
+              onClick={handleDeleteClick}
+              title="מחק סיכום לצמיתות"
+            >
+              <Trash2 className="btn-icon" />
+              מחיקת הסיכום
+            </button>
+          </div>
+          
+          <div className="summary-dialog-actions-right">
+            <button 
+              className="summary-dialog-btn summary-reject-btn"
+              onClick={() => onSummaryAction("דחייה", summary.id)}
+            >
+              <XCircle className="btn-icon" />
+              דחיית הסיכום
+            </button>
+            <button 
+              className="summary-dialog-btn summary-approve-btn"
+              onClick={() => onSummaryAction("אישור", summary.id)}
+            >
+              <CheckCircle className="btn-icon" />
+              אישור הסיכום
+            </button>
+          </div>
         </div>
       </div>
     </div>

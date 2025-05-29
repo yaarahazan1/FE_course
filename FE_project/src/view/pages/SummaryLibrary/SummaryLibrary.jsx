@@ -1,18 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { 
-  collection, 
-  getDocs, 
-  addDoc, 
-  updateDoc,
-  doc,
-  increment
-} from "firebase/firestore";
-import { auth, db } from "../../../firebase/config"; 
+import { auth } from "../../../firebase/config"; 
 import { onAuthStateChanged } from "firebase/auth";
 import UploadSummaryDialog from "../../components/SummaryLibraryHelper/UploadSummaryDialog/UploadSummaryDialog";
 import "./SummaryLibrary.css";
 
-const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDownload }) => {
+// Cloudinary configuration
+const CLOUDINARY_CLOUD_NAME = "doxht9fpl"; 
+const CLOUDINARY_API_KEY = "479472249636565";
+const CLOUDINARY_API_SECRET = "HDKDKxj2LKE-tPHgd6VeRPFGJaU"; 
+const CLOUDINARY_UPLOAD_PRESET = "summaries_preset"; 
+
+const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDownload, onPreview }) => {
   const renderRatingStars = (rating) => {
     const stars = [];
     const fullStars = Math.floor(rating);
@@ -38,8 +36,7 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDownload }) => {
     if (summary.isLocked && !hasAccess) {
       onAccessRequired();
     } else {
-      await onDownload(summary.id);
-      alert("מוריד את הסיכום: " + summary.title);
+      await onDownload(summary);
     }
   };
 
@@ -47,11 +44,10 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDownload }) => {
     if (summary.isLocked && !hasAccess) {
       onAccessRequired();
     } else {
-      alert("מציג תצוגה מקדימה של: " + summary.title);
+      onPreview(summary);
     }
   };
 
-  // תיקון הצגת כמות העמודים
   const formatPages = (pages) => {
     if (!pages || pages === 0) {
       return "לא צוין";
@@ -142,7 +138,7 @@ const SummaryLibrary = () => {
   const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
-    loadSummaries();
+    loadSummariesFromCloudinary();
     checkUserUploadStatus();
     
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -154,28 +150,57 @@ const SummaryLibrary = () => {
     return () => unsubscribe();
   }, []);
 
-  const loadSummaries = async () => {
+  // טעינת סיכומים מ-Cloudinary
+  const loadSummariesFromCloudinary = async () => {
     try {
       setLoading(true);
-      const summariesCollection = collection(db, "summaries");
-      const summariesSnapshot = await getDocs(summariesCollection);
-      const summariesList = summariesSnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          // וידוא שכל הערכים מוגדרים כראוי
-          pages: data.pages || 0,
-          downloads: data.downloads || 0,
-          rating: data.rating || 0,
-          author: data.author || "לא צוין",
-          professor: data.professor || "לא צוין",
-          course: data.course || "לא צוין"
-        };
-      });
-      setSummaries(summariesList);
+      
+      // שליפת רשימת הקבצים מ-Cloudinary
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/resources/raw?max_results=500&context=true`,
+        {
+          headers: {
+            'Authorization': `Basic ${btoa(`${CLOUDINARY_API_KEY}:${CLOUDINARY_API_SECRET}`)}`
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch from Cloudinary');
+      }
+
+      const data = await response.json();
+      
+      // המרת הנתונים לפורמט הנדרש
+      const summariesList = data.resources
+        .filter(resource => resource.context && resource.context.title) // רק קבצים עם metadata
+        .map(resource => {
+          const context = resource.context || {};
+          return {
+            id: resource.public_id,
+            cloudinaryId: resource.public_id,
+            title: context.title || "ללא כותרת",
+            author: context.author || "לא צוין",
+            course: context.course || "לא צוין",
+            professor: context.professor || "לא צוין",
+            date: context.date || new Date().toLocaleDateString('he-IL'),
+            pages: parseInt(context.pages) || 0,
+            rating: parseFloat(context.rating) || 5,
+            downloads: parseInt(context.downloads) || 0,
+            status: context.status || "pending",
+            isLocked: context.isLocked === "true" || false,
+            fileUrl: resource.secure_url,
+            createdAt: new Date(resource.created_at),
+            format: resource.format
+          };
+        })
+        .filter(summary => summary.status === "approved"); // רק סיכומים מאושרים
+
+        console.log("Loaded summaries from Cloudinary:", summariesList);
+        setSummaries(summariesList);
     } catch (error) {
-      console.error("שגיאה בטעינת הסיכומים:", error);
+      console.error("שגיאה בטעינת הסיכומים מ-Cloudinary:", error);
+      setSummaries([]);
     } finally {
       setLoading(false);
     }
@@ -186,21 +211,80 @@ const SummaryLibrary = () => {
     setHasUploaded(userHasUploaded);
   };
 
-  const handleDownload = async (summaryId) => {
+  // הורדת קובץ מ-Cloudinary
+  const handleDownload = async (summary) => {
     try {
-      const summaryDoc = doc(db, "summaries", summaryId);
-      await updateDoc(summaryDoc, {
-        downloads: increment(1)
-      });
+      // עדכון מספר ההורדות ב-Cloudinary
+      await updateSummaryDownloads(summary.cloudinaryId);
       
-      setSummaries(prev => prev.map(summary => 
-        summary.id === summaryId 
-          ? { ...summary, downloads: summary.downloads + 1 }
-          : summary
+      // הורדת הקובץ
+      const link = document.createElement('a');
+      link.href = summary.fileUrl;
+      link.download = `${summary.title}.${summary.format}`;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // עדכון לוקלי של מספר ההורדות
+      setSummaries(prev => prev.map(s => 
+        s.id === summary.id 
+          ? { ...s, downloads: s.downloads + 1 }
+          : s
       ));
+      
+      console.log("מוריד את הסיכום: " + summary.title);
+    } catch (error) {
+      console.error("שגיאה בהורדת הקובץ:", error);
+      alert("אירעה שגיאה בהורדת הקובץ");
+    }
+  };
+
+  // תצוגה מקדימה
+  const handlePreview = (summary) => {
+    if (summary.format === 'pdf') {
+      window.open(summary.fileUrl, '_blank');
+    } else {
+      // עבור פורמטים אחרים
+      const previewUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(summary.fileUrl)}&embedded=true`;
+      window.open(previewUrl, '_blank');
+    }
+  };
+
+  // עדכון מספר ההורדות ב-Cloudinary
+  const updateSummaryDownloads = async (cloudinaryId) => {
+    try {
+      const currentSummary = summaries.find(s => s.cloudinaryId === cloudinaryId);
+      const newDownloadCount = (currentSummary?.downloads || 0) + 1;
+      
+      await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/resources/raw/upload`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${btoa(`${CLOUDINARY_API_KEY}:${CLOUDINARY_API_SECRET}`)}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            public_id: cloudinaryId,
+            context: {
+              downloads: newDownloadCount.toString()
+            }
+          })
+        }
+      );
     } catch (error) {
       console.error("שגיאה בעדכון ההורדות:", error);
     }
+  };
+
+  // בדיקה אם סיכום כבר קיים
+  const checkDuplicateSummary = (title, author, course) => {
+    return summaries.some(summary => 
+      summary.title.toLowerCase() === title.toLowerCase() &&
+      summary.author.toLowerCase() === author.toLowerCase() &&
+      summary.course.toLowerCase() === course.toLowerCase()
+    );
   };
 
   const filteredSummaries = summaries.filter(summary => {
@@ -217,7 +301,7 @@ const SummaryLibrary = () => {
 
   const sortedSummaries = [...filteredSummaries].sort((a, b) => {
     if (sortBy === "recent") {
-      return new Date(b.createdAt?.toDate?.() || b.createdAt) - new Date(a.createdAt?.toDate?.() || a.createdAt);
+      return new Date(b.createdAt) - new Date(a.createdAt);
     }
     if (sortBy === "rating") {
       return b.rating - a.rating;
@@ -230,31 +314,56 @@ const SummaryLibrary = () => {
 
   const handleUploadSuccess = async (summaryData) => {
     try {
-      // וידוא שכל הנתונים מוגדרים כראוי לפני השמירה
-      const summaryToSave = {
-        ...summaryData,
-        createdAt: new Date(),
-        downloads: 0,
-        rating: summaryData.rating || 5,
-        isLocked: false,
-        pages: summaryData.pages ? parseInt(summaryData.pages) : 0, // וידוא שהעמודים הם מספר
-        author: summaryData.author || "לא צוין",
-        professor: summaryData.professor || "לא צוין",
-        course: summaryData.course || "לא צוין"
+      // בדיקת כפילות
+      if (checkDuplicateSummary(summaryData.title, summaryData.author, summaryData.course)) {
+        alert("סיכום דומה כבר קיים במערכת!");
+        return;
+      }
+
+      // העלאה ל-Cloudinary עם metadata
+      const formData = new FormData();
+      formData.append('file', summaryData.file);
+      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+      formData.append('resource_type', 'raw');
+      
+      // הוספת metadata
+      const context = {
+        title: summaryData.title,
+        author: summaryData.author,
+        course: summaryData.course,
+        professor: summaryData.professor,
+        date: summaryData.date || new Date().toLocaleDateString('he-IL'),
+        pages: summaryData.pages?.toString() || "0",
+        rating: summaryData.rating?.toString() || "5",
+        downloads: "0",
+        status: "pending",
+        isLocked: "false"
       };
+      
+      formData.append('context', JSON.stringify(context));
 
-      const docRef = await addDoc(collection(db, "summaries"), summaryToSave);
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/raw/upload`,
+        {
+          method: 'POST',
+          body: formData
+        }
+      );
 
-      const newSummary = {
-        id: docRef.id,
-        ...summaryToSave
-      };
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
 
-      setSummaries(prev => [newSummary, ...prev]);
+      const result = await response.json();
+      console.log("Upload successful:", result);
+
       setHasUploaded(true);
       localStorage.setItem("userHasUploaded", "true");
-      alert("הסיכום הועלה בהצלחה! כעת יש לך גישה מלאה לכל הסיכומים בספרייה.");
+      alert("הסיכום הועלה בהצלחה! הוא ממתין לאישור מנהל המערכת.");
       setIsDialogOpen(false);
+      
+      // רענון הרשימה
+      await loadSummariesFromCloudinary();
     } catch (error) {
       console.error("שגיאה בהעלאת הסיכום:", error);
       alert("אירעה שגיאה בהעלאת הסיכום. אנא נסה שוב.");
@@ -349,6 +458,7 @@ const SummaryLibrary = () => {
               hasAccess={hasUploaded}
               onAccessRequired={() => setIsDialogOpen(true)}
               onDownload={handleDownload}
+              onPreview={handlePreview}
             />
           ))}
         </div>
