@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db, auth } from "../../../../firebase/config";
 import DialogComponent from "../DialogComponent/DialogComponent";
 import "./AddCourseDialog.css";
@@ -8,7 +8,14 @@ const AddCourseDialog = ({ isOpen, onClose, onAddSuccess }) => {
   const [courseName, setCourseName] = useState("");
   const [lecturer, setLecturer] = useState("");
   const [credits, setCredits] = useState("");
+  const [semester, setSemester] = useState("סמסטר ב'");
+  const [courseCode, setCourseCode] = useState("");
+  const [department, setDepartment] = useState("");
+  const [courseType, setCourseType] = useState("חובה");
   const [isLoading, setIsLoading] = useState(false);
+
+  const semesterOptions = ["סמסטר א'", "סמסטר ב'", "סמסטר ג'", "קיץ"];
+  const courseTypeOptions = ["חובה", "בחירה", "רפואה מקדמת"];
 
   // פונקציה לקבלת ID המשתמש הנוכחי
   const getCurrentUserId = () => {
@@ -24,14 +31,51 @@ const AddCourseDialog = ({ isOpen, onClose, onAddSuccess }) => {
     try {
       const userId = getCurrentUserId();
       const newCourse = {
+        // שדות בסיסיים
         name: courseName.trim(),
         lecturer: lecturer.trim(),
         credits: Number(credits),
+        courseCode: courseCode.trim() || `COURSE-${Date.now()}`,
+        department: department.trim() || "כללי",
+        courseType,
+        semester,
+        
+        // מטאדטה
         userId,
-        semester: "סמסטר ב'",
+        isActive: true,
+        
+        // תכנים קשורים
         assignments: [],
-        createdAt: new Date(),
-        updatedAt: new Date()
+        exams: [],
+        lectures: [],
+        materials: [],
+        
+        // סטטיסטיקות
+        totalAssignments: 0,
+        completedAssignments: 0,
+        averageGrade: 0,
+        attendanceRate: 0,
+        
+        // לוח זמנים
+        schedule: {
+          days: [],
+          startTime: "",
+          endTime: "",
+          location: ""
+        },
+        
+        // הגדרות התראות
+        notifications: {
+          assignmentReminders: true,
+          examReminders: true,
+          lectureReminders: true
+        },
+        
+        // תאריכים
+        startDate: null,
+        endDate: null,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
       };
       
       // הוספה ל-Firebase
@@ -40,7 +84,7 @@ const AddCourseDialog = ({ isOpen, onClose, onAddSuccess }) => {
       
       // קריאה לפונקציה מהקומפוננטה האב אם נדרש
       if (onAddSuccess) {
-        onAddSuccess(newCourse);
+        onAddSuccess({ ...newCourse, id: docRef.id });
       }
       
       resetForm();
@@ -57,6 +101,10 @@ const AddCourseDialog = ({ isOpen, onClose, onAddSuccess }) => {
     setCourseName("");
     setLecturer("");
     setCredits("");
+    setCourseCode("");
+    setDepartment("");
+    setSemester("סמסטר ב'");
+    setCourseType("חובה");
   };
 
   const handleCancel = () => {
@@ -85,6 +133,17 @@ const AddCourseDialog = ({ isOpen, onClose, onAddSuccess }) => {
         </div>
         
         <div className="form-field">
+          <label>קוד קורס</label>
+          <input
+            type="text"
+            value={courseCode}
+            onChange={(e) => setCourseCode(e.target.value)}
+            placeholder="למשל: CS101"
+            disabled={isLoading}
+          />
+        </div>
+        
+        <div className="form-field">
           <label>שם המרצה *</label>
           <input
             type="text"
@@ -92,6 +151,17 @@ const AddCourseDialog = ({ isOpen, onClose, onAddSuccess }) => {
             onChange={(e) => setLecturer(e.target.value)}
             placeholder="הכנס שם מרצה"
             required={true}
+            disabled={isLoading}
+          />
+        </div>
+        
+        <div className="form-field">
+          <label>מחלקה</label>
+          <input
+            type="text"
+            value={department}
+            onChange={(e) => setDepartment(e.target.value)}
+            placeholder="למשל: מדעי המחשב"
             disabled={isLoading}
           />
         </div>
@@ -109,6 +179,32 @@ const AddCourseDialog = ({ isOpen, onClose, onAddSuccess }) => {
             required={true}
             disabled={isLoading}
           />
+        </div>
+        
+        <div className="form-field">
+          <label>סמסטר</label>
+          <select
+            value={semester}
+            onChange={(e) => setSemester(e.target.value)}
+            disabled={isLoading}
+          >
+            {semesterOptions.map(option => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+        </div>
+        
+        <div className="form-field">
+          <label>סוג קורס</label>
+          <select
+            value={courseType}
+            onChange={(e) => setCourseType(e.target.value)}
+            disabled={isLoading}
+          >
+            {courseTypeOptions.map(option => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
         </div>
         
         <div className="dialog-actions">
