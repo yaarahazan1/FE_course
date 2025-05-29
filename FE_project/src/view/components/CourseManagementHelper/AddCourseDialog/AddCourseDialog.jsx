@@ -12,10 +12,13 @@ const AddCourseDialog = ({ isOpen, onClose, onAddSuccess }) => {
   const [courseCode, setCourseCode] = useState("");
   const [department, setDepartment] = useState("");
   const [courseType, setCourseType] = useState("חובה");
+  const [description, setDescription] = useState("");
+  const [syllabus, setSyllabus] = useState("");
+  const [maxStudents, setMaxStudents] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const semesterOptions = ["סמסטר א'", "סמסטר ב'", "סמסטר ג'", "קיץ"];
-  const courseTypeOptions = ["חובה", "בחירה", "רפואה מקדמת"];
+  const courseTypeOptions = ["חובה", "בחירה", "רפואה מקדמת", "מעבדה", "פרויקט"];
 
   // פונקציה לקבלת ID המשתמש הנוכחי
   const getCurrentUserId = () => {
@@ -39,37 +42,94 @@ const AddCourseDialog = ({ isOpen, onClose, onAddSuccess }) => {
         department: department.trim() || "כללי",
         courseType,
         semester,
+        description: description.trim(),
+        syllabus: syllabus.trim(),
+        
+        // הגדרות קורס
+        maxStudents: maxStudents ? Number(maxStudents) : null,
+        currentStudents: 0,
+        isActive: true,
+        isPublic: true,
         
         // מטאדטה
         userId,
-        isActive: true,
+        instructorId: userId,
+        assistants: [],
         
         // תכנים קשורים
         assignments: [],
         exams: [],
         lectures: [],
         materials: [],
+        announcements: [],
+        discussions: [],
         
         // סטטיסטיקות
         totalAssignments: 0,
         completedAssignments: 0,
         averageGrade: 0,
         attendanceRate: 0,
+        studentSatisfaction: 0,
+        
+        // ציונים ודרישות
+        gradeDistribution: {
+          "A": 0,
+          "B": 0,
+          "C": 0,
+          "D": 0,
+          "F": 0
+        },
+        requirements: {
+          attendance: 80,
+          assignments: 70,
+          finalExam: 60
+        },
         
         // לוח זמנים
         schedule: {
           days: [],
           startTime: "",
           endTime: "",
-          location: ""
+          location: "",
+          room: "",
+          building: ""
         },
         
         // הגדרות התראות
         notifications: {
           assignmentReminders: true,
           examReminders: true,
-          lectureReminders: true
+          lectureReminders: true,
+          announcementNotifications: true
         },
+        
+        // משאבים חיצוניים
+        resources: {
+          textbook: "",
+          onlineResources: [],
+          supplementaryMaterial: [],
+          requiredSoftware: []
+        },
+        
+        // הערכה ומשוב
+        evaluationCriteria: {
+          assignments: 40,
+          midtermExam: 30,
+          finalExam: 30,
+          participation: 0
+        },
+        
+        // תאריכים חשובים
+        importantDates: {
+          registrationDeadline: null,
+          dropDeadline: null,
+          midtermDate: null,
+          finalExamDate: null
+        },
+        
+        // שפה ואזור
+        language: "עברית",
+        timezone: "Asia/Jerusalem",
         
         // תאריכים
         startDate: null,
@@ -105,6 +165,9 @@ const AddCourseDialog = ({ isOpen, onClose, onAddSuccess }) => {
     setDepartment("");
     setSemester("סמסטר ב'");
     setCourseType("חובה");
+    setDescription("");
+    setSyllabus("");
+    setMaxStudents("");
   };
 
   const handleCancel = () => {
@@ -167,6 +230,28 @@ const AddCourseDialog = ({ isOpen, onClose, onAddSuccess }) => {
         </div>
         
         <div className="form-field">
+          <label>תיאור הקורס</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="תאר את תוכן הקורס ומטרותיו"
+            rows="3"
+            disabled={isLoading}
+          />
+        </div>
+        
+        <div className="form-field">
+          <label>סילבוס</label>
+          <textarea
+            value={syllabus}
+            onChange={(e) => setSyllabus(e.target.value)}
+            placeholder="פרט את נושאי הקורס והתכנית הלימודית"
+            rows="4"
+            disabled={isLoading}
+          />
+        </div>
+        
+        <div className="form-field">
           <label>נקודות זכות *</label>
           <input
             type="number"
@@ -177,6 +262,19 @@ const AddCourseDialog = ({ isOpen, onClose, onAddSuccess }) => {
             onChange={(e) => setCredits(e.target.value)}
             placeholder="מספר נקודות זכות"
             required={true}
+            disabled={isLoading}
+          />
+        </div>
+        
+        <div className="form-field">
+          <label>מספר סטודנטים מקסימלי</label>
+          <input
+            type="number"
+            min="1"
+            max="500"
+            value={maxStudents}
+            onChange={(e) => setMaxStudents(e.target.value)}
+            placeholder="מספר מקסימלי של סטודנטים"
             disabled={isLoading}
           />
         </div>

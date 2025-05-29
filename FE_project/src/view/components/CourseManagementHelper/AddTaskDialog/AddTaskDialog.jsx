@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db, auth } from "../../../../firebase/config";
 import DialogComponent from "../DialogComponent/DialogComponent";
 import "./AddTaskDialog.css";
@@ -10,8 +10,14 @@ const AddTaskDialog = ({ isOpen, onClose, onAddSuccess }) => {
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("בינונית");
   const [status, setStatus] = useState("לא הוחל");
+  const [category, setCategory] = useState("כללי");
+  const [estimatedHours, setEstimatedHours] = useState("");
+  const [actualHours, setActualHours] = useState("");
+  const [courseId, setCourseId] = useState("");
+  const [projectId, setProjectId] = useState("");
   const [isPriorityOpen, setIsPriorityOpen] = useState(false);
   const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
   // שימוש בhook של לוח השנה
@@ -30,7 +36,8 @@ const AddTaskDialog = ({ isOpen, onClose, onAddSuccess }) => {
   } = useDatePicker();
   
   const priorityOptions = ["נמוכה", "בינונית", "גבוהה", "דחופה"];
-  const statusOptions = ["לא הוחל", "בתהליך", "הושלם", "נדחה"];
+  const statusOptions = ["לא הוחל", "בתהליך", "הושלם", "נדחה", "ממתין לבדיקה"];
+  const categoryOptions = ["כללי", "אקדמי", "עבודה", "אישי", "פרויקט", "בחינה"];
 
   // פונקציה לקבלת ID המשתמש הנוכחי
   const getCurrentUserId = () => {
@@ -46,23 +53,83 @@ const AddTaskDialog = ({ isOpen, onClose, onAddSuccess }) => {
     try {
       const userId = getCurrentUserId();
       const newTask = {
+        // שדות בסיסיים
         name: taskName.trim(),
         description: description.trim(),
-        dueDate: dueDate || null,
+        category,
         priority,
         status,
-        userId,
-        projectId: null, // ניתן לקשר לפרויקט ספציפי
-        courseId: null,  // ניתן לקשר לקורס ספציפי
-        assignedTo: [],
+        
+        // תאריכים
+        dueDate: dueDate || null,
+        startDate: null,
         completedAt: null,
-        estimatedHours: null,
-        actualHours: null,
-        tags: [],
-        attachments: [],
+        reminderDate: null,
+        
+        // מטאדטה
+        userId,
+        isCompleted: false,
+        isArchived: false,
+        isPublic: false,
+        
+        // קישורים
+        projectId: projectId.trim() || null,
+        courseId: courseId.trim() || null,
+        parentTaskId: null,
+        
+        // משאבים וזמן
+        estimatedHours: estimatedHours ? Number(estimatedHours) : null,
+        actualHours: actualHours ? Number(actualHours) : 0,
+        progressPercentage: 0,
+        
+        // צוות ושיתוף
+        assignedTo: [],
+        assignedBy: userId,
+        collaborators: [],
+        
+        // תכנים קשורים
+        subtasks: [],
         comments: [],
-        createdAt: new Date(),
-        updatedAt: new Date()
+        attachments: [],
+        documents: [],
+        links: [],
+        
+        // תגיות ומילות מפתח
+        tags: [],
+        keywords: [],
+        labels: [],
+        
+        // הגדרות התראות
+        notifications: {
+          reminderEnabled: true,
+          reminderDays: 1,
+          emailNotification: false,
+          pushNotification: true
+        },
+        
+        // מיקום ופרטים נוספים
+        location: "",
+        notes: "",
+        instructions: "",
+        
+        // סטטיסטיקות
+        viewCount: 0,
+        editCount: 0,
+        completionRate: 0,
+        
+        // היסטוריה
+        history: [{
+          action: "created",
+          timestamp: new Date(),
+          userId,
+          details: "Task created"
+        }],
+        
+        // תאריכים מערכת
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        lastViewedAt: null,
+        lastEditedAt: null
       };
       
       // הוספה ל-Firebase
@@ -71,7 +138,7 @@ const AddTaskDialog = ({ isOpen, onClose, onAddSuccess }) => {
       
       // קריאה לפונקציה מהקומפוננטה האב אם נדרש
       if (onAddSuccess) {
-        onAddSuccess(newTask);
+        onAddSuccess({ ...newTask, id: docRef.id });
       }
       
       resetForm();
@@ -94,15 +161,26 @@ const AddTaskDialog = ({ isOpen, onClose, onAddSuccess }) => {
     setIsStatusOpen(false);
   };
 
+  const handleCategorySelect = (selectedCategory) => {
+    setCategory(selectedCategory);
+    setIsCategoryOpen(false);
+  };
+
   const resetForm = () => {
     setTaskName("");
     setDescription("");
     setDueDate("");
     setPriority("בינונית");
     setStatus("לא הוחל");
+    setCategory("כללי");
+    setEstimatedHours("");
+    setActualHours("");
+    setCourseId("");
+    setProjectId("");
     setIsDatePickerOpen(false);
     setIsPriorityOpen(false);
     setIsStatusOpen(false);
+    setIsCategoryOpen(false);
   };
 
   const handleCancel = () => {
@@ -127,7 +205,9 @@ const AddTaskDialog = ({ isOpen, onClose, onAddSuccess }) => {
               value={taskName}
               onChange={(e) => setTaskName(e.target.value)}
               onFocus={() => setIsDatePickerOpen(false)}
+              placeholder="הכנס שם משימה"
               required={true}
+              autoFocus
               disabled={isLoading}
             />
           </label>
@@ -140,10 +220,56 @@ const AddTaskDialog = ({ isOpen, onClose, onAddSuccess }) => {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               onFocus={() => setIsDatePickerOpen(false)}
+              placeholder="תאר את המשימה בפירוט"
               rows="3"
               required={true}
               disabled={isLoading}
             />
+          </label>
+        </div>
+        
+        <div className="form-field">
+          <label>
+            קטגוריה:
+            <div className="custom-select">
+              <div 
+                className="select-header" 
+                onClick={() => {
+                  if (!isLoading) {
+                    setIsCategoryOpen(!isCategoryOpen);
+                    setIsDatePickerOpen(false);
+                    setIsStatusOpen(false);
+                    setIsPriorityOpen(false);
+                  }
+                }}
+              >
+                <span>{category}</span>
+                <svg 
+                  className={`select-arrow ${isCategoryOpen ? 'open' : ''}`}
+                  width="16" 
+                  height="16" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="#666" 
+                  strokeWidth="2"
+                >
+                  <path d="M6 9l6 6 6-6"/>
+                </svg>
+              </div>
+              {isCategoryOpen && !isLoading && (
+                <div className="select-options">
+                  {categoryOptions.map((option) => (
+                    <div
+                      key={option}
+                      className={`select-option ${option === category ? 'selected' : ''}`}
+                      onClick={() => handleCategorySelect(option)}
+                    >
+                      {option}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </label>
         </div>
         
@@ -158,6 +284,7 @@ const AddTaskDialog = ({ isOpen, onClose, onAddSuccess }) => {
                     setIsPriorityOpen(!isPriorityOpen);
                     setIsDatePickerOpen(false);
                     setIsStatusOpen(false);
+                    setIsCategoryOpen(false);
                   }
                 }}
               >
@@ -202,6 +329,7 @@ const AddTaskDialog = ({ isOpen, onClose, onAddSuccess }) => {
                     setIsStatusOpen(!isStatusOpen);
                     setIsDatePickerOpen(false);
                     setIsPriorityOpen(false);
+                    setIsCategoryOpen(false);
                   }
                 }}
               >
@@ -237,6 +365,62 @@ const AddTaskDialog = ({ isOpen, onClose, onAddSuccess }) => {
         
         <div className="form-field">
           <label>
+            שעות משוערות:
+            <input
+              type="number"
+              min="0"
+              step="0.5"
+              value={estimatedHours}
+              onChange={(e) => setEstimatedHours(e.target.value)}
+              placeholder="מספר שעות משוער"
+              disabled={isLoading}
+            />
+          </label>
+        </div>
+        
+        <div className="form-field">
+          <label>
+            שעות בפועל:
+            <input
+              type="number"
+              min="0"
+              step="0.5"
+              value={actualHours}
+              onChange={(e) => setActualHours(e.target.value)}
+              placeholder="מספר שעות בפועל"
+              disabled={isLoading}
+            />
+          </label>
+        </div>
+        
+        <div className="form-field">
+          <label>
+            קישור לקורס:
+            <input
+              type="text"
+              value={courseId}
+              onChange={(e) => setCourseId(e.target.value)}
+              placeholder="ID קורס (אופציונלי)"
+              disabled={isLoading}
+            />
+          </label>
+        </div>
+        
+        <div className="form-field">
+          <label>
+            קישור לפרויקט:
+            <input
+              type="text"
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value)}
+              placeholder="ID פרויקט (אופציונלי)"
+              disabled={isLoading}
+            />
+          </label>
+        </div>
+        
+        <div className="form-field">
+          <label>
             תאריך יעד:
             <div className="custom-date-picker" ref={datePickerRef}>
               <div 
@@ -246,6 +430,7 @@ const AddTaskDialog = ({ isOpen, onClose, onAddSuccess }) => {
                     setIsDatePickerOpen(!isDatePickerOpen);
                     setIsStatusOpen(false);
                     setIsPriorityOpen(false);
+                    setIsCategoryOpen(false);
                   }
                 }}
               >
