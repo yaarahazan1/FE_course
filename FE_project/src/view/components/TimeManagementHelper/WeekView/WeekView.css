@@ -67,43 +67,44 @@
   color: white;
 }
 
-.task-title {
+.task-title-calendare {
   font-weight: 500;
+  white-space: normal; 
+  word-wrap: break-word; 
+  overflow-wrap: break-word;
 }
 
-.task-course {
+.task-course-calendare {
   font-size: 0.75rem;
-  color: #9ca3af; /* gray-400 */
+  color: #9ca3af; 
 }
 
-/* צבעים לפי עדיפות */
 .priority-high {
-  background-color: #ef4444; /* red-500 */
+  background-color: #ef4444; 
 }
 
 .priority-medium {
-  background-color: #f59e0b; /* amber-500 */
+  background-color: #f59e0b; 
 }
 
 .priority-low {
-  background-color: #10b981; /* green-500 */
+  background-color: #10b981; 
 }
 
 .priority-default {
-  background-color: #6b7280; /* gray-500 */
+  background-color: #6b7280;
 }
 
-/* צבעים לפי סוג */
 .type-personal {
-  background-color: #3b82f6; /* blue-500 */
+  background-color: #3b82f6; 
 }
 
 .type-study {
-  background-color: #8b5cf6; /* purple-500 */
+  background-color: #8b5cf6; 
 }
 
 .type-default {
-  background-color: #6b7280; /* gray-500 */
+  background-color: #6b7280; 
 }
 
 .no-tasks {

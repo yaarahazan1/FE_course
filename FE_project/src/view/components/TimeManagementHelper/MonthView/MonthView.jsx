@@ -96,18 +96,18 @@ const MonthView = ({ date, daysInMonth, filteredTasks }) => {
                                   ? getPriorityColor(task.priority)
                                   : getTypeColor(task.type)
                               }`}
-                              title={`${task.title}${task.course ? ` - ${task.course}` : ''}`}
+                              title={`${task.title}${task.description ? ` - ${task.description}` : ''}`}
                             >
-                              <div className="task-title">
+                              <div className="task-title-calendare">
                                 {task.title && task.title.length > 20 
                                   ? task.title.substring(0, 20) + '...' 
                                   : task.title}
                               </div>
-                              {task.course && (
-                                <div className="task-course">
-                                  {task.course.length > 15 
-                                    ? task.course.substring(0, 15) + '...' 
-                                    : task.course}
+                              {task.description && (
+                                <div className="task-course-calendare">
+                                  {task.description.length > 15 
+                                    ? task.description.substring(0, 15) + '...' 
+                                    : task.description}
                                 </div>
                               )}
                             </div>

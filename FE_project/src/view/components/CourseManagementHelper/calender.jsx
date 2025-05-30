@@ -65,7 +65,7 @@ export const useDatePicker = () => {
   };
 
   const handleDateSelect = (day) => {
-    const selectedDate = new Date(currentYear, currentMonth, day);
+    const selectedDate = new Date(currentYear, currentMonth, day+1);
     const dateString = selectedDate.toISOString().split('T')[0];
     setDueDate(dateString);
     setIsDatePickerOpen(false);

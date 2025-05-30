@@ -85,18 +85,18 @@ const WeekView = ({ currentWeekDays, filteredTasks }) => {
                           ? getPriorityColor(task.priority)
                           : getTypeColor(task.type)
                       }`}
-                      title={`${task.title}${task.course ? ` - ${task.course}` : ''}`}
+                      title={`${task.title}${task.description ? ` - ${task.description}` : ''}`}
                     >
-                      <div className="task-title">
+                      <div className="task-title-calendare">
                         {task.title && task.title.length > 25 
                           ? task.title.substring(0, 25) + '...' 
                           : task.title}
                       </div>
-                      {task.course && (
-                        <div className="task-course">
-                          {task.course.length > 20 
-                            ? task.course.substring(0, 20) + '...' 
-                            : task.course}
+                      {task.description && (
+                        <div className="task-course-calendare">
+                          {task.description.length > 20 
+                            ? task.description.substring(0, 20) + '...' 
+                            : task.description}
                         </div>
                       )}
                       {task.type === "לימודים" && task.priority && (

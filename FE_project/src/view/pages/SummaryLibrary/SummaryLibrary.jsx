@@ -480,7 +480,7 @@ const SummaryLibrary = () => {
         </div>
       )}
 
-      {!hasUploaded && (
+      {(
         <div className="restricted-access">
           <div className="lock-icon-large">🔒</div>
           <h3 className="restricted-title">גישה מוגבלת</h3>

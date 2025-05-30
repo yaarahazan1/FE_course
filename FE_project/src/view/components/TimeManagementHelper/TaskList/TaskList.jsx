@@ -108,8 +108,8 @@ const TaskList = ({ filteredTasks, onAddTask }) => {
                 </div>
                 
                 <div className="task-content">
-                  <h3 className="task-title">{task.name || 'משימה ללא כותרת'}</h3>
-                  {task.course && <p className="task-course">{task.course}</p>}
+                  <h3 className="task-title">{task.title || 'משימה ללא כותרת'}</h3>
+                  {task.description && <p className="task-course">{task.description}</p>}
                   
                   {task.deadline && (
                     <div className="task-deadline">

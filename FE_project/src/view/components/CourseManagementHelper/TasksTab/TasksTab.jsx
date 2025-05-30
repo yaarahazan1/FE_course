@@ -15,7 +15,13 @@ const TasksTab = () => {
         id: doc.id,
         ...doc.data()
       }));
-      setTasks(tasksData);
+      
+      // הסרת כפילויות על סמך ID (למקרה שיש כפילות)
+      const uniqueTasks = tasksData.filter((task, index, self) => 
+        index === self.findIndex(t => t.id === task.id)
+      );
+      
+      setTasks(uniqueTasks);
     } catch (error) {
       console.error("שגיאה בעת שליפת משימות:", error);
     } finally {
@@ -48,6 +54,8 @@ const TasksTab = () => {
         return "status-in-progress";
       case "הושלם":
         return "status-completed";
+      case "נדחה":
+        return "status-deferred";
       default:
         return "";
     }
@@ -55,10 +63,11 @@ const TasksTab = () => {
 
   const formatDate = (dateString) => {
     try {
+      if (!dateString) return "לא הוגדר";
       const date = new Date(dateString);
       return date.toLocaleDateString("he-IL");
     } catch (e) {
-      return e.message;
+      return e.message || "תאריך לא תקין";
     }
   };
 
@@ -67,7 +76,6 @@ const TasksTab = () => {
       <div className="tasks-header">
         <h2>רשימת משימות</h2>
       </div>
-
       {loading ? (
         <p>טוען משימות...</p>
       ) : tasks.length === 0 ? (
@@ -77,15 +85,15 @@ const TasksTab = () => {
       ) : (
         <div className="tasks-list">
           {tasks.map((task) => (
-            <div key={task.id} className="task-card">
-              <div className="task-header">
-                <span title={task.title}>{task.title}</span>
+            <div key={task.id} className="task-card-tab">
+              <div className="task-tab-header">
+                <span title={task.title}>{task.title || "ללא כותרת"}</span>
               </div>
               <span className={`task-priority ${getPriorityClass(task.priority)}`}>
-                חשיבות: {task.priority}
+                חשיבות: {task.priority || "לא הוגדר"}
               </span>
               <span className="task-description" title={task.description}>
-                {task.description}
+                {task.description || "אין תיאור"}
               </span>
               <div className="task-info">
                 <div className="task-info-item">
@@ -94,13 +102,13 @@ const TasksTab = () => {
                 </div>
                 <div className="task-info-item">
                   <span>סוג משימה:</span>
-                  <span title={task.projectName || "לא משויך"}>
-                    {task.projectName || "לא משויך"}
+                  <span title={task.category || "לא משויך"}>
+                    {task.category || "לא משויך"}
                   </span>
                 </div>
                 <div className="task-info-item">
                   <span className={`task-status ${getStatusClass(task.status)}`}>
-                    סטטוס: {task.status}
+                    סטטוס: {task.status || "לא הוגדר"}
                   </span>
                 </div>
               </div>
