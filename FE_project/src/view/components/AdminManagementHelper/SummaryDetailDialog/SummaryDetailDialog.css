@@ -204,3 +204,15 @@
     justify-content: center;
   }
 }
+
+.summary-file-btn{
+  background-color: #b4c2d7;
+}
+
+.summary-file-btn:hover {
+  background-color: #8795a6;
+}
+
+.preview-btn {
+  margin-left: 10px;
+}

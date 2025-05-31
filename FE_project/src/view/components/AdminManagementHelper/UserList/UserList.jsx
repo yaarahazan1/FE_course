@@ -108,7 +108,7 @@ const UserList = ({
                 >
                   <div className="user-name-cell">
                     {user.isAdmin && <Shield className="admin-icon" title="מנהל מערכת" />}
-                    <span>{user.name || user.displayName || "לא זמין"}</span>
+                    <span>{user.fullName || "לא זמין"}</span>
                   </div>
                 </td>
                 <td 
@@ -174,7 +174,7 @@ const UserList = ({
                         <button 
                           className="action-btn remove-btn"
                           onClick={() => {
-                            if (window.confirm(`האם אתה בטוח שברצונך למחוק את המשתמש "${user.name || user.email}"? פעולה זו לא הפיכה.`)) {
+                            if (window.confirm(`האם אתה בטוח שברצונך למחוק את המשתמש "${user.fullName || user.email}"? פעולה זו לא הפיכה.`)) {
                               onUserAction("הסרה", user.id);
                             }
                           }}

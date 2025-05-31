@@ -263,3 +263,129 @@
 .today-btn:hover {
   background-color: #e3f2fd;
 }
+/* Team Members Styling */
+.team-members-container {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 8px;
+  min-height: 40px;
+}
+
+.team-members-list {
+  margin-bottom: 8px;
+}
+
+.team-member-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  margin-bottom: 4px;
+}
+
+.member-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.member-name {
+  font-weight: 500;
+  color: #333;
+}
+
+.member-email {
+  font-size: 0.85em;
+  color: #666;
+}
+
+.remove-member-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.remove-member-btn:hover {
+  background: #ffe6e6;
+}
+
+.add-member-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #666;
+  width: 100%;
+  justify-content: center;
+}
+
+.add-member-btn:hover {
+  background: #e9ecef;
+  border-color: #999;
+}
+
+.add-member-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.member-inputs {
+  display: flex;
+  gap: 8px;
+}
+
+.member-inputs input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.member-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.add-member-confirm-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.add-member-confirm-btn:hover {
+  background: #0056b3;
+}
+
+.add-member-confirm-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.add-member-cancel-btn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.add-member-cancel-btn:hover {
+  background: #545b62;
+}

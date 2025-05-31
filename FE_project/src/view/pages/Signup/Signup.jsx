@@ -96,7 +96,8 @@ const Signup = () => {
       institution: institution,
       createdAt: serverTimestamp(),
       profileCompleted: true,
-      isActive: true
+      isActive: true,
+      isAdmin: false 
     };
     
     console.log("נתונים לשמירה:", userData);
@@ -301,17 +302,17 @@ const Signup = () => {
                     disabled={loading}
                   >
                     <option value="">בחר תחום לימוד</option>
-                    <option value="computer-science">מדעי המחשב</option>
-                    <option value="engineering">הנדסה</option>
-                    <option value="medicine">רפואה</option>
-                    <option value="law">משפטים</option>
-                    <option value="psychology">פסיכולוגיה</option>
-                    <option value="business">מנהל עסקים</option>
-                    <option value="social-sciences">מדעי החברה</option>
-                    <option value="humanities">מדעי הרוח</option>
-                    <option value="education">חינוך</option>
-                    <option value="arts">אמנויות</option>
-                    <option value="other">אחר</option>
+                    <option value="מדעי המחשב">מדעי המחשב</option>
+                    <option value="הנדסה">הנדסה</option>
+                    <option value="רפואה">רפואה</option>
+                    <option value="משפטים">משפטים</option>
+                    <option value="פסיכולוגיה">פסיכולוגיה</option>
+                    <option value="מנהל עסקים">מנהל עסקים</option>
+                    <option value="מדעי החברה">מדעי החברה</option>
+                    <option value="מדעי הרוח">מדעי הרוח</option>
+                    <option value="חינוך">חינוך</option>
+                    <option value="אמנויות">אמנויות</option>
+                    <option value="אחר">אחר</option>
                   </select>
                 </div>
 
@@ -327,19 +328,20 @@ const Signup = () => {
                     disabled={loading}
                   >
                     <option value="">בחר מוסד לימודים</option>
-                    <option value="tel-aviv-university">אוניברסיטת תל אביב</option>
-                    <option value="hebrew-university">האוניברסיטה העברית</option>
-                    <option value="haifa-university">אוניברסיטת חיפה</option>
-                    <option value="technion">הטכניון</option>
-                    <option value="ono">מכללת אונו</option>
-                    <option value="ben-gurion-university">אוניברסיטת בן גוריון</option>
-                    <option value="bar-ilan-university">אוניברסיטת בר אילן</option>
-                    <option value="reichman-university">אוניברסיטת רייכמן</option>
-                    <option value="open-university">האוניברסיטה הפתוחה</option>
-                    <option value="seminar-hakibbutzim">סמינר הקיבוצים</option>
-                    <option value="levinsky-college">מכללת לוינסקי</option>
-                    <option value="shenkar">שנקר</option>
-                    <option value="other">אחר</option>
+                    <option value="אוניברסיטת תל אביב">אוניברסיטת תל אביב</option>
+                    <option value="האוניברסיטה העברית">האוניברסיטה העברית</option>
+                    <option value="אוניברסיטת חיפה">אוניברסיטת חיפה</option>
+                    <option value="הטכניון">הטכניון</option>
+                    <option value="מכללת אונו">מכללת אונו</option>
+                    <option value="אוניברסיטת בן גוריון">אוניברסיטת בן גוריון</option>
+                    <option value="אוניברסיטת בר אילן">אוניברסיטת בר אילן</option>
+                    <option value="אוניברסיטת רייכמן">אוניברסיטת רייכמן</option>
+                    <option value="האוניברסיטה הפתוחה">האוניברסיטה הפתוחה</option>
+                    <option value="סמינר הקיבוצים">סמינר הקיבוצים</option>
+                    <option value="מכללת לוינסקי">מכללת לוינסקי</option>
+                    <option value="שנקר">שנקר</option>
+                    <option value="אפקה">אפקה</option>
+                    <option value="אחר">אחר</option>
                   </select>
                 </div>
                 

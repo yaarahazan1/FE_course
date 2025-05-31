@@ -1,6 +1,11 @@
 import React from "react";
-import { XCircle, CheckCircle, Trash2 } from "lucide-react";
+import { XCircle, CheckCircle, Eye, Download } from "lucide-react";
 import "./SummaryDetailDialog.css";
+
+// Cloudinary configuration
+const CLOUDINARY_CONFIG = {
+  cloud_name: 'doxht9fpl'
+};
 
 const SummaryDetailDialog = ({
   summary,
@@ -18,9 +23,29 @@ const SummaryDetailDialog = ({
     }
   };
 
-  const handleDeleteClick = () => {
-    if (window.confirm("האם אתה בטוח שברצונך למחוק את הסיכום? פעולה זו לא ניתנת לביטול.")) {
-      onSummaryAction("מחיקה", summary.id);
+  // פונקציה לתצוגה מקדימה של הקובץ מ-Cloudinary
+  const handlePreview = () => {
+    if (summary.public_id) {
+      const previewUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/${summary.public_id}.pdf`;
+      window.open(previewUrl, '_blank');
+    } else {
+      alert("לא ניתן לפתוח תצוגה מקדימה - קובץ לא זמין");
+    }
+  };
+
+  // פונקציה להורדת הקובץ מ-Cloudinary
+  const handleDownload = () => {
+    if (summary.public_id) {
+      const downloadUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/fl_attachment/${summary.public_id}.pdf`;
+      
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `${summary.title}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      alert("לא ניתן להוריד את הקובץ - קובץ לא זמין");
     }
   };
 
@@ -56,52 +81,45 @@ const SummaryDetailDialog = ({
             </div>
             <div className="summary-info-row">
               <div className="summary-info-label">סטטוס:</div>
-              <div className="summary-info-value">
-                <span className={`status-badge ${summary.status === 'מאושר' ? 'approved' : summary.status === 'נדחה' ? 'rejected' : 'pending'}`}>
-                  {summary.status}
-                </span>
-              </div>
+              <div className="summary-info-value">{summary.status || 'ממתין לאישור'}</div>
             </div>
-            <div className="summary-info-row">
-              <div className="summary-info-label">עמודים:</div>
-              <div className="summary-info-value">{summary.pages || 'לא צוין'}</div>
-            </div>
-            <div className="summary-info-row">
-              <div className="summary-info-label">הורדות:</div>
-              <div className="summary-info-value">{summary.downloads || 0}</div>
-            </div>
-            <div className="summary-info-row">
-              <div className="summary-info-label">דירוג:</div>
-              <div className="summary-info-value">{summary.rating || 0}/5</div>
-            </div>
-            {summary.url && (
+            {summary.pages && (
               <div className="summary-info-row">
-                <div className="summary-info-label">קובץ:</div>
-                <div className="summary-info-value">
-                  <a href={summary.url} target="_blank" rel="noopener noreferrer" className="file-link">
-                    צפה בקובץ
-                  </a>
-                </div>
+                <div className="summary-info-label">מספר עמודים:</div>
+                <div className="summary-info-value">{summary.pages}</div>
               </div>
             )}
           </div>
           
+          {/* כפתורים לתצוגה והורדה */}
+          {summary.public_id && (
+            <div className="summary-file-actions">
+              <button 
+                className="summary-file-btn preview-btn"
+                onClick={handlePreview}
+                title="תצוגה מקדימה"
+              >
+                <Eye className="btn-icon" />
+                תצוגה מקדימה
+              </button>
+              <button 
+                className="summary-file-btn download-btn"
+                onClick={handleDownload}
+                title="הורד קובץ"
+              >
+                <Download className="btn-icon" />
+                הורד קובץ
+              </button>
+            </div>
+          )}
+          
           <div className="summary-content-section">
             <div className="summary-content-title">תוכן הסיכום:</div>
             <div className="summary-content-box">
-              {summary.content || "זהו תוכן הסיכום לדוגמה. במערכת אמיתית, כאן יוצג תוכן הסיכום המלא שהועלה על ידי המשתמש."}
+              {summary.content || summary.description || "תוכן הסיכום זמין בקובץ המצורף"}
             </div>
             
-            {summary.adminFeedback && (
-              <div className="existing-feedback-section">
-                <div className="summary-feedback-title">משוב קיים:</div>
-                <div className="existing-feedback-box">
-                  {summary.adminFeedback}
-                </div>
-              </div>
-            )}
-            
-            <div className="summary-feedback-title">משוב חדש למשתמש:</div>
+            <div className="summary-feedback-title">משוב למשתמש:</div>
             <textarea
               className="summary-feedback-textarea"
               placeholder="הוסף משוב או הערות עבור המשתמש..."
@@ -113,33 +131,20 @@ const SummaryDetailDialog = ({
         </div>
         
         <div className="summary-dialog-footer">
-          <div className="summary-dialog-actions-left">
-            <button 
-              className="summary-dialog-btn summary-delete-btn"
-              onClick={handleDeleteClick}
-              title="מחק סיכום לצמיתות"
-            >
-              <Trash2 className="btn-icon" />
-              מחיקת הסיכום
-            </button>
-          </div>
-          
-          <div className="summary-dialog-actions-right">
-            <button 
-              className="summary-dialog-btn summary-reject-btn"
-              onClick={() => onSummaryAction("דחייה", summary.id)}
-            >
-              <XCircle className="btn-icon" />
-              דחיית הסיכום
-            </button>
-            <button 
-              className="summary-dialog-btn summary-approve-btn"
-              onClick={() => onSummaryAction("אישור", summary.id)}
-            >
-              <CheckCircle className="btn-icon" />
-              אישור הסיכום
-            </button>
-          </div>
+          <button 
+            className="summary-dialog-btn summary-reject-btn"
+            onClick={() => onSummaryAction("דחייה", summary.id)}
+          >
+            <XCircle className="btn-icon" />
+            דחיית הסיכום
+          </button>
+          <button 
+            className="summary-dialog-btn summary-approve-btn"
+            onClick={() => onSummaryAction("אישור", summary.id)}
+          >
+            <CheckCircle className="btn-icon" />
+            אישור הסיכום
+          </button>
         </div>
       </div>
     </div>

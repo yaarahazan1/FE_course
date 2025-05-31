@@ -1,28 +1,32 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { 
   collection, 
-  updateDoc, 
-  deleteDoc, 
   doc, 
-  onSnapshot,
+  updateDoc, 
+  deleteDoc,
   query,
-  orderBy 
+  orderBy,
+  onSnapshot 
 } from "firebase/firestore";
-import { db } from "../../../firebase/config";
+import { db } from "../../../firebase/config"
 import UserList from "../../components/AdminManagementHelper/UserList/UserList";
 import SummaryList from "../../components/AdminManagementHelper/SummaryList/SummaryList";
 import UserDetailDialog from "../../components/AdminManagementHelper/UserDetailDialog/UserDetailDialog";
 import SummaryDetailDialog from "../../components/AdminManagementHelper/SummaryDetailDialog/SummaryDetailDialog";
-import { mockUsers } from "../../components/AdminManagementHelper/mockData";
 import "./AdminManagement.css";
 
+// Cloudinary configuration
+const CLOUDINARY_CONFIG = {
+  cloud_name: 'doxht9fpl',
+  upload_preset: 'summaries_preset',
+  api_key: '479472249636565',
+  api_secret: 'HDKDKxj2LKE-tPHgd6VeRPFGJaU'
+};
+
 const AdminManagement = () => {
-  const CLOUDINARY_CLOUD_NAME = "doxht9fpl";
-  const CLOUDINARY_API_KEY = "479472249636565";
   const navigate = useNavigate();
-  
   const [userSearchTerm, setUserSearchTerm] = useState("");
   const [summarySearchTerm, setSummarySearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
@@ -31,24 +35,13 @@ const AdminManagement = () => {
   const [isSummaryDetailOpen, setIsSummaryDetailOpen] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
   const [activeTab, setActiveTab] = useState("users");
-  const [loading, setLoading] = useState(true);
   
+  // State לניהול הנתונים
   const [users, setUsers] = useState([]);
   const [summaries, setSummaries] = useState([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+  const [isLoadingSummaries, setIsLoadingSummaries] = useState(true);
 
-  // טעינת Cloudinary Widget Script
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://widget.cloudinary.com/v2.0/global/all.js';
-    script.async = true;
-    document.body.appendChild(script);
-    
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
-
-  // בדיקת הרשאות admin
   useEffect(() => {
     const isAdmin = localStorage.getItem("isAdmin") === "true";
     if (!isAdmin) {
@@ -57,114 +50,123 @@ const AdminManagement = () => {
     }
   }, [navigate]);
 
-  // טעינת משתמשים מFirebase
-  const loadUsers = async () => {
-    try {
-      const q = query(
-        collection(db, "users"),
-        orderBy("createdAt", "desc")
-      );
-      
-      const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const usersData = [];
-        querySnapshot.forEach((doc) => {
-          usersData.push({ id: doc.id, ...doc.data() });
-        });
-        setUsers(usersData);
-      });
-      return unsubscribe;
-    } catch (error) {
-      console.error("שגיאה בטעינת משתמשים:", error);
-      setUsers(mockUsers);
-    }
-  };
-
-  // טעינת סיכומים באמצעות Cloudinary Widget (גישה למטא-דאטה בלבד)
-  const loadSummariesFromCloudinary = async () => {
-    try {
-      // במקום לגשת ל-API ישירות, נשתמש בגישה אלטרנטיבית
-      // אפשרות 1: שמירת מטא-דאטה ב-Firebase במקביל
-      // אפשרות 2: שימוש ב-Cloudinary Upload Widget callbacks
-      
-      // לעת עתה, נציג נתונים סטטיים כדוגמה
-      const dummySummaries = [
-        {
-          id: "summaries/example1",
-          title: "סיכום מתמטיקה",
-          author: "דוגמה",
-          course: "חשבון אינפיניטסימלי",
-          professor: "פרופ' כהן",
-          date: new Date().toLocaleDateString('he-IL'),
-          content: "זהו סיכום לדוגמה",
-          status: "ממתין לאישור",
-          downloads: 0,
-          rating: 0,
-          pages: 5,
-          url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/raw/upload/summaries/example1.pdf`,
-          format: "pdf",
-          bytes: 1024000,
-          createdAt: new Date().toISOString(),
-          adminFeedback: null
-        }
-      ];
-      
-      setSummaries(dummySummaries);
-      
-      // הצעה: שמור מטא-דאטה ב-Firebase כדי לעקוף את בעיית ה-CORS
-      console.log("להשלמת הפתרון, מומלץ לשמור מטא-דאטה של הסיכומים ב-Firebase");
-      
-    } catch (error) {
-      console.error("שגיאה בטעינת סיכומים:", error);
-      setSummaries([]);
-    }
-  };
-
-  // useEffect לטעינת כל הנתונים
+  // טעינת משתמשים מ-Firebase
   useEffect(() => {
-    const loadAllData = async () => {
-      setLoading(true);
-      
-      const userUnsubscribe = await loadUsers();
-      await loadSummariesFromCloudinary();
-      
-      setLoading(false);
+    const loadUsers = async () => {
+      try {
+        setIsLoadingUsers(true);
+        const usersCollection = collection(db, "users");
+        const usersQuery = query(usersCollection, orderBy("createdAt", "desc"));
+        
+        // שימוש ב-onSnapshot לעדכון בזמן אמת
+        const unsubscribe = onSnapshot(usersQuery, (querySnapshot) => {
+          const usersData = [];
+          querySnapshot.forEach((doc) => {
+            usersData.push({
+              id: doc.id,
+              ...doc.data()
+            });
+          });
+          setUsers(usersData);
+          setIsLoadingUsers(false);
+        });
 
-      return () => {
-        if (typeof userUnsubscribe === 'function') {
-          userUnsubscribe();
-        }
-      };
+        return unsubscribe;
+      } catch (error) {
+        console.error("Error loading users:", error);
+        toast.error("שגיאה בטעינת המשתמשים");
+        setIsLoadingUsers(false);
+      }
     };
 
-    loadAllData();
+    loadUsers();
   }, []);
 
-  // סינון משתמשים
+  // טעינת סיכומים מ-localStorage (Cloudinary)
+  useEffect(() => {
+    const loadSummaries = () => {
+      try {
+        setIsLoadingSummaries(true);
+        const savedSummaries = localStorage.getItem('uploaded_summaries');
+        if (savedSummaries) {
+          const summariesData = JSON.parse(savedSummaries);
+          // הוספת מידע נוסף לסיכומים אם נדרש
+          const summariesWithStatus = summariesData.map(summary => ({
+            ...summary,
+            status: summary.status || 'ממתין לאישור'
+          }));
+          setSummaries(summariesWithStatus);
+        }
+        setIsLoadingSummaries(false);
+      } catch (error) {
+        console.error("Error loading summaries:", error);
+        toast.error("שגיאה בטעינת הסיכומים");
+        setIsLoadingSummaries(false);
+      }
+    };
+
+    loadSummaries();
+  }, []);
+
+  // פונקציה למחיקת קובץ מ-Cloudinary
+  const deleteFromCloudinary = async (publicId) => {
+    try {
+      const timestamp = Math.round(new Date().getTime() / 1000);
+      const stringToSign = `public_id=${publicId}&timestamp=${timestamp}${CLOUDINARY_CONFIG.api_secret}`;
+      
+      const encoder = new TextEncoder();
+      const data = encoder.encode(stringToSign);
+      const hashBuffer = await crypto.subtle.digest('SHA-1', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const signature = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+      const formData = new FormData();
+      formData.append('public_id', publicId);
+      formData.append('timestamp', timestamp);
+      formData.append('api_key', CLOUDINARY_CONFIG.api_key);
+      formData.append('signature', signature);
+
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloud_name}/raw/destroy`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        console.error('HTTP Error:', response.status, response.statusText);
+        return false;
+      }
+
+      const result = await response.json();
+      return result.result === 'ok' || result.result === 'not found';
+    } catch (error) {
+      console.error('Error deleting from Cloudinary:', error);
+      return false;
+    }
+  };
+
   const filteredUsers = users.filter(user => 
     user.name?.includes(userSearchTerm) || user.email?.includes(userSearchTerm)
   );
 
-  // סינון סיכומים
   const filteredSummaries = summaries.filter(summary => 
     summary.title?.includes(summarySearchTerm) || summary.author?.includes(summarySearchTerm)
   );
 
-  // טיפול בפעולות על משתמשים
   const handleUserAction = async (action, userId) => {
     try {
       const userRef = doc(db, "users", userId);
-      let updateData = { updatedAt: new Date() };
+      let updateData = {};
 
       switch (action) {
         case 'הקפאה':
-          updateData.status = 'קפוא';
+          updateData = { status: 'קפוא', updatedAt: new Date() };
           break;
         case 'הפעלה':
-          updateData.status = 'פעיל';
+          updateData = { status: 'פעיל', updatedAt: new Date() };
           break;
         case 'הסרה':
           await deleteDoc(userRef);
-          toast.success('מחיקת המשתמש בוצעה בהצלחה!');
+          toast.success("מחיקת המשתמש בוצעה בהצלחה!");
           if (isUserDetailOpen) {
             setIsUserDetailOpen(false);
           }
@@ -186,55 +188,75 @@ const AdminManagement = () => {
         setIsUserDetailOpen(false);
       }
     } catch (error) {
-      console.error("שגיאה בעדכון משתמש:", error);
-      toast.error("אירעה שגיאה בעדכון המשתמש");
+      console.error("Error updating user:", error);
+      toast.error("שגיאה בעדכון המשתמש");
     }
   };
 
-  // טיפול בפעולות על סיכומים (עדכון ב-Firebase במקום Cloudinary API)
   const handleSummaryAction = async (action, summaryId) => {
     try {
-      switch (action) {
-        case 'אישור':
-          // עדכון מקומי (בפתרון מלא זה יהיה ב-Firebase)
-          setSummaries(prevSummaries => 
-            prevSummaries.map(summary => 
-              summary.id === summaryId 
-                ? { ...summary, status: 'מאושר', adminFeedback: feedbackText }
-                : summary
-            )
-          );
-          toast.success('אישור הסיכום בוצעה בהצלחה!');
-          break;
-
-        case 'דחייה':
-          setSummaries(prevSummaries => 
-            prevSummaries.map(summary => 
-              summary.id === summaryId 
-                ? { ...summary, status: 'נדחה', adminFeedback: feedbackText }
-                : summary
-            )
-          );
-          toast.success('דחיית הסיכום בוצעה בהצלחה!');
-          break;
-
-        case 'מחיקה':
-          // מחיקה מקומית (בפתרון מלא זה יכלול מחיקה מ-Cloudinary דרך שרת)
-          setSummaries(prevSummaries => 
-            prevSummaries.filter(summary => summary.id !== summaryId)
-          );
-          toast.success('מחיקת הסיכום בוצעה בהצלחה!');
-          break;
-
-        default:
-          return;
+      // עדכון ב-localStorage
+      const savedSummaries = localStorage.getItem('uploaded_summaries');
+      if (savedSummaries) {
+        let summariesData = JSON.parse(savedSummaries);
+        const summaryIndex = summariesData.findIndex(s => s.id === summaryId);
+        
+        if (summaryIndex !== -1) {
+          const currentSummary = summariesData[summaryIndex];
+          
+          switch (action) {
+            case 'אישור':
+              summariesData[summaryIndex] = { 
+                ...currentSummary, 
+                status: 'מאושר',
+                approvedAt: new Date().toISOString(),
+                feedback: feedbackText
+              };
+              break;
+            case 'דחייה':
+              summariesData[summaryIndex] = { 
+                ...currentSummary, 
+                status: 'נדחה',
+                rejectedAt: new Date().toISOString(),
+                feedback: feedbackText
+              };
+              break;
+            case 'מחיקה':
+              // מחיקה מ-Cloudinary
+              if (currentSummary.public_id) {
+                const cloudinaryDeleted = await deleteFromCloudinary(currentSummary.public_id);
+                if (!cloudinaryDeleted) {
+                  toast.error("שגיאה במחיקת הקובץ מהשרת");
+                  return;
+                }
+              }
+              // הסרה מהמערך
+              summariesData = summariesData.filter(s => s.id !== summaryId);
+              break;
+            default:
+              return;
+          }
+          
+          // שמירה ב-localStorage
+          localStorage.setItem('uploaded_summaries', JSON.stringify(summariesData));
+          
+          // עדכון הסטייט המקומי
+          setSummaries(summariesData);
+        }
       }
-
+      
+      const actionText = {
+        'אישור': 'אישור הסיכום',
+        'דחייה': 'דחיית הסיכום',
+        'מחיקה': 'מחיקת הסיכום'
+      };
+      
+      toast.success(`${actionText[action]} בוצעה בהצלחה!`);
       setIsSummaryDetailOpen(false);
       setFeedbackText("");
     } catch (error) {
-      console.error("שגיאה בעדכון סיכום:", error);
-      toast.error("אירעה שגיאה בעדכון הסיכום");
+      console.error("Error updating summary:", error);
+      toast.error("שגיאה בעדכון הסיכום");
     }
   };
 
@@ -248,21 +270,6 @@ const AdminManagement = () => {
     setIsSummaryDetailOpen(true);
   };
 
-  if (loading) {
-    return (
-      <div className="admin-container">
-        <header className="admin-header">
-          <div className="admin-header-content">
-              <a href="/" className="logo">חזרה לדף הבית</a>
-          </div>
-        </header>
-        <div className="loading-spinner">
-          <p>טוען נתונים...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="admin-container">
       <header className="admin-header">
@@ -270,7 +277,6 @@ const AdminManagement = () => {
             <a href="/" className="logo">חזרה לדף הבית</a>
         </div>
       </header>
-
       <h1 className="admin-title">ניהול מערכת</h1>
 
       <main className="admin-main">
@@ -280,40 +286,50 @@ const AdminManagement = () => {
               className={`admin-tab ${activeTab === "summaries" ? "active" : ""}`}
               onClick={() => setActiveTab("summaries")}
             >
-              אישור סיכומים ({summaries.length})
+              אישור סיכומים
             </button>
             <button 
               className={`admin-tab ${activeTab === "users" ? "active" : ""}`}
               onClick={() => setActiveTab("users")}
             >
-              ניהול משתמשים ({users.length})
+              ניהול משתמשים
             </button>
           </div>
 
           <div className="admin-tab-content">
             {activeTab === "users" && (
               <div className="admin-panel">
-                <UserList 
-                  users={filteredUsers}
-                  searchTerm={userSearchTerm}
-                  onSearchChange={(e) => setUserSearchTerm(e.target.value)}
-                  onUserAction={handleUserAction}
-                  onUserSelect={openUserDetail}
-                />
+                {isLoadingUsers ? (
+                  <div style={{ textAlign: 'center', padding: '20px' }}>
+                    טוען משתמשים...
+                  </div>
+                ) : (
+                  <UserList 
+                    users={filteredUsers}
+                    searchTerm={userSearchTerm}
+                    onSearchChange={(e) => setUserSearchTerm(e.target.value)}
+                    onUserAction={handleUserAction}
+                    onUserSelect={openUserDetail}
+                  />
+                )}
               </div>
             )}
 
             {activeTab === "summaries" && (
               <div className="admin-panel">
-                <div className="admin-panel-header">
-                </div>
-                <SummaryList 
-                  summaries={filteredSummaries}
-                  searchTerm={summarySearchTerm}
-                  onSearchChange={(e) => setSummarySearchTerm(e.target.value)}
-                  onSummaryAction={handleSummaryAction}
-                  onSummarySelect={openSummaryDetail}
-                />
+                {isLoadingSummaries ? (
+                  <div style={{ textAlign: 'center', padding: '20px' }}>
+                    טוען סיכומים...
+                  </div>
+                ) : (
+                  <SummaryList 
+                    summaries={filteredSummaries}
+                    searchTerm={summarySearchTerm}
+                    onSearchChange={(e) => setSummarySearchTerm(e.target.value)}
+                    onSummaryAction={handleSummaryAction}
+                    onSummarySelect={openSummaryDetail}
+                  />
+                )}
               </div>
             )}
           </div>

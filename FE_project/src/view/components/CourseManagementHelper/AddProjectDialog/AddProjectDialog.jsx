@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import React, { useState, useEffect } from "react";
+import { collection, addDoc, serverTimestamp, getDocs, query, where } from "firebase/firestore";
 import { db, auth } from "../../../../firebase/config";
 import DialogComponent from "../DialogComponent/DialogComponent";
 import "./AddProjectDialog.css";
@@ -13,12 +13,23 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
   const [priority, setPriority] = useState("בינונית");
   const [estimatedHours, setEstimatedHours] = useState("");
   const [budget, setBudget] = useState("");
+  const [selectedTasks, setSelectedTasks] = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState("");
+  const [availableTasks, setAvailableTasks] = useState([]);
+  const [availableCourses, setAvailableCourses] = useState([]);
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [newMemberName, setNewMemberName] = useState("");
+  const [newMemberEmail, setNewMemberEmail] = useState("");
+  
+  // State for dropdowns
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [isPriorityOpen, setIsPriorityOpen] = useState(false);
+  const [isTasksOpen, setIsTasksOpen] = useState(false);
+  const [isCoursesOpen, setIsCoursesOpen] = useState(false);
+  const [isAddingMember, setIsAddingMember] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
-  // שימוש בhook של לוח השנה
   const {
     isDatePickerOpen,
     setIsDatePickerOpen,
@@ -37,7 +48,47 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
   const categoryOptions = ["אישי", "אקדמי", "עבודה", "משפחתי", "בריאות"];
   const priorityOptions = ["נמוכה", "בינונית", "גבוהה", "דחופה"];
 
-  // פונקציה לקבלת ID המשתמש הנוכחי
+  useEffect(() => {
+    if (isOpen) {
+      loadAvailableTasksAndCourses();
+    }
+  }, [isOpen]);
+
+  const loadAvailableTasksAndCourses = async () => {
+    try {
+      const userId = getCurrentUserId();
+      
+      // טעינת משימות זמינות
+      const tasksQuery = query(
+        collection(db, "tasks"), 
+        where("userId", "==", userId),
+        where("status", "!=", "הושלם")
+      );
+      const tasksSnapshot = await getDocs(tasksQuery);
+      const tasks = tasksSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setAvailableTasks(tasks);
+
+      // טעינת קורסים זמינים
+      const coursesQuery = query(
+        collection(db, "courses"), 
+        where("userId", "==", userId)
+      );
+      const coursesSnapshot = await getDocs(coursesQuery);
+      const courses = coursesSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setAvailableCourses(courses);
+      
+    } catch (error) {
+      console.error("שגיאה בטעינת משימות וקורסים:", error);
+    }
+  };
+
+  // פונקציה לקבלת ID המשתמש הנוכحי
   const getCurrentUserId = () => {
     return auth.currentUser?.uid || "demo-user";
   };
@@ -75,9 +126,18 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
         spentBudget: 0,
         
         // צוות ושיתוף
-        teamMembers: [],
+        teamMembers: teamMembers,
         owner: userId,
-        collaborators: [],
+        collaborators: teamMembers.map(member => ({
+          ...member,
+          role: "member",
+          addedAt: new Date(),
+          permissions: ["view", "edit"]
+        })),
+        
+        // חיבור למשימות וקורס
+        relatedTasks: selectedTasks,
+        relatedCourse: selectedCourse || null,
         
         // תכנים קשורים
         tasks: [],
@@ -87,7 +147,7 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
         attachments: [],
         
         // סטטיסטיקות
-        totalTasks: 0,
+        totalTasks: selectedTasks.length,
         completedTasks: 0,
         progressPercentage: 0,
         
@@ -120,7 +180,10 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
       const docRef = await addDoc(collection(db, "projects"), newProject);
       console.log("פרויקט נוסף בהצלחה עם ID:", docRef.id);
       
-      // קריאה לפונקציה מהקומפוננטה האב אם נדרש
+      // עדכון המשימות הקשורות
+      await updateRelatedTasks(selectedTasks, docRef.id);
+      
+      // קריאה לפונקציה מהקומפונטה האב אם נדרש
       if (onAddSuccess) {
         onAddSuccess({ ...newProject, id: docRef.id });
       }
@@ -132,6 +195,18 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
       alert("שגיאה בהוספת הפרויקט. אנא נסה שוב.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // עדכון המשימות הקשורות
+  const updateRelatedTasks = async () => {
+    try {
+      // for (const taskId of taskIds) {
+      //   // כאן תוכל לעדכן את המשימות בFirebase שיהיו קשורות לפרויקט
+      //   // זה דורש עדכון של המסמכים במאגר המידע
+      // }
+    } catch (error) {
+      console.error("שגיאה בעדכון משימות קשורות:", error);
     }
   };
 
@@ -150,6 +225,42 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
     setIsPriorityOpen(false);
   };
 
+  const handleTaskSelect = (taskId) => {
+    setSelectedTasks(prev => {
+      if (prev.includes(taskId)) {
+        return prev.filter(id => id !== taskId);
+      } else {
+        return [...prev, taskId];
+      }
+    });
+  };
+
+  const handleCourseSelect = (courseId) => {
+    setSelectedCourse(courseId);
+    setIsCoursesOpen(false);
+  };
+
+  const addTeamMember = () => {
+    if (!newMemberName.trim()) return;
+    
+    const newMember = {
+      id: Date.now().toString(), // ID זמני
+      name: newMemberName.trim(),
+      email: newMemberEmail.trim() || null,
+      role: "member",
+      addedAt: new Date()
+    };
+    
+    setTeamMembers(prev => [...prev, newMember]);
+    setNewMemberName("");
+    setNewMemberEmail("");
+    setIsAddingMember(false);
+  };
+
+  const removeTeamMember = (memberId) => {
+    setTeamMembers(prev => prev.filter(member => member.id !== memberId));
+  };
+
   const resetForm = () => {
     setProjectName("");
     setDescription("");
@@ -159,15 +270,32 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
     setPriority("בינונית");
     setEstimatedHours("");
     setBudget("");
+    setSelectedTasks([]);
+    setSelectedCourse("");
+    setTeamMembers([]);
+    setNewMemberName("");
+    setNewMemberEmail("");
     setIsDatePickerOpen(false);
     setIsStatusOpen(false);
     setIsCategoryOpen(false);
     setIsPriorityOpen(false);
+    setIsTasksOpen(false);
+    setIsCoursesOpen(false);
+    setIsAddingMember(false);
   };
 
   const handleCancel = () => {
     resetForm();
     onClose();
+  };
+
+  const closeAllDropdowns = () => {
+    setIsDatePickerOpen(false);
+    setIsStatusOpen(false);
+    setIsCategoryOpen(false);
+    setIsPriorityOpen(false);
+    setIsTasksOpen(false);
+    setIsCoursesOpen(false);
   };
 
   if (!isOpen) return null;
@@ -186,7 +314,7 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
               type="text"
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
-              onFocus={() => setIsDatePickerOpen(false)}
+              onFocus={closeAllDropdowns}
               required={true}
               disabled={isLoading}
             />
@@ -199,7 +327,7 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              onFocus={() => setIsDatePickerOpen(false)}
+              onFocus={closeAllDropdowns}
               rows="3"
               required={true}
               disabled={isLoading}
@@ -219,6 +347,8 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
                     setIsDatePickerOpen(false);
                     setIsStatusOpen(false);
                     setIsPriorityOpen(false);
+                    setIsTasksOpen(false);
+                    setIsCoursesOpen(false);
                   }
                 }}
               >
@@ -261,9 +391,8 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
                 onClick={() => {
                   if (!isLoading) {
                     setIsPriorityOpen(!isPriorityOpen);
-                    setIsDatePickerOpen(false);
-                    setIsStatusOpen(false);
-                    setIsCategoryOpen(false);
+                    closeAllDropdowns();
+                    setIsPriorityOpen(true);
                   }
                 }}
               >
@@ -306,9 +435,8 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
                 onClick={() => {
                   if (!isLoading) {
                     setIsStatusOpen(!isStatusOpen);
-                    setIsDatePickerOpen(false);
-                    setIsCategoryOpen(false);
-                    setIsPriorityOpen(false);
+                    closeAllDropdowns();
+                    setIsStatusOpen(true);
                   }
                 }}
               >
@@ -341,6 +469,216 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
             </div>
           </label>
         </div>
+
+        {/* חיבור למשימות */}
+        <div className="form-field">
+          <label>
+            משימות קשורות:
+            <div className="custom-select">
+              <div 
+                className="select-header" 
+                onClick={() => {
+                  if (!isLoading) {
+                    setIsTasksOpen(!isTasksOpen);
+                    closeAllDropdowns();
+                    setIsTasksOpen(true);
+                  }
+                }}
+              >
+                <span>
+                  {selectedTasks.length > 0 
+                    ? `נבחרו ${selectedTasks.length} משימות`
+                    : "בחר משימות"}
+                </span>
+                <svg 
+                  className={`select-arrow ${isTasksOpen ? 'open' : ''}`}
+                  width="16" 
+                  height="16" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="#666" 
+                  strokeWidth="2"
+                >
+                  <path d="M6 9l6 6 6-6"/>
+                </svg>
+              </div>
+              {isTasksOpen && !isLoading && (
+                <div className="select-options multi-select">
+                  {availableTasks.length === 0 ? (
+                    <div className="no-options">אין משימות זמינות</div>
+                  ) : (
+                    availableTasks.map((task) => (
+                      <div
+                        key={task.id}
+                        className={`select-option ${selectedTasks.includes(task.id) ? 'selected' : ''}`}
+                        onClick={() => handleTaskSelect(task.id)}
+                      >
+                        <input 
+                          type="checkbox" 
+                          checked={selectedTasks.includes(task.id)}
+                          readOnly
+                        />
+                        <span>{task.title || task.name}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          </label>
+        </div>
+
+        {/* חיבור לקורס */}
+        <div className="form-field">
+          <label>
+            קורס קשור:
+            <div className="custom-select">
+              <div 
+                className="select-header" 
+                onClick={() => {
+                  if (!isLoading) {
+                    setIsCoursesOpen(!isCoursesOpen);
+                    closeAllDropdowns();
+                    setIsCoursesOpen(true);
+                  }
+                }}
+              >
+                <span>
+                  {selectedCourse 
+                    ? availableCourses.find(c => c.id === selectedCourse)?.name || "קורס לא נמצא"
+                    : "בחר קורס (אופציונלי)"}
+                </span>
+                <svg 
+                  className={`select-arrow ${isCoursesOpen ? 'open' : ''}`}
+                  width="16" 
+                  height="16" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="#666" 
+                  strokeWidth="2"
+                >
+                  <path d="M6 9l6 6 6-6"/>
+                </svg>
+              </div>
+              {isCoursesOpen && !isLoading && (
+                <div className="select-options">
+                  <div
+                    className={`select-option ${!selectedCourse ? 'selected' : ''}`}
+                    onClick={() => handleCourseSelect("")}
+                  >
+                    ללא קורס
+                  </div>
+                  {availableCourses.map((course) => (
+                    <div
+                      key={course.id}
+                      className={`select-option ${course.id === selectedCourse ? 'selected' : ''}`}
+                      onClick={() => handleCourseSelect(course.id)}
+                    >
+                      {course.name}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </label>
+        </div>
+
+        {/* חברי צוות */}
+        <div className="form-field">
+          <label>
+            חברי צוות:
+            <div className="team-members-container">
+              {teamMembers.length > 0 && (
+                <div className="team-members-list">
+                  {teamMembers.map((member) => (
+                    <div key={member.id} className="team-member-item">
+                      <div className="member-info">
+                        <span className="member-name">{member.name}</span>
+                        {member.email && (
+                          <span className="member-email">{member.email}</span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        className="remove-member-btn"
+                        onClick={() => removeTeamMember(member.id)}
+                        disabled={isLoading}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff4444" strokeWidth="2">
+                          <line x1="18" y1="6" x2="6" y2="18"/>
+                          <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {isAddingMember ? (
+                <div className="add-member-form">
+                  <div className="member-inputs">
+                    <input
+                      type="text"
+                      placeholder="שם חבר הצוות"
+                      value={newMemberName}
+                      onChange={(e) => setNewMemberName(e.target.value)}
+                      onFocus={closeAllDropdowns}
+                      disabled={isLoading}
+                    />
+                    <input
+                      type="email"
+                      placeholder="אימייל (אופציונלי)"
+                      value={newMemberEmail}
+                      onChange={(e) => setNewMemberEmail(e.target.value)}
+                      onFocus={closeAllDropdowns}
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <div className="member-actions">
+                    <button
+                      type="button"
+                      className="add-member-confirm-btn"
+                      onClick={addTeamMember}
+                      disabled={isLoading || !newMemberName.trim()}
+                    >
+                      הוסף
+                    </button>
+                    <button
+                      type="button"
+                      className="add-member-cancel-btn"
+                      onClick={() => {
+                        setIsAddingMember(false);
+                        setNewMemberName("");
+                        setNewMemberEmail("");
+                      }}
+                      disabled={isLoading}
+                    >
+                      ביטול
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="add-member-btn"
+                  onClick={() => {
+                    setIsAddingMember(true);
+                    closeAllDropdowns();
+                  }}
+                  disabled={isLoading}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <line x1="19" y1="8" x2="19" y2="14"/>
+                    <line x1="22" y1="11" x2="16" y2="11"/>
+                  </svg>
+                  הוסף חבר צוות
+                </button>
+              )}
+            </div>
+          </label>
+        </div>
         
         <div className="form-field">
           <label>
@@ -351,6 +689,7 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
               step="0.5"
               value={estimatedHours}
               onChange={(e) => setEstimatedHours(e.target.value)}
+              onFocus={closeAllDropdowns}
               placeholder="מספר שעות"
               disabled={isLoading}
             />
@@ -365,6 +704,7 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
               min="0"
               value={budget}
               onChange={(e) => setBudget(e.target.value)}
+              onFocus={closeAllDropdowns}
               placeholder="תקציב בשקלים"
               disabled={isLoading}
             />
@@ -383,6 +723,8 @@ const AddProjectDialog = ({ isOpen, onClose, onAddSuccess }) => {
                     setIsStatusOpen(false);
                     setIsCategoryOpen(false);
                     setIsPriorityOpen(false);
+                    setIsTasksOpen(false);
+                    setIsCoursesOpen(false);
                   }
                 }}
               >

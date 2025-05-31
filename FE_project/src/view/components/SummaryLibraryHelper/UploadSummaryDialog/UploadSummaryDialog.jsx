@@ -1,11 +1,7 @@
 import React, { useState } from "react";
-import { db } from "../../../../firebase/config";
-import { collection, addDoc } from "firebase/firestore";
 import "./UploadSummaryDialog.css";
 
-
-const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, currentUser }) => {
-
+const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, cloudinaryConfig }) => {
   const [title, setTitle] = useState("");
   const [course, setCourse] = useState("");
   const [professor, setProfessor] = useState("");
@@ -14,10 +10,8 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, currentUser }) 
   const [isUploading, setIsUploading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const CLOUDINARY_CLOUD_NAME = "doxht9fpl"; 
-  const CLOUDINARY_UPLOAD_PRESET = "summaries_preset"; 
-
   const showToast = (title, description, type = "error") => {
+    // יצירת toast פשוט
     const toast = document.createElement('div');
     toast.className = `upload-toast ${type}`;
     toast.innerHTML = `
@@ -32,127 +26,95 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, currentUser }) 
     
     setTimeout(() => {
       toast.classList.remove('show');
-      setTimeout(() => {
-        if (document.body.contains(toast)) {
-          document.body.removeChild(toast);
-        }
-      }, 300);
+      setTimeout(() => document.body.removeChild(toast), 300);
     }, 3000);
   };
 
-  const uploadToCloudinary = async (file) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    formData.append('folder', 'summaries');
-    
+  const uploadToCloudinary = async (file, metadata) => {
     try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', cloudinaryConfig.upload_preset);
+      formData.append('resource_type', 'raw'); // לקבצי PDF
+      formData.append('public_id', `summaries/${Date.now()}_${file.name.replace('.pdf', '')}`);
+      
+      // הוספת מטא-דאטה
+      const contextData = {
+        title: metadata.title,
+        course: metadata.course,
+        professor: metadata.professor,
+        description: metadata.description,
+        uploadDate: new Date().toISOString()
+      };
+      
+      formData.append('context', JSON.stringify({ custom: contextData }));
+      
       const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/raw/upload`,
+        `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloud_name}/raw/upload`,
         {
           method: 'POST',
-          body: formData,
+          body: formData
         }
       );
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.error.message || 'שגיאה בהעלאה');
-      }
-      
-      return {
-        url: data.secure_url,
-        publicId: data.public_id,
-        size: data.bytes,
-        format: data.format
-      };
-    } catch (error) {
-      console.error('Cloudinary upload error:', error);
-      throw new Error('שגיאה בהעלאה לשרת. אנא נסי שוב');
-    }
-  };
 
-  // פונקציה לקבלת שם המשתמש
-  const getUserDisplayName = () => {
-    if (!currentUser) return "משתמש אנונימי";
-    
-    // אפשרויות שונות לפי איך המשתמש מוגדר
-    return currentUser.displayName || 
-           currentUser.name || 
-           currentUser.email || 
-           currentUser.username || 
-           "משתמש רשום";
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+      
+    } catch (error) {
+      console.error('Error uploading to Cloudinary:', error);
+      throw error;
+    }
   };
 
   const handleUpload = async () => {
     if (!title || !course || !professor || !file) {
-      showToast("שגיאה", "אנא מלאי את כל השדות הנדרשים ובחרי קובץ");
+      showToast("שגיאה", "אנא מלא את כל השדות הנדרשים ובחר קובץ");
       return;
     }
 
     setIsUploading(true);
     
     try {
-      console.log('מתחיל העלאה ל-Cloudinary...');
-      
-      const uploadResult = await uploadToCloudinary(file);
-      
-      console.log('העלאה הושלמה:', uploadResult);
-
-      // יצירת metadata עם פרטי המשתמש המחובר
-      const summaryData = {
-        title: title.trim(),
-        course: course.trim(),
-        professor: professor.trim(),
-        description: description.trim(),
-        fileName: file.name,
-        fileSize: file.size,
-        fileType: file.type,
-        fileUrl: uploadResult.url,
-        cloudinaryPublicId: uploadResult.publicId,
-        pages: Math.floor(Math.random() * 50) + 1,
-        author: getUserDisplayName(), // שינוי כאן!
-        authorId: currentUser?.uid || currentUser?.id || null, // הוספת ID המשתמש לזיהוי
-        authorEmail: currentUser?.email || null, // הוספת אימייל אם נדרש
-        date: new Date().toLocaleDateString('he-IL'),
-        uploadDate: new Date().toISOString(),
-        id: `summary_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      const metadata = {
+        title,
+        course,
+        professor,
+        description
       };
 
-      console.log('שומר metadata ב-Firestore...');
+      // העלאה ל-Cloudinary
+      const uploadResult = await uploadToCloudinary(file, metadata);
       
-      const docRef = await addDoc(collection(db, "summaries"), summaryData);
-      summaryData.firestoreId = docRef.id;
-      
-      console.log('נשמר ב-Firestore עם ID:', docRef.id);
-      
-      await onUploadSuccess(summaryData);
-      
+      // יצירת אובייקט הסיכום החדש
+      const newSummary = {
+        id: uploadResult.public_id,
+        public_id: uploadResult.public_id,
+        title: title,
+        author: "אתה", // או שם המשתמש
+        date: new Date().toLocaleDateString('he-IL'),
+        course: course,
+        professor: professor,
+        description: description,
+        rating: 5, // דירוג ברירת מחדל
+        downloads: 0,
+        pages: Math.floor(Math.random() * 20) + 5, // מספר עמודים משוער
+        isLocked: false,
+        size: file.size,
+        cloudinaryUrl: uploadResult.secure_url
+      };
+
+      // קריאה לפונקציה שמעדכנת את הקומפוננט הראשי
+      onUploadSuccess(newSummary);
       resetForm();
-      onClose();
-      showToast("הצלחה!", "הסיכום הועלה בהצלחה ונשמר בענן", "success");
+      showToast("הצלחה!", "הסיכום הועלה בהצלחה", "success");
       
     } catch (error) {
-      console.error("שגיאה בהעלאת הסיכום:", error);
-      
-      let errorMessage = "אירעה שגיאה בהעלאת הסיכום. אנא נסי שוב";
-      
-      if (error.message.includes('Invalid cloud name')) {
-        errorMessage = "שם הענן של Cloudinary שגוי. בדקי את ההגדרות";
-      } else if (error.message.includes('Invalid upload preset')) {
-        errorMessage = "Upload Preset שגוי. בדקי את ההגדרות ב-Cloudinary";
-      } else if (error.message.includes('File size too large')) {
-        errorMessage = "הקובץ גדול מדי. נסי קובץ קטן יותר";
-      } else if (error.message.includes('Network')) {
-        errorMessage = "בעיה בחיבור לאינטרנט. בדקי את החיבור";
-      }
-      
-      showToast("שגיאה", errorMessage);
+      console.error('Upload error:', error);
+      showToast("שגיאה", "שגיאה בהעלאת הקובץ. נסה שוב.");
     } finally {
       setIsUploading(false);
     }
@@ -166,14 +128,15 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, currentUser }) 
   };
 
   const processFile = (selectedFile) => {
+    // בדיקה שהקובץ הוא PDF
     if (selectedFile.type !== "application/pdf") {
-      showToast("סוג קובץ לא נתמך", "אנא העלי קובץ PDF בלבד");
+      showToast("סוג קובץ לא נתמך", "אנא העלה קובץ PDF בלבד");
       return;
     }
     
-    const maxSize = 20 * 1024 * 1024; // 20MB
-    if (selectedFile.size > maxSize) {
-      showToast("קובץ גדול מדי", `גודל הקובץ המקסימלי הוא 20MB`);
+    // בדיקת גודל קובץ (מקסימום 10MB)
+    if (selectedFile.size > 10 * 1024 * 1024) {
+      showToast("קובץ גדול מדי", "גודל הקובץ המקסימלי הוא 10MB");
       return;
     }
     
@@ -206,7 +169,6 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, currentUser }) 
     setProfessor("");
     setDescription("");
     setFile(null);
-    setIsDragOver(false);
   };
 
   const removeFile = () => {
@@ -214,34 +176,19 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, currentUser }) 
   };
 
   const handleFileUploadClick = () => {
-    const fileInput = document.getElementById("file-upload");
-    if (fileInput) {
-      fileInput.click();
-    }
-  };
-
-  const handleDialogClose = () => {
-    if (!isUploading) {
-      resetForm();
-      onClose();
-    }
+    document.getElementById("file-upload")?.click();
   };
 
   if (!isOpen) return null;
 
   return (
     <>
-      <div className="upload-dialog-overlay" onClick={handleDialogClose}>
+      <div className="upload-dialog-overlay" onClick={onClose}>
         <div className="upload-dialog-content" onClick={(e) => e.stopPropagation()}>
           <div className="upload-dialog-header">
             <div className="upload-dialog-title">העלאת סיכום חדש</div>
             <div className="upload-dialog-description">
-              שתפי את הסיכומים שלך עם סטודנטים אחרים וקבלי גישה מלאה לספריית הסיכומים.
-              {currentUser && (
-                <div style={{ marginTop: '8px', fontSize: '0.9em', color: '#666' }}>
-                  מעלה: {getUserDisplayName()}
-                </div>
-              )}
+              שתף את הסיכומים שלך עם סטודנטים אחרים וקבל גישה מלאה לספריית הסיכומים.
             </div>
           </div>
           
@@ -255,9 +202,7 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, currentUser }) 
                 onChange={(e) => setTitle(e.target.value)}
                 className="upload-form-input"
                 placeholder="לדוגמה: סיכום מבוא לסטטיסטיקה - פרק 3"
-                required={true}
-                disabled={isUploading}
-              />
+              required={true}/>
             </div>
             
             <div className="upload-form-field">
@@ -269,9 +214,7 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, currentUser }) 
                 className="upload-form-input"
                 onChange={(e) => setCourse(e.target.value)}
                 placeholder="שם הקורס"
-                required={true}
-                disabled={isUploading}
-              />
+              required={true}/>
             </div>
             
             <div className="upload-form-field">
@@ -283,9 +226,7 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, currentUser }) 
                 className="upload-form-input"
                 onChange={(e) => setProfessor(e.target.value)}
                 placeholder="שם המרצה"
-                required={true}
-                disabled={isUploading}
-              />
+              required={true}/>
             </div>
             
             <div className="upload-form-field">
@@ -297,19 +238,18 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, currentUser }) 
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="תיאור קצר של תוכן הסיכום"
                 rows={3}
-                disabled={isUploading}
               />
             </div>
             
             <div className="upload-form-field">
-              <label className="upload-form-label">קובץ PDF * (עד 20MB)</label>
+              <label className="upload-form-label">קובץ PDF *</label>
               {!file ? (
                 <div 
-                  className={`upload-file-drop-zone ${isDragOver ? 'drag-over' : ''} ${isUploading ? 'disabled' : ''}`}
-                  onClick={!isUploading ? handleFileUploadClick : undefined}
-                  onDragOver={!isUploading ? handleDragOver : undefined}
-                  onDragLeave={!isUploading ? handleDragLeave : undefined}
-                  onDrop={!isUploading ? handleDrop : undefined}
+                  className={`upload-file-drop-zone ${isDragOver ? 'drag-over' : ''}`}
+                  onClick={handleFileUploadClick}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
                 >
                   <svg className="upload-file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -318,23 +258,15 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, currentUser }) 
                     <line x1="16" y1="17" x2="8" y2="17"></line>
                     <polyline points="10,9 9,9 8,9"></polyline>
                   </svg>
-                  <p className="upload-file-drop-text">
-                    {isUploading ? "מעלה קובץ לענן..." : "לחצי להעלאת קובץ"}
-                  </p>
-                  {!isUploading && (
-                    <>
-                      <p className="upload-file-drop-subtext">או גררי קובץ לכאן</p>
-                      <p className="upload-file-drop-info">PDF בלבד, עד 20MB</p>
-                      <p className="upload-file-drop-info">📁 יישמר בענן עם Cloudinary</p>
-                    </>
-                  )}
+                  <p className="upload-file-drop-text">לחץ להעלאת קובץ</p>
+                  <p className="upload-file-drop-subtext">או גרור קובץ לכאן</p>
+                  <p className="upload-file-drop-info">PDF בלבד, עד 10MB</p>
                   <input
                     id="file-upload"
                     type="file"
                     accept=".pdf"
                     className="upload-hidden-input"
                     onChange={handleFileChange}
-                    disabled={isUploading}
                   />
                 </div>
               ) : (
@@ -352,41 +284,24 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, currentUser }) 
                       <p className="upload-file-size">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                     </div>
                   </div>
-                  {!isUploading && (
-                    <button className="upload-remove-file-btn" onClick={removeFile} type="button">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                      </svg>
-                    </button>
-                  )}
+                  <button className="upload-remove-file-btn" onClick={removeFile} type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
                 </div>
               )}
             </div>
           </div>
           
           <div className="upload-dialog-footer">
-            <button 
-              className="upload-btn upload-btn-outline" 
-              onClick={handleDialogClose} 
-              type="button"
-              disabled={isUploading}
-            >
+            <button className="upload-btn upload-btn-outline" onClick={onClose} type="button">
               ביטול
             </button>
-            <button 
-              className="upload-btn upload-btn-primary" 
-              onClick={handleUpload} 
-              disabled={isUploading || !title || !course || !professor || !file} 
-              type="button"
-            >
+            <button className="upload-btn upload-btn-primary" onClick={handleUpload} disabled={isUploading} type="button">
               {isUploading ? (
-                <>
-                  <div style={{ display: 'inline-block', marginRight: '8px' }}>
-                    🔄
-                  </div>
-                  מעלה לענן...
-                </>
+                <>טוען...</>
               ) : (
                 <>
                   <svg className="upload-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -394,7 +309,7 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, currentUser }) 
                     <polyline points="7,10 12,15 17,10"></polyline>
                     <line x1="12" y1="15" x2="12" y2="3"></line>
                   </svg>
-                  העלי סיכום
+                  העלה סיכום
                 </>
               )}
             </button>

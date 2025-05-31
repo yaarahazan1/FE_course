@@ -11,7 +11,7 @@ const UserDetailDialog = ({ user, isOpen, onOpenChange }) => {
     }
   };
 
-  // פורמט תאריך לתצוגה
+  // פורמט תאריך לתצוגה - מותאם ל-Firebase Timestamp
   const formatDate = (date) => {
     if (!date) return "לא זמין";
     
@@ -25,11 +25,24 @@ const UserDetailDialog = ({ user, isOpen, onOpenChange }) => {
       return date.toLocaleDateString('he-IL');
     }
     
-    // אם זה string
-    return date;
+    // אם זה timestamp number (milliseconds)
+    if (typeof date === 'number') {
+      return new Date(date).toLocaleDateString('he-IL');
+    }
+    
+    // אם זה string, ננסה להמיר לתאריך
+    if (typeof date === 'string') {
+      const parsedDate = new Date(date);
+      if (!isNaN(parsedDate.getTime())) {
+        return parsedDate.toLocaleDateString('he-IL');
+      }
+      return date;
+    }
+    
+    return "לא זמין";
   };
 
-  // פורמט זמן מלא
+  // פורמט זמן מלא - מותאם ל-Firebase Timestamp
   const formatDateTime = (date) => {
     if (!date) return "לא זמין";
     
@@ -43,8 +56,21 @@ const UserDetailDialog = ({ user, isOpen, onOpenChange }) => {
       return date.toLocaleString('he-IL');
     }
     
-    // אם זה string
-    return date;
+    // אם זה timestamp number (milliseconds)
+    if (typeof date === 'number') {
+      return new Date(date).toLocaleString('he-IL');
+    }
+    
+    // אם זה string, ננסה להמיר לתאריך
+    if (typeof date === 'string') {
+      const parsedDate = new Date(date);
+      if (!isNaN(parsedDate.getTime())) {
+        return parsedDate.toLocaleString('he-IL');
+      }
+      return date;
+    }
+    
+    return "לא זמין";
   };
 
   return (
@@ -187,7 +213,6 @@ const UserDetailDialog = ({ user, isOpen, onOpenChange }) => {
 
               {(!user.recentActivities || user.recentActivities.length === 0) && (
                 <div className="no-activities">
-                  <ClipboardList className="no-activities-icon" />
                   <p>אין פעילות אחרונה לתצוגה</p>
                 </div>
               )}
@@ -196,7 +221,7 @@ const UserDetailDialog = ({ user, isOpen, onOpenChange }) => {
                 <>
                   <h4 className="activities-subtitle">העדפות משתמש</h4>
                   <div className="user-preferences">
-                    {user.preferences.notifications && (
+                    {user.preferences.notifications !== undefined && (
                       <div className="preference-item">
                         <span className="preference-label">התראות:</span>
                         <span className="preference-value">
