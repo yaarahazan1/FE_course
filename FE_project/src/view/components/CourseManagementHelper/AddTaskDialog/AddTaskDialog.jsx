@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { collection, addDoc, serverTimestamp, getDocs, query, where } from "firebase/firestore";
+import { collection, serverTimestamp, getDocs, query, where, runTransaction, doc, setDoc } from "firebase/firestore";
 import { db, auth } from "../../../../firebase/config";
 import DialogComponent from "../DialogComponent/DialogComponent";
 import "./AddTaskDialog.css";
@@ -22,13 +22,11 @@ const AddTaskDialog = ({ isOpen, onClose, onAddSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [availableCourses, setAvailableCourses] = useState([]);
   
-  // הגנה משופרת מפני הגשות כפולות
   const isSubmittingRef = useRef(false);
   const lastSubmitTimeRef = useRef(0);
-  const submitCountRef = useRef(0); // מונה הגשות
-  const abortControllerRef = useRef(null); // לביטול בקשות
+  const submitCountRef = useRef(0); 
+  const abortControllerRef = useRef(null); 
   
-  // שימוש בhook של לוח השנה
   const {
     isDatePickerOpen,
     setIsDatePickerOpen,
@@ -47,12 +45,10 @@ const AddTaskDialog = ({ isOpen, onClose, onAddSuccess }) => {
   const statusOptions = ["לא הוחל", "בתהליך", "הושלם", "נדחה", "ממתין"];
   const categoryOptions = ["כללי", "אקדמי", "עבודה", "אישי", "פרויקט", "בחינה"];
 
-  // פונקציה לקבלת ID המשתמש הנוכחי
   const getCurrentUserId = () => {
     return auth.currentUser?.uid || "demo-user";
   };
 
-  // טעינת רשימת הקורסים הזמינים
   useEffect(() => {
     const fetchCourses = async () => {
       try {
@@ -78,7 +74,6 @@ const AddTaskDialog = ({ isOpen, onClose, onAddSuccess }) => {
     }
   }, [isOpen]);
 
-  // ביטול בקשות כשהקומפוננטה נסגרת
   useEffect(() => {
     return () => {
       if (abortControllerRef.current) {
@@ -117,14 +112,6 @@ const AddTaskDialog = ({ isOpen, onClose, onAddSuccess }) => {
       return;
     }
     
-    // ביטול בקשה קודמת אם קיימת
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    
-    // יצירת controller חדש לביטול
-    abortControllerRef.current = new AbortController();
-    
     // סימון תחילת הגשה
     isSubmittingRef.current = true;
     lastSubmitTimeRef.current = now;
@@ -133,147 +120,128 @@ const AddTaskDialog = ({ isOpen, onClose, onAddSuccess }) => {
     try {
       const userId = getCurrentUserId();
       
-      // יצירת ID ייחודי חזק יותר למשימה
-      const uniqueId = `task_${userId}_${now}_${submitCountRef.current}_${Math.random().toString(36).substr(2, 12)}`;
+      const taskHash = `${now}_${Math.random().toString(36).substr(2, 15)}`.substring(0, 20);
       
-      // מציאת פרטי הקורס הנבחר
-      const selectedCourse = availableCourses.find(course => course.id === courseId);
-      const courseName = selectedCourse ? selectedCourse.name : "";
+      const uniqueId = `task_${userId}_${now}_${taskHash}_${Math.random().toString(36).substr(2, 8)}`;
       
-      const newTask = {
-        // מזהה ייחודי חזק למניעת כפילויות
-        uniqueId,
+      const result = await runTransaction(db, async () => {        
+        const uniqueQuery = query(
+          collection(db, "tasks"),
+          where("uniqueId", "==", uniqueId)
+        );
         
-        // חותמת זמן נוספת לזיהוי
-        creationTimestamp: now,
-        submissionAttempt: submitCountRef.current,
+        const uniqueSnapshot = await getDocs(uniqueQuery);
         
-        // שדות בסיסיים
-        title: taskName.trim(),
-        description: description.trim(),
-        category,
-        priority,
-        status,
+        if (!uniqueSnapshot.empty) {
+          throw new Error("DUPLICATE_UNIQUE_ID");
+        }
+
+        const taskRef = doc(db, "tasks", uniqueId);
         
-        // תאריכים
-        dueDate: dueDate || null,
-        startDate: null,
-        completedAt: null,
-        reminderDate: null,
+        const selectedCourse = availableCourses.find(course => course.id === courseId);
+        const courseName = selectedCourse ? selectedCourse.name : "";
         
-        // מטאדטה
-        userId,
-        isCompleted: status === "הושלם",
-        isArchived: false,
-        isPublic: false,
-        
-        // קישורים - שימוש ב-ID של הקורס במקום השם
-        projectId: projectId.trim() || null,
-        courseId: courseId || null,
-        courseName: courseName || "",
-        parentTaskId: null,
-        
-        // משאבים וזמן
-        estimatedHours: estimatedHours ? Number(estimatedHours) : null,
-        actualHours: actualHours ? Number(actualHours) : 0,
-        progressPercentage: status === "הושלם" ? 100 : (status === "בתהליך" ? 50 : 0),
-        
-        // צוות ושיתוף
-        assignedTo: [],
-        assignedBy: userId,
-        collaborators: [],
-        
-        // תכנים קשורים
-        subtasks: [],
-        comments: [],
-        attachments: [],
-        documents: [],
-        links: [],
-        
-        // תגיות ומילות מפתח
-        tags: [],
-        keywords: [],
-        labels: [],
-        
-        // הגדרות התראות
-        notifications: {
-          reminderEnabled: true,
-          reminderDays: 1,
-          emailNotification: false,
-          pushNotification: true
-        },
-        
-        // מיקום ופרטים נוספים
-        location: "",
-        notes: "",
-        instructions: "",
-        
-        // סטטיסטיקות
-        viewCount: 0,
-        editCount: 0,
-        completionRate: status === "הושלם" ? 100 : 0,
-        
-        // היסטוריה
-        history: [{
-          action: "created",
-          timestamp: new Date(),
+        const newTask = {
+          uniqueId,
+          taskHash,
+          
+          creationTimestamp: now,
+          submissionAttempt: submitCountRef.current,
+          
+          title: taskName.trim(),
+          description: description.trim(),
+          category,
+          priority,
+          status,
+          
+          dueDate: dueDate || null,
+          startDate: null,
+          completedAt: null,
+          reminderDate: null,
+          
           userId,
-          details: "Task created",
-          uniqueId
-        }],
+          isCompleted: status === "הושלם",
+          isArchived: false,
+          isPublic: false,
+          
+          projectId: projectId.trim() || null,
+          courseId: courseId || null,
+          courseName: courseName || "",
+          parentTaskId: null,
+          
+          estimatedHours: estimatedHours ? Number(estimatedHours) : null,
+          actualHours: actualHours ? Number(actualHours) : 0,
+          progressPercentage: status === "הושלם" ? 100 : (status === "בתהליך" ? 50 : 0),
+          
+          assignedTo: [],
+          assignedBy: userId,
+          collaborators: [],
+          
+          subtasks: [],
+          comments: [],
+          attachments: [],
+          documents: [],
+          links: [],
+          
+          tags: [],
+          keywords: [],
+          labels: [],
+          
+          notifications: {
+            reminderEnabled: true,
+            reminderDays: 1,
+            emailNotification: false,
+            pushNotification: true
+          },
+          
+          location: "",
+          notes: "",
+          instructions: "",
+          
+          viewCount: 0,
+          editCount: 0,
+          completionRate: status === "הושלם" ? 100 : 0,
+          
+          history: [{
+            action: "created",
+            timestamp: new Date(),
+            userId,
+            details: "Task created",
+            uniqueId
+          }],
+          
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          lastViewedAt: null,
+          lastEditedAt: null
+        };
+                
+        await setDoc(taskRef, newTask);
         
-        // תאריכים מערכת
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        lastViewedAt: null,
-        lastEditedAt: null
-      };
-      
-      // הוספה ל-Firebase עם timeout ו-abort signal
-      const timeoutPromise = new Promise((_, reject) => {
-        const timeoutId = setTimeout(() => reject(new Error('Request timeout')), 15000);
-        
-        // ביטול הtimeout אם הבקשה בוטלה
-        abortControllerRef.current.signal.addEventListener('abort', () => {
-          clearTimeout(timeoutId);
-          reject(new Error('Request aborted'));
-        });
+        return { id: taskRef.id, ...newTask };
       });
       
-      const addTaskPromise = addDoc(collection(db, "tasks"), newTask);
-      
-      const docRef = await Promise.race([addTaskPromise, timeoutPromise]);
-      
-      // בדיקה שהבקשה לא בוטלה
-      if (abortControllerRef.current?.signal.aborted) {
-        throw new Error('Request was aborted');
-      }
-      
-      console.log("משימה נוספה בהצלחה עם ID:", docRef.id, "UniqueId:", uniqueId);
+      console.log("משימה נוספה בהצלחה עם ID:", result.id, "UniqueId:", uniqueId);
       
       // קריאה לפונקציה מהקומפוננטה האב אם נדרש
-      if (onAddSuccess && !abortControllerRef.current?.signal.aborted) {
-        onAddSuccess({ ...newTask, id: docRef.id });
+      if (onAddSuccess) {
+        onAddSuccess(result);
       }
       
       // איפוס הטופס וסגירה רק אחרי הצלחה מלאה
-      if (!abortControllerRef.current?.signal.aborted) {
-        resetForm();
-        onClose();
-      }
+      resetForm();
+      onClose();
       
     } catch (error) {
-      // אל תציג שגיאות של ביטול בקשות
-      if (error.message === 'Request was aborted') {
-        console.log("בקשה בוטלה");
-        return;
-      }
-      
       console.error("שגיאה בהוספת משימה:", error);
       
-      // הצגת הודעת שגיאה ספציפית
-      if (error.message === 'Request timeout') {
-        alert("הבקשה לקחה יותר מדי זמן. אנא בדוק את החיבור לאינטרנט ונסה שוב.");
+      // טיפול בשגיאות ספציפיות
+      if (error.message === "DUPLICATE_TASK") {
+        console.log("משימה כפולה נמנעה");
+        alert("משימה דומה כבר קיימת. אנא בדוק את רשימת המשימות.");
+      } else if (error.message === "DUPLICATE_UNIQUE_ID") {
+        console.log("ID כפול נמנע");
+        alert("שגיאה טכנית. אנא נסה שוב.");
       } else if (error.code === 'permission-denied') {
         alert("אין לך הרשאה להוסיף משימות. אנא התחבר מחדש.");
       } else {
@@ -284,7 +252,6 @@ const AddTaskDialog = ({ isOpen, onClose, onAddSuccess }) => {
       // איפוס דגלי ההגשה תמיד
       isSubmittingRef.current = false;
       setIsLoading(false);
-      abortControllerRef.current = null;
       
       // איפוס מונה ההגשות אחרי זמן
       setTimeout(() => {

@@ -263,129 +263,194 @@
 .today-btn:hover {
   background-color: #e3f2fd;
 }
-/* Team Members Styling */
+
+/* עיצוב חברי צוות - מתוקן */
 .team-members-container {
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 8px;
-  min-height: 40px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  background-color: #f9f9f9;
+}
+
+.existing-members {
+  margin-bottom: 20px;
+}
+
+.members-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 12px;
 }
 
 .team-members-list {
-  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.team-member-item {
+.team-member-card {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px;
-  background: #f8f9fa;
-  border-radius: 4px;
-  margin-bottom: 4px;
+  background: white;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
-.member-info {
+.member-details {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-direction: row;
+  gap: 4px;
 }
 
 .member-name {
-  font-weight: 500;
+  font-weight: 600;
   color: #333;
+  font-size: 14px;
+}
+
+.member-role {
+  font-size: 12px;
+  color: #666;
+  background: #e3f2fd;
+  padding: 2px 8px;
+  border-radius: 12px;
+  display: inline-block;
+  width: fit-content;
 }
 
 .member-email {
-  font-size: 0.85em;
-  color: #666;
+  font-size: 12px;
+  color: #888;
 }
 
 .remove-member-btn {
-  background: none;
+  color: black;
+  background-color: white;
   border: none;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 2px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.remove-member-btn:hover {
-  background: #ffe6e6;
-}
-
-.add-member-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: #f8f9fa;
-  border: 1px dashed #ccc;
-  border-radius: 4px;
   cursor: pointer;
-  color: #666;
-  width: 100%;
-  justify-content: center;
+  font-size: 16px;
+  line-height: 1;
+  transition: background-color 0.2s;
 }
 
-.add-member-btn:hover {
-  background: #e9ecef;
-  border-color: #999;
+.remove-member-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.add-member-section {
+  border-top: 1px solid #e0e0e0;
+  padding-top: 16px;
+}
+
+.add-member-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 12px;
 }
 
 .add-member-form {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
-.member-inputs {
+.form-row {
   display: flex;
-  gap: 8px;
+  gap: 12px;
+  align-items: flex-end;
 }
 
-.member-inputs input {
+.input-group {
+  display: flex;
+  flex-direction: column;
   flex: 1;
-  padding: 8px;
+  gap: 4px;
+}
+
+.input-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #555;
+}
+
+.member-input {
+  padding: 8px 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.2s;
 }
 
-.member-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
+.member-input:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
 }
 
-.add-member-confirm-btn {
-  background: #007bff;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.add-member-confirm-btn:hover {
-  background: #0056b3;
-}
-
-.add-member-confirm-btn:disabled {
-  background: #ccc;
+.member-input:disabled {
+  background-color: #f5f5f5;
   cursor: not-allowed;
 }
 
-.add-member-cancel-btn {
-  background: #6c757d;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
+.member-role-select {
+  min-width: 120px;
 }
 
-.add-member-cancel-btn:hover {
-  background: #545b62;
+.add-member-actions {
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+}
+
+.add-member-btn {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.2s;
+  height: fit-content;
+}
+
+.add-member-btn:hover:not(:disabled) {
+  background: #45a049;
+}
+
+.add-member-btn:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+}
+
+/* רספונסיביות */
+@media (max-width: 600px) {
+  .form-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .add-member-actions {
+    align-items: stretch;
+  }
+  
+  .add-member-btn {
+    width: 100%;
+    justify-content: center;
+  }
 }

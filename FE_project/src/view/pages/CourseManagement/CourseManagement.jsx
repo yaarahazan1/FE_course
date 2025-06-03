@@ -23,9 +23,6 @@ const CourseManagement = () => {
     projects,
     loading,
     error,
-    addTask,
-    addCourse,
-    addProject,
     sendMessage,
     updateProjectMessage
   } = useFirebaseData();
@@ -82,11 +79,12 @@ const CourseManagement = () => {
   }, [projects]);
 
   // הוספת משימה חדשה
-  const handleAddTask = async (newTask) => {
+  const handleAddTask = async () => {
     try {
-      await addTask(newTask);
+      // await addTask(newTask);
       setIsAddTaskDialogOpen(false);
       console.log("משימה נוספה בהצלחה");
+      window.location.reload();
     } catch (error) {
       console.error("שגיאה בהוספת משימה:", error);
       alert("שגיאה בהוספת המשימה");
@@ -94,11 +92,12 @@ const CourseManagement = () => {
   };
 
   // הוספת קורס חדש
-  const handleAddCourse = async (newCourse) => {
+  const handleAddCourse = async () => {
     try {
-      await addCourse(newCourse);
+      // await addCourse(newCourse);
       setIsAddCourseDialogOpen(false);
       console.log("קורס נוסף בהצלחה");
+      window.location.reload();
     } catch (error) {
       console.error("שגיאה בהוספת קורס:", error);
       alert("שגיאה בהוספת הקורס");
@@ -106,11 +105,12 @@ const CourseManagement = () => {
   };
 
   // הוספת פרויקט חדש
-  const handleAddProject = async (newProject) => {
+  const handleAddProject = async () => {
     try {
-      await addProject(newProject);
+      // await addProject(newProject);
       setIsAddProjectDialogOpen(false);
       console.log("פרויקט נוסף בהצלחה");
+      window.location.reload();
     } catch (error) {
       console.error("שגיאה בהוספת פרויקט:", error);
       alert("שגיאה בהוספת הפרויקט");

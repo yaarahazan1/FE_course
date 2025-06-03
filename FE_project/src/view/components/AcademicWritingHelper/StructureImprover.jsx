@@ -4,7 +4,6 @@ import "../../../styles/AdvancedTools.css";
 const StructureImprover = ({ content, documentType, onClose, onApplySuggestion }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [structureAnalysis, setStructureAnalysis] = useState(null);
-  const [improvedContent, setImprovedContent] = useState("");
   const [activeTab, setActiveTab] = useState("analysis");
 
   useEffect(() => {
@@ -42,7 +41,6 @@ const StructureImprover = ({ content, documentType, onClose, onApplySuggestion }
       if (content.trim().length > 0) {
         const analysis = analyzeStructure(content, documentType);
         setStructureAnalysis(analysis);
-        setImprovedContent(analysis.improved);
       }
       
       setIsLoading(false);
@@ -160,17 +158,40 @@ const StructureImprover = ({ content, documentType, onClose, onApplySuggestion }
     });
   };
   
+  // Function to generate contextual description (moved before generateSuggestions)
+  const generateContextualDescription = (component, content) => {
+    const baseDescription = component.description;
+    
+    // ניתוח בסיסי של התוכן הקיים
+    const hasIntroduction = content.toLowerCase().includes('מבוא') || content.toLowerCase().includes('הקדמה');
+    const hasConclusion = content.toLowerCase().includes('סיכום') || content.toLowerCase().includes('מסקנות');
+      
+    switch (component.name) {
+      case "מבוא":
+        return hasIntroduction ? 
+          "יש לשפר את המבוא הקיים - ודא שהוא מציג את הנושא, המטרות ושאלות המחקר" :
+          "הוסף מבוא שיציג את נושא המחקר, חשיבותו ומטרותיו";
+          
+      case "סיכום":
+        return hasConclusion ?
+          "יש לשפר את הסיכום הקיים - ודא שהוא מסכם את העיקרים והמסקנות" :
+          "הוסף סיכום שיכלול את המסקנות העיקריות והצעות למחקר עתידי";
+          
+      default:
+        return `הוסף חלק "${component.name}": ${baseDescription}`;
+    }
+  };
+  
   // Generate suggestions for improvement
   const generateSuggestions = (currentStructure, templateStructure, missingComponents) => {
     const suggestions = [];
     
-    // Add suggestion for each missing component
     missingComponents.forEach(component => {
+      const contextualDescription = generateContextualDescription(component, content, documentType);
       suggestions.push({
         type: "missing_section",
         section: component.name,
-        description: `הוסף חלק "${component.name}": ${component.description}`,
-        template: getTemplateText(component.name),
+        description: contextualDescription,
         priority: 1
       });
     });
@@ -226,6 +247,28 @@ const StructureImprover = ({ content, documentType, onClose, onApplySuggestion }
     return improved;
   };
   
+  const generateImprovementGuidance = (suggestion) => {
+    switch (suggestion.type) {
+      case "missing_section": {
+        const placement = getSectionPlacement(suggestion.section, documentType);
+        return `כדי להוסיף את חלק "${suggestion.section}":\n\n` +
+              `1. מצא את המקום המתאים במסמך ${placement}\n` +
+              `2. הוסף כותרת: ## ${suggestion.section}\n` +
+              `3. כתב תוכן שמתאים לנושא שלך בחלק זה\n\n` +
+              `מה צריך לכלול: ${suggestion.description}`;
+      }
+              
+      case "order_issue": {
+        return `סדר החלקים הנוכחי לא תואם את הסטנדרט:\n\n` +
+              `הסדר המומלץ: ${suggestion.correctOrder.join(" → ")}\n\n` +
+              `העבר את החלקים למקומות הנכונים בעריכה ידנית`;
+      }
+              
+      default:
+        return "המלצה זו דורשת עריכה ידנית של התוכן";
+    }
+  };
+  
   // Get template text for each section
   const getTemplateText = (sectionName) => {
     const templates = {
@@ -241,31 +284,27 @@ const StructureImprover = ({ content, documentType, onClose, onApplySuggestion }
     
     return templates[sectionName] || "יש להוסיף תוכן לחלק זה";
   };
-  
-  // Handle applying a specific suggestion
+    
   const handleApplySuggestion = (suggestion) => {
-    let updatedContent = content;
+    const improvementGuidance = generateImprovementGuidance(suggestion, content);
     
-    switch (suggestion.type) {
-      case "missing_section":
-        updatedContent += `\n\n## ${suggestion.section}\n${suggestion.template}`;
-        break;
-      case "order_issue":
-        // In a real app, this would reorder sections
-        // For now, just add a note about correct order
-        updatedContent += "\n\n[הערה: יש לשנות את סדר החלקים לפי: " + 
-                         suggestion.correctOrder.join(", ") + "]";
-        break;
-      default:
-        break;
-    }
-    
-    onApplySuggestion(updatedContent);
+    alert(improvementGuidance);
   };
-  
-  // Apply all suggestions at once
-  const handleApplyAll = () => {
-    onApplySuggestion(improvedContent);
+
+  const getSectionPlacement = (sectionName) => {
+    const placements = {
+      "תקציר": "(בתחילת המסמך, אחרי הכותרת)",
+      "מבוא": "(בתחילת המסמך, אחרי התקציר אם קיים)",
+      "סקירת ספרות": "(אחרי המבוא)",
+      "מתודולוגיה": "(אחרי סקירת הספרות)",
+      "ממצאים": "(אחרי המתודולוגיה)",
+      "דיון": "(אחרי הממצאים)",
+      "סיכום": "(לקראת סוף המסמך)",
+      "ביבליוגרפיה": "(בסוף המסמך)",
+      "נספחים": "(בסוף המסמך, אחרי הביבליוגרפיה)"
+    };
+    
+    return placements[sectionName] || "(במקום המתאים לפי סדר החלקים)";
   };
   
   const generateStructureTemplate = () => {
@@ -356,23 +395,14 @@ const StructureImprover = ({ content, documentType, onClose, onApplySuggestion }
                           )}
                         </div>
                         <button 
-                          className="apply-suggestion-button"
+                          className="show-guidance-button"
                           onClick={() => handleApplySuggestion(suggestion)}
                         >
-                          החל שינוי
+                          הצג הדרכה
                         </button>
                       </li>
                     ))}
                   </ul>
-                  
-                  {structureAnalysis.suggestions.length > 1 && (
-                    <button 
-                      className="apply-all-button"
-                      onClick={handleApplyAll}
-                    >
-                      החל את כל השינויים
-                    </button>
-                  )}
                 </div>
               )}
               

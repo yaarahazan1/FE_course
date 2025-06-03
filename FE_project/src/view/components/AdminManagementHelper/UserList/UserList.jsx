@@ -154,7 +154,7 @@ const UserList = ({
                       <>
                         {user.status === "קפוא" ? (
                           <button 
-                            className="action-btn activate-btn"
+                            className="action-btn-user activate-btn"
                             onClick={() => onUserAction("הפעלה", user.id)}
                             title="הפעלת המשתמש"
                           >

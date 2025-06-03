@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, where, orderBy, limit, getDocs } from "firebase/firestore";
 import { db, auth } from "../../../../firebase/config";
 import DialogComponent from "../DialogComponent/DialogComponent";
 import "./AddCourseDialog.css";
@@ -51,12 +51,40 @@ const AddCourseDialog = ({ isOpen, onClose, onAddSuccess }) => {
     try {
       const userId = getCurrentUserId();
       
-      // יצירת ID ייחודי לקורס עם timestamp
-      const uniqueId = `${userId}_${now}_${Math.random().toString(36).substr(2, 9)}`;
+      // יצירת ID ייחודי לקורס עם timestamp וטקסט מהתוכן
+      const courseNameHash = courseName.trim().replace(/\s+/g, '_').toLowerCase();
+      const uniqueId = `${userId}_${courseNameHash}_${now}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // **הגנה חזקה מפני כפילויות - בדיקה בבסיס הנתונים**
+      const coursesRef = collection(db, "courses");
+      const q = query(
+        coursesRef,
+        where("userId", "==", userId),
+        where("name", "==", courseName.trim()),
+        where("lecturer", "==", lecturer.trim()),
+        orderBy("createdAt", "desc"),
+        limit(1)
+      );
+      
+      const recentCourses = await getDocs(q);
+      
+      // בדיקה אם נוצר קורס זהה ב-30 השניות האחרונות
+      if (!recentCourses.empty) {
+        const lastCourse = recentCourses.docs[0].data();
+        const lastCourseTime = lastCourse.createdAt?.toMillis() || 0;
+        const timeDiff = now - lastCourseTime;
+        
+        if (timeDiff < 30000) { // 30 שניות
+          console.log("קורס זהה נוצר לאחרונה - מניעת כפילות");
+          alert("קורס דומה נוצר זה עתה. אנא המתן מעט לפני יצירת קורס נוסף.");
+          return;
+        }
+      }
       
       const newCourse = {
-        // מזהה ייחודי למניעת כפילויות
+        // מזהה ייחודי למניעת כפילויות - משופר
         uniqueId,
+        duplicatePreventionHash: `${userId}_${courseName.trim()}_${lecturer.trim()}_${now}`,
         
         // שדות בסיסיים
         name: courseName.trim(),
@@ -184,8 +212,10 @@ const AddCourseDialog = ({ isOpen, onClose, onAddSuccess }) => {
     } catch (error) {
       console.error("שגיאה בהוספת קורס:", error);
       
-      // הצגת הודעת שגיאה ספציפית
-      if (error.message === 'Request timeout') {
+      // בדיקה אם השגיאה קשורה לכפילות
+      if (error.message?.includes('duplicate') || error.message?.includes('already exists')) {
+        alert("קורס דומה כבר קיים במערכת.");
+      } else if (error.message === 'Request timeout') {
         alert("הבקשה לקחה יותר מדי זמן. אנא בדוק את החיבור לאינטרנט ונסה שוב.");
       } else if (error.code === 'permission-denied') {
         alert("אין לך הרשאה להוסיף קורסים. אנא התחבר מחדש.");

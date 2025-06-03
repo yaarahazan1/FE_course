@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "../../../../firebase/config";
 import "./TasksTab.css";
 
 const TasksTab = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deletingTaskId, setDeletingTaskId] = useState(null);
 
   const fetchTasks = async () => {
     try {
@@ -26,6 +27,29 @@ const TasksTab = () => {
       console.error("שגיאה בעת שליפת משימות:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const deleteTask = async (taskId) => {
+    if (!window.confirm("האם אתה בטוח שברצונך למחוק את המשימה?")) {
+      return;
+    }
+
+    setDeletingTaskId(taskId);
+    
+    try {
+      // מחיקה מה-Firebase
+      await deleteDoc(doc(db, "tasks", taskId));
+      
+      // עדכון המצב המקומי - הסרת המשימה מהרשימה
+      setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
+      
+      console.log("המשימה נמחקה בהצלחה");
+    } catch (error) {
+      console.error("שגיאה במחיקת המשימה:", error);
+      alert("אירעה שגיאה במחיקת המשימה. נסה שוב.");
+    } finally {
+      setDeletingTaskId(null);
     }
   };
 
@@ -73,41 +97,59 @@ const TasksTab = () => {
 
   return (
     <div className="tasks-tab">
-      <div className="tasks-header">
+      <div className="tab-header">
         <h2>רשימת משימות</h2>
       </div>
+      
       {loading ? (
-        <p>טוען משימות...</p>
+        <div className="loading">טוען משימות...</div>
       ) : tasks.length === 0 ? (
-        <div className="tasks-empty-message">
+        <div className="empty-state">
           <p>אין משימות כרגע. לחץ על כפתור "הוסף משימה" כדי להתחיל.</p>
         </div>
       ) : (
         <div className="tasks-list">
           {tasks.map((task) => (
-            <div key={task.id} className="task-card-tab">
-              <div className="task-tab-header">
-                <span title={task.title}>{task.title || "ללא כותרת"}</span>
-              </div>
-              <span className={`task-priority ${getPriorityClass(task.priority)}`}>
-                חשיבות: {task.priority || "לא הוגדר"}
-              </span>
-              <span className="task-description" title={task.description}>
-                {task.description || "אין תיאור"}
-              </span>
-              <div className="task-info">
-                <div className="task-info-item">
-                  <span>תאריך יעד:</span>
-                  <span>{formatDate(task.dueDate)}</span>
+            <div key={task.id} className="task-card">
+              <div className="task-header">
+                <h3 className="task-title">{task.title || "ללא כותרת"}</h3>
+                <div className="task-actions">
+                  <button
+                    className="delete-btn"
+                    onClick={() => deleteTask(task.id)}
+                    disabled={deletingTaskId === task.id}
+                    title="מחק משימה"
+                  >
+                    {deletingTaskId === task.id ? "מוחק..." : "🗑️"}
+                  </button>
                 </div>
-                <div className="task-info-item">
-                  <span>סוג משימה:</span>
-                  <span title={task.category || "לא משויך"}>
+              </div>
+              
+              <div className="task-meta">
+                <span className={`priority ${getPriorityClass(task.priority)}`}>
+                  חשיבות: {task.priority || "לא הוגדר"}
+                </span>
+              </div>
+              
+              <p className="task-description">
+                {task.description || "אין תיאור"}
+              </p>
+              
+              <div className="task-details">
+                <div className="detail-item">
+                  <span className="detail-label">תאריך יעד:</span>
+                  <span className="detail-value">{formatDate(task.dueDate)}</span>
+                </div>
+                
+                <div className="detail-item">
+                  <span className="detail-label">סוג משימה:</span>
+                  <span className={`category ${task.category ? 'has-category' : ''}`}>
                     {task.category || "לא משויך"}
                   </span>
                 </div>
-                <div className="task-info-item">
-                  <span className={`task-status ${getStatusClass(task.status)}`}>
+                
+                <div className="detail-item">
+                  <span className={`status ${getStatusClass(task.status)}`}>
                     סטטוס: {task.status || "לא הוגדר"}
                   </span>
                 </div>

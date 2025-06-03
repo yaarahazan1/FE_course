@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import "./AcademicWriting.css";
+import { jsPDF } from 'jspdf';
 import SpellChecker from "../../components/AcademicWritingHelper/SpellChecker";
 import CitationHelper from "../../components/AcademicWritingHelper/CitationHelper";
 import PlagiarismChecker from "../../components/AcademicWritingHelper/PlagiarismChecker";
@@ -18,7 +19,7 @@ import {
   orderBy, 
   serverTimestamp 
 } from 'firebase/firestore';
-import { db } from '../../../firebase/config'; // נניח שקובץ ה-config נמצא בתיקייה הזו
+import { db } from '../../../firebase/config';
 
 const AcademicWriting = () => {
   // States קיימים
@@ -31,8 +32,8 @@ const AcademicWriting = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const [activeAITool, setActiveAITool] = useState(null);
+  const [selectedExportFormat, setSelectedExportFormat] = useState("PDF");
 
-  // States חדשים ל-Firebase
   const [documents, setDocuments] = useState([]);
   const [currentDocumentId, setCurrentDocumentId] = useState(null);
   const [documentTitle, setDocumentTitle] = useState("");
@@ -41,12 +42,65 @@ const AcademicWriting = () => {
   const [showDocumentsList, setShowDocumentsList] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
 
-  // טעינת מסמכים מ-Firebase בעת טעינת הקומפוננטה
+  // Translation objects
+  const translations = {
+    he: {
+      labels: {
+        documentType: "סוג מסמך",
+        structure: "מבנה",
+        citationStyle: "סגנון ציטוט",
+        wordCount: "מספר מילים"
+      },
+      documentTypes: {
+        "מאמר אקדמי": "מאמר אקדמי",
+        "תזה / דיסרטציה": "תזה / דיסרטציה",
+        "עבודה סמינריונית": "עבודה סמינריונית",
+        "מסמך מחקרי": "מסמך מחקרי"
+      },
+      documentStructures: {
+        "תבנית בסיסית": "תבנית בסיסית",
+        "תבנית מורחבת": "תבנית מורחבת",
+        "מבנה מחקר אמפירי": "מבנה מחקר אמפירי",
+        "מבנה סקירת ספרות": "מבנה סקירת ספרות"
+      }
+    },
+    en: {
+      labels: {
+        documentType: "Document Type",
+        structure: "Structure",
+        citationStyle: "Citation Style",
+        wordCount: "Word Count"
+      },
+      documentTypes: {
+        "מאמר אקדמי": "Academic Article",
+        "תזה / דיסרטציה": "Thesis / Dissertation",
+        "עבודה סמינריונית": "Seminar Paper",
+        "מסמך מחקרי": "Research Document"
+      },
+      documentStructures: {
+        "תבנית בסיסית": "Basic Template",
+        "תבנית מורחבת": "Extended Template",
+        "מבנה מחקר אמפירי": "Empirical Research Structure",
+        "מבנה סקירת ספרות": "Literature Review Structure"
+      }
+    }
+  };
+
+  // Function to detect language
+  const detectLanguage = (text) => {
+    const hebrewRegex = /[\u0590-\u05FF]/;
+    return hebrewRegex.test(text) ? 'he' : 'en';
+  };
+
+  // Function to get translated values
+  const getTranslatedValues = (language) => {
+    return translations[language] || translations.he;
+  };
+
   useEffect(() => {
     loadDocuments();
   }, []);
 
-  // Effect קיים - ניתוח טקסט
   useEffect(() => {
     const timer = setTimeout(() => {
       if (content.trim().length > 0) {
@@ -60,18 +114,345 @@ const AcademicWriting = () => {
     return () => clearTimeout(timer);
   }, [content, documentType, documentStructure, citationStyle]);
 
-  // שמירה אוטומטית כל 30 שניות אם יש תוכן
+  const exportToPDF = async () => {
+    if (!content.trim()) {
+      alert('אין תוכן לייצוא');
+      return;
+    }
+
+    try {
+      // בדיקה אם יש עברית
+      const hasHebrew = /[\u0590-\u05FF]/.test(content);
+      
+      if (hasHebrew) {
+        // אם יש עברית - ייצוא דרך Word/HTML שיכול להמיר לPDF
+        await exportToWordAsPDF();
+      } else {
+        // אם אין עברית - ייצוא רגיל דרך jsPDF
+        exportRegularPDF();
+      }
+    } catch (error) {
+      console.error('PDF Export Error:', error);
+      alert('שגיאה בייצוא PDF: ' + error.message);
+    }
+  };
+
+  const exportToWordAsPDF = async () => {
+    const language = detectLanguage(content + documentTitle);
+    const translatedValues = getTranslatedValues(language);
+    const hasHebrew = /[\u0590-\u05FF]/.test(content);
+    const direction = hasHebrew ? 'rtl' : 'ltr';
+    const fontFamily = hasHebrew ? 'Arial, David, sans-serif' : 'Times New Roman, serif';
+    
+    const documentInfo = [
+      `${translatedValues.labels.documentType}: ${translatedValues.documentTypes[documentType] || documentType}`,
+      `${translatedValues.labels.structure}: ${translatedValues.documentStructures[documentStructure] || documentStructure}`,
+      `${translatedValues.labels.citationStyle}: ${citationStyle}`,
+      `${translatedValues.labels.wordCount}: ${wordCount}`
+    ].join(' | ');
+    
+    // יצירת חלון חדש עם התוכן המעוצב
+    const printWindow = window.open('', '_blank');
+    
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html dir="${direction}">
+      <head>
+          <meta charset="UTF-8">
+          <title>${documentTitle || (language === 'he' ? 'מסמך אקדמי' : 'Academic Document')}</title>
+          <style>
+              @page {
+                  size: A4;
+                  margin: 2cm;
+              }
+              body {
+                  font-family: ${fontFamily};
+                  font-size: 12pt;
+                  line-height: 1.5;
+                  direction: ${direction};
+                  margin: 0;
+                  padding: 20px;
+                  background: white;
+              }
+              h1 {
+                  font-size: 18pt;
+                  font-weight: bold;
+                  text-align: ${hasHebrew ? 'right' : 'center'};
+                  margin-bottom: 20px;
+                  color: #333;
+              }
+              .document-info {
+                  font-size: 10pt;
+                  font-style: italic;
+                  text-align: center;
+                  margin-bottom: 30px;
+                  border-bottom: 1px solid #ccc;
+                  padding-bottom: 15px;
+                  color: #666;
+              }
+              p {
+                  margin-bottom: 12px;
+                  text-align: justify;
+                  text-indent: ${hasHebrew ? '0' : '1em'};
+              }
+              .content {
+                  line-height: 1.6;
+              }
+              .instructions {
+                  position: fixed;
+                  top: 20px;
+                  right: 20px;
+                  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+                  color: white;
+                  padding: 15px 20px;
+                  border-radius: 8px;
+                  font-size: 14px;
+                  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                  z-index: 9999;
+                  max-width: 300px;
+                  direction: ${hasHebrew ? 'rtl' : 'ltr'};
+                  text-align: center;
+              }
+              .instructions-title {
+                  font-weight: bold;
+                  margin-bottom: 10px;
+              }
+              .keyboard-shortcut {
+                  background: rgba(255,255,255,0.2);
+                  padding: 4px 8px;
+                  border-radius: 4px;
+                  font-family: monospace;
+                  font-weight: bold;
+              }
+              @media print {
+                  .instructions { 
+                      display: none !important; 
+                  }
+              }
+          </style>
+          <script>
+              // פתיחה אוטומטית של דיאלוג ההדפסה
+              window.addEventListener('load', function() {
+                  setTimeout(() => {
+                      window.print();
+                  }, 500);
+              });
+              
+              // קיצור מקלדת להדפסה
+              document.addEventListener('keydown', function(e) {
+                  if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                      e.preventDefault();
+                      window.print();
+                  }
+              });
+          </script>
+      </head>
+      <body>
+          <div class="instructions">
+              <div class="instructions-title">📄 ${hasHebrew ? 'שמירה כ-PDF' : 'Save as PDF'}</div>
+              <div>${hasHebrew ? 'בחר "שמירה כ-PDF" ולחץ שמירה' : 'Select "Save as PDF" and click Save'}</div>
+              <div style="margin-top: 8px;">
+                  <span class="keyboard-shortcut">Ctrl+P</span> 
+                  ${hasHebrew ? 'להדפסה מהירה' : 'for quick print'}
+              </div>
+          </div>
+          
+          <h1>${documentTitle || (language === 'he' ? 'מסמך אקדמי' : 'Academic Document')}</h1>
+          
+          <div class="document-info">
+              ${documentInfo}
+          </div>
+          
+          <div class="content">
+              ${content.split('\n').filter(p => p.trim()).map(paragraph => 
+                `<p>${paragraph.replace(/\n/g, '<br>')}</p>`
+              ).join('')}
+          </div>
+      </body>
+      </html>
+    `;
+    
+    // כתיבת התוכן לחלון החדש
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
+
+  const exportRegularPDF = () => {
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+    
+    const language = detectLanguage(content + documentTitle);
+    const translatedValues = getTranslatedValues(language);
+    
+    pdf.setFont('helvetica');
+    pdf.setFontSize(12);
+    
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 20;
+    const maxWidth = pageWidth - (margin * 2);
+    let yPosition = margin;
+    
+    // כותרת
+    const title = documentTitle || (language === 'he' ? 'מסמך אקדמי' : 'Academic Document');
+    pdf.setFontSize(16);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(title, margin, yPosition);
+    yPosition += 15;
+    
+    // מידע על המסמך
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    const documentInfo = [
+      `${translatedValues.labels.documentType}: ${translatedValues.documentTypes[documentType] || documentType}`,
+      `${translatedValues.labels.structure}: ${translatedValues.documentStructures[documentStructure] || documentStructure}`,
+      `${translatedValues.labels.citationStyle}: ${citationStyle}`,
+      `${translatedValues.labels.wordCount}: ${wordCount}`
+    ];
+    
+    documentInfo.forEach(info => {
+      pdf.text(info, margin, yPosition);
+      yPosition += 6;
+    });
+    
+    yPosition += 10;
+    
+    // תוכן
+    pdf.setFontSize(11);
+    pdf.setFont('helvetica', 'normal');
+    
+    const paragraphs = content.split('\n').filter(p => p.trim());
+    
+    paragraphs.forEach(paragraph => {
+      if (paragraph.trim()) {
+        const lines = pdf.splitTextToSize(paragraph, maxWidth);
+        
+        lines.forEach(line => {
+          if (yPosition > pageHeight - margin - 10) {
+            pdf.addPage();
+            yPosition = margin;
+          }
+          
+          pdf.text(line, margin, yPosition);
+          yPosition += 7;
+        });
+        
+        yPosition += 3;
+      }
+    });
+    
+    const fileName = `${documentTitle || 'document'}.pdf`;
+    pdf.save(fileName);
+  };
+
+  const exportToWord = async () => {
+    if (!content.trim()) {
+      alert('אין תוכן לייצוא');
+      return;
+    }
+
+    try {
+      // בדיקה של שפת התוכן
+      const hasHebrew = /[\u0590-\u05FF]/.test(content);
+      const language = detectLanguage(content + documentTitle);
+      const translatedValues = getTranslatedValues(language);
+      const direction = hasHebrew ? 'rtl' : 'ltr';
+      const fontFamily = hasHebrew ? 'Arial, David, sans-serif' : 'Times New Roman, serif';
+      
+      // יצירת HTML לייצוא כ-Word עם תמיכה בתרגום
+      const documentInfo = [
+        `${translatedValues.labels.documentType}: ${translatedValues.documentTypes[documentType] || documentType}`,
+        `${translatedValues.labels.structure}: ${translatedValues.documentStructures[documentStructure] || documentStructure}`,
+        `${translatedValues.labels.citationStyle}: ${citationStyle}`,
+        `${translatedValues.labels.wordCount}: ${wordCount}`
+      ].join(' | ');
+      
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html dir="${direction}">
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body {
+                    font-family: ${fontFamily};
+                    font-size: 12pt;
+                    line-height: 1.5;
+                    margin: 2cm;
+                    direction: ${direction};
+                }
+                h1 {
+                    font-size: 18pt;
+                    font-weight: bold;
+                    text-align: ${hasHebrew ? 'right' : 'center'};
+                    margin-bottom: 20px;
+                }
+                .document-info {
+                    font-size: 10pt;
+                    font-style: italic;
+                    text-align: center;
+                    margin-bottom: 30px;
+                    border-bottom: 1px solid #ccc;
+                    padding-bottom: 15px;
+                }
+                p {
+                    margin-bottom: 12px;
+                    text-align: justify;
+                }
+                .page-break {
+                    page-break-before: always;
+                }
+            </style>
+        </head>
+        <body>
+            <h1>${documentTitle || (language === 'he' ? 'מסמך אקדמי' : 'Academic Document')}</h1>
+            
+            <div class="document-info">
+                ${documentInfo}
+            </div>
+            
+            <div class="content">
+                ${content.split('\n').filter(p => p.trim()).map(paragraph => 
+                  `<p>${paragraph.replace(/\n/g, '<br>')}</p>`
+                ).join('')}
+            </div>
+        </body>
+        </html>
+      `;
+      
+      // יצירת Blob עם תוכן HTML
+      const blob = new Blob([htmlContent], {
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      });
+      
+      // יצירת קישור להורדה
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${documentTitle || 'document'}.doc`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+    } catch (error) {
+      console.error('Word Export Error:', error);
+      alert('שגיאה בייצוא Word: ' + error.message);
+    }
+  };
+
   useEffect(() => {
     const autoSaveTimer = setInterval(() => {
       if (content.trim() && documentTitle.trim() && currentDocumentId) {
-        saveDocument(false); // שמירה שקטה
+        saveDocument(false); 
       }
-    }, 30000); // 30 שניות
+    }, 30000);
 
     return () => clearInterval(autoSaveTimer);
   }, [content, documentTitle, currentDocumentId, documentType, documentStructure, citationStyle]);
 
-  // פונקציות Firebase
   const loadDocuments = async () => {
     setIsLoading(true);
     try {
@@ -185,7 +566,6 @@ const AcademicWriting = () => {
     setTimeout(() => setSaveMessage(""), 3000);
   };
 
-  // כל הפונקציות הקיימות נשארות כפי שהן
   const analyzeText = (text) => {
     setIsAnalyzing(true);
     
@@ -591,27 +971,27 @@ const AcademicWriting = () => {
             <h4>ניהול מסמכים</h4>
             <input
               type="text"
-              placeholder="שם המסמך..."
+              placeholder=" שם המסמך..."
               value={documentTitle}
               onChange={(e) => setDocumentTitle(e.target.value)}
               className="document-title-input"
             />
             <div className="document-actions">
               <button 
-                className="action-btn save-btn" 
+                className="action-btn" 
                 onClick={() => saveDocument(true)}
                 disabled={isSaving}
               >
                 {isSaving ? "שומר..." : "💾 שמירה"}
               </button>
               <button 
-                className="action-btn new-btn" 
+                className="action-btn" 
                 onClick={newDocument}
               >
                 📄 מסמך חדש
               </button>
               <button 
-                className="action-btn load-btn" 
+                className="action-btn" 
                 onClick={() => setShowDocumentsList(!showDocumentsList)}
               >
                 📂 המסמכים שלי ({documents.length})
@@ -626,10 +1006,33 @@ const AcademicWriting = () => {
 
           <div className="side-card">
             <h4>אפשרויות יצוא</h4>
-            <label><input type="radio" name="export" /> PDF</label>
-            <label><input type="radio" name="export" /> Word</label>
-            <label><input type="radio" name="export" /> LaTeX</label>
-            <button className="export-btn">יצוא מסמך</button>
+            <label>
+              <input 
+                type="radio" 
+                name="export" 
+                value="PDF"
+                checked={selectedExportFormat === "PDF"}
+                onChange={(e) => setSelectedExportFormat(e.target.value)}
+              /> 
+              PDF
+            </label>
+            <label>
+              <input 
+                type="radio" 
+                name="export" 
+                value="Word"
+                checked={selectedExportFormat === "Word"}
+                onChange={(e) => setSelectedExportFormat(e.target.value)}
+              /> 
+              Word
+            </label>
+            <button 
+              className="export-btn"
+              onClick={selectedExportFormat === "PDF" ? exportToPDF : exportToWord}
+              disabled={!content.trim()}
+            >
+              יצוא ל{selectedExportFormat}
+            </button>
           </div>
           
           <div className="side-card">
@@ -729,7 +1132,7 @@ const AcademicWriting = () => {
                       <p>{doc.documentType} • {doc.wordCount} מילים</p>
                       <small>עודכן: {doc.updatedAt.toLocaleDateString('he-IL')}</small>
                     </div>
-                    <div className="document-actions">
+                    <div className="my-documents-actions">
                       <button 
                         className="load-doc-btn"
                         onClick={() => loadDocument(doc)}

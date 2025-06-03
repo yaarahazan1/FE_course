@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "../../../../firebase/config";
 import "./ProjectsTab.css";
 import ProjectChat from "../ProjectChat/ProjectChat";
@@ -10,6 +10,7 @@ const ProjectsTab = () => {
   const [chatVisibility, setChatVisibility] = useState({});
   const [expandedProjects, setExpandedProjects] = useState({});
   const [loading, setLoading] = useState(true);
+  const [deletingProjectId, setDeletingProjectId] = useState(null);
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -29,6 +30,46 @@ const ProjectsTab = () => {
 
     fetchProjects();
   }, []);
+
+  const deleteProject = async (projectId, projectName) => {
+    if (!window.confirm(`האם אתה בטוח שברצונך למחוק את הפרויקט "${projectName}"?`)) {
+      return;
+    }
+
+    setDeletingProjectId(projectId);
+    
+    try {
+      // מחיקה מה-Firebase
+      await deleteDoc(doc(db, "projects", projectId));
+      
+      // עדכון המצב המקומי - הסרת הפרויקט מהרשימה
+      setProjects(prevProjects => prevProjects.filter(project => project.id !== projectId));
+      
+      // ניקוי מצבים קשורים לפרויקט שנמחק
+      setExpandedProjects(prev => {
+        const updated = { ...prev };
+        delete updated[projectId];
+        return updated;
+      });
+      
+      setChatVisibility(prev => {
+        const updated = { ...prev };
+        delete updated[projectId];
+        return updated;
+      });
+      
+      if (selectedProjectId === projectId) {
+        setSelectedProjectId(null);
+      }
+      
+      console.log("הפרויקט נמחק בהצלחה");
+    } catch (error) {
+      console.error("שגיאה במחיקת הפרויקט:", error);
+      alert("אירעה שגיאה במחיקת הפרויקט. נסה שוב.");
+    } finally {
+      setDeletingProjectId(null);
+    }
+  };
 
   const toggleProjectExpansion = (projectId) => {
     setExpandedProjects((prev) => ({
@@ -75,14 +116,31 @@ const ProjectsTab = () => {
               onClick={() => toggleProjectExpansion(project.id)}
             >
               <div className="project-summary">
-                <h3>{project.name}</h3>
-                <div className="project-meta">
-                  <span
-                    className={`project-status status-${project.status?.replace(/\s+/g, "-")}`}
-                  >
-                    {project.status}
-                  </span>
-                  <span className="project-date">{formatDate(project.dueDate)}</span>
+                <div className="project-top-row">
+                  <div className="project-right-section">
+                    <h3>{project.name}</h3>
+                  </div>
+                  <div className="project-left-section">
+                    <div className="project-meta-inline">
+                      <span
+                        className={`project-status status-${project.status?.replace(/\s+/g, "-")}`}
+                      >
+                        {project.status}
+                      </span>
+                      <span className="project-date">{formatDate(project.dueDate)}</span>
+                    </div>
+                    <button
+                      className="delete-project-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteProject(project.id, project.name);
+                      }}
+                      disabled={deletingProjectId === project.id}
+                      title="מחק פרויקט"
+                    >
+                      {deletingProjectId === project.id ? "מוחק..." : "🗑️"}
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -92,8 +150,11 @@ const ProjectsTab = () => {
                   onClick={(e) => e.stopPropagation()}
                 >
                   <p className="project-description">{project.description}</p>
-                  <p>
-                    <strong>משימות:</strong> {project.tasks}
+                  <p className="project-tasks">
+                    <strong>משימות:</strong> { 
+                      project.tasks && project.tasks.length > 0 ? 
+                      project.tasks : 
+                      "אין משימות לפרויקט זה." }
                   </p>
 
                   <div className="team-members">

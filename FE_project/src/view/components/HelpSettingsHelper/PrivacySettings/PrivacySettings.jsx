@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Shield, 
   Bell, 
@@ -12,9 +12,11 @@ import {
   Check,
   X
 } from "lucide-react";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { db } from "../../../../firebase/config";
 import "./PrivacySettings.css";
 
-const PrivacySettings = () => {
+const PrivacySettings = ({ user }) => {
   // Default settings for reset functionality
   const defaultSettings = {
     // Privacy Settings
@@ -42,7 +44,63 @@ const PrivacySettings = () => {
   const [settings, setSettings] = useState(defaultSettings);
   const [activeSection, setActiveSection] = useState('privacy');
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [saveMessage, setSaveMessage] = useState('');
+
+  // טעינת הגדרות המשתמש מ-Firebase
+  useEffect(() => {
+    const loadUserSettings = async () => {
+      if (!user?.uid) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const userSettingsRef = doc(db, "userSettings", user.uid);
+        const settingsSnapshot = await getDoc(userSettingsRef);
+        
+        if (settingsSnapshot.exists()) {
+          const userData = settingsSnapshot.data();
+          setSettings({
+            ...defaultSettings,
+            ...userData.settings
+          });
+        } else {
+          // אם אין הגדרות קיימות, שמור את ברירת המחדל
+          await saveSettingsToFirebase(defaultSettings);
+        }
+      } catch (error) {
+        console.error("Error loading user settings:", error);
+        setSaveMessage('שגיאה בטעינת ההגדרות');
+        setTimeout(() => setSaveMessage(''), 3000);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUserSettings();
+  }, [user]);
+
+  // שמירת הגדרות ב-Firebase
+  const saveSettingsToFirebase = async (settingsToSave) => {
+    if (!user?.uid) return;
+
+    try {
+      const userSettingsRef = doc(db, "userSettings", user.uid);
+      await setDoc(userSettingsRef, {
+        userId: user.uid,
+        userEmail: user.email,
+        settings: settingsToSave,
+        lastUpdated: new Date().toISOString(),
+        updatedAt: new Date()
+      }, { merge: true });
+      
+      return true;
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      throw error;
+    }
+  };
 
   const handleToggle = (setting) => {
     setSettings(prev => ({
@@ -63,12 +121,7 @@ const PrivacySettings = () => {
     setSaveMessage('');
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Here you would normally save to your backend
-      console.log('Saving settings:', settings);
-      
+      await saveSettingsToFirebase(settings);
       setSaveMessage('ההגדרות נשמרו בהצלחה!');
       setTimeout(() => setSaveMessage(''), 3000);
     } catch (error) {
@@ -80,11 +133,20 @@ const PrivacySettings = () => {
     }
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (window.confirm('האם אתה בטוח שברצונך לאפס את כל ההגדרות לברירת המחדל?')) {
-      setSettings(defaultSettings);
-      setSaveMessage('ההגדרות אופסו לברירת המחדל');
-      setTimeout(() => setSaveMessage(''), 3000);
+      setIsSaving(true);
+      try {
+        await saveSettingsToFirebase(defaultSettings);
+        setSettings(defaultSettings);
+        setSaveMessage('ההגדרות אופסו לברירת המחדל');
+        setTimeout(() => setSaveMessage(''), 3000);
+      } catch (error) {
+        setSaveMessage(error);
+        setTimeout(() => setSaveMessage(''), 3000);
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
@@ -123,6 +185,23 @@ const PrivacySettings = () => {
     </div>
   );
 
+  // מסך טעינה
+  if (isLoading) {
+    return (
+      <div className="privacy-settings-container">
+        <div className="loading-container" style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '200px',
+          fontSize: '18px'
+        }}>
+          טוען הגדרות...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="privacy-settings-container">
       <div className="settings-header">
@@ -130,6 +209,15 @@ const PrivacySettings = () => {
         <p className="settings-subtitle">
           נהל את ההגדרות שלך לפרטיות, התראות וביטחון
         </p>
+        {user && (
+          <div className="user-context" style={{
+            fontSize: '14px',
+            color: '#666',
+            marginTop: '8px'
+          }}>
+            הגדרות עבור: {user.displayName || user.email}
+          </div>
+        )}
       </div>
 
       {/* Navigation Tabs */}
@@ -336,7 +424,7 @@ const PrivacySettings = () => {
           <button 
             className="reset-button"
             onClick={handleReset}
-            disabled={isSaving}
+            disabled={isSaving || isLoading}
           >
             <X className="reset-icon" />
             אפס להגדרות ברירת מחדל

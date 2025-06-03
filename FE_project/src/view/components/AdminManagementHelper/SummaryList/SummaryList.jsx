@@ -126,7 +126,7 @@ const SummaryList = ({
                 <td>
                   <div className="action-buttons">
                     <button 
-                      className="action-btn details-btn"
+                      className="action-btn-summary details-btn"
                       onClick={() => onSummarySelect(summary)}
                       title="צפייה בפרטים מלאים"
                     >
@@ -136,7 +136,7 @@ const SummaryList = ({
                     
                     {summary.status !== "מאושר" && (
                       <button 
-                        className="action-btn approve-btn"
+                        className="action-btn-summary approve-btn"
                         onClick={() => onSummaryAction("אישור", summary.id)}
                         title="אישור הסיכום"
                       >
@@ -147,7 +147,7 @@ const SummaryList = ({
                     
                     {summary.status !== "נדחה" && (
                       <button 
-                        className="action-btn reject-btn"
+                        className="action-btn-summary reject-btn"
                         onClick={() => onSummaryAction("דחייה", summary.id)}
                         title="דחיית הסיכום"
                       >
@@ -157,7 +157,7 @@ const SummaryList = ({
                     )}
                     
                     <button 
-                      className="action-btn delete-btn"
+                      className="action-btn-summary delete-btn"
                       onClick={() => {
                         if (window.confirm('האם אתה בטוח שברצונך למחוק את הסיכום? פעולה זו לא הפיכה.')) {
                           onSummaryAction("מחיקה", summary.id);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "../../../styles/AdvancedTools.css";
 
-const PlagiarismChecker = ({ content, onClose, onApplySuggestion }) => {
+const PlagiarismChecker = ({ content, onClose }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [plagiarismResults, setPlagiarismResults] = useState({
     originalityScore: 0,
@@ -10,7 +10,8 @@ const PlagiarismChecker = ({ content, onClose, onApplySuggestion }) => {
     issues: []
   });
   const [highlightedContent, setHighlightedContent] = useState("");
-  
+  const [userSelectors, setUserSelectors] = useState([]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       if (content.trim().length > 0) {
@@ -24,44 +25,55 @@ const PlagiarismChecker = ({ content, onClose, onApplySuggestion }) => {
     return () => clearTimeout(timer);
   }, [content]);
 
-  // מאגר ביטויים ומשפטים נפוצים שעלולים להיחשב כלא מקוריים
+  useEffect(() => {
+  if (content.selectors && Array.isArray(content.selectors)) {
+    setUserSelectors(content.selectors);
+  }
+}, [content]);
+
   const commonPhrases = [
-    "המהפכה התעשייתית החלה",
-    "התאפיינה במעבר מייצור ידני לייצור מכני",
-    "התפתחות התחבורה והצמיחה המהירה",
-    "שינויים חברתיים וכלכליים משמעותיים",
-    "באנגליה במאה ה-18",
-    "תהליך שהתרחש במהלך",
-    "השפעה משמעותית על החברה",
-    "מאפיינים עיקריים של",
-    "ניתן לומר כי",
     "לסיכום ניתן לומר",
-    "בהתבסס על מחקרים קודמים",
+    "בהתבסס על מחקרים קודמים", 
     "מן הראוי לציין כי",
     "חשוב לציין בהקשר זה",
-    "בניגוד לתקופות קודמות"
+    "ניתן לומר כי",
+    "כפי שציינו קודם",
+    "כמו שאמרנו",
+    "בהמשך לאמור לעיל",
+    "באופן דומה",
+    "מאידך גיסא",
+    "בניגוד לכך",
+    "יתר על כן",
+    "בנוסף לכך",
+    "עם זאת",
+    "למרות זאת"
   ];
 
-  // מאגר משפטים כלליים ולא מקוריים
   const genericStatements = [
-    /הטכנולוגיה השפיעה על החברה/,
-    /התפתחות.*חשובה.*בתחום/,
-    /שינויים.*משמעותיים.*בתקופה/,
-    /התהליך.*הוביל.*לשינויים/,
-    /ההשפעה.*על.*החברה.*המודרנית/,
-    /פיתוח.*טכנולוגי.*חדשני/,
-    /מעבר.*מ.*ל.*התרחש/,
-    /תופעה.*זו.*מאפיינת/
+    /.*חשוב.*מאוד.*/,
+    /.*השפעה.*רבה.*על.*/,
+    /.*תופעה.*נפוצה.*/,
+    /.*בעיה.*קיימת.*/,
+    /.*מצב.*קיים.*/,
+    /.*נושא.*רלוונטי.*/,
+    /.*נושא.*חשוב.*/,
+    /.*דבר.*חשוב.*/,
+    /.*עניין.*מעניין.*/,
+    /.*יש.*חשיבות.*רבה.*/,
+    /.*לא.*פשוט.*/,
+    /.*מורכב.*מאוד.*/
   ];
 
-  // זיהוי משפטים מילוניים/אנציקלופדיים
   const encyclopedicPatterns = [
-    /^.+\s+הוא\/היא\s+.+שהתרחש/,
-    /^.+\s+מוגדר\/מוגדרת\s+כ/,
-    /^.+\s+נחשב\/נחשבת\s+ל/,
-    /^\w+\s+\(\d{4}-\d{4}\)\s+היה\/הייתה/,
-    /^בשנת\s+\d{4}\s+התרחש/,
-    /^במהלך\s+המאה\s+ה-\d+/
+    /^.+\s+הוא\/היא\s+.+$/,
+    /^.+\s+מוגדר\/מוגדרת\s+כ.+$/,
+    /^.+\s+נחשב\/נחשבת\s+ל.+$/,
+    /^.+\s+מאופיין\/מאופיינת\s+ב.+$/,
+    /^במילים אחרות.+$/,
+    /^כלומר.+$/,
+    /^זאת אומרת.+$/,
+    /^בפשטות.+$/,
+    /^באופן כללי.+$/
   ];
 
   const analyzeTextOriginality = (text) => {
@@ -99,35 +111,25 @@ const PlagiarismChecker = ({ content, onClose, onApplySuggestion }) => {
     });
 
     // 2. זיהוי משפטים כלליים
-    sentences.forEach((sentence, index) => {
+    sentences.forEach((sentence) => {
       const trimmedSentence = sentence.trim();
       if (trimmedSentence.length < 20) return;
       
       genericStatements.forEach(pattern => {
         if (pattern.test(trimmedSentence)) {
           const wordCount = trimmedSentence.split(' ').length;
-          problematicWords += Math.floor(wordCount * 0.7);
-          
-          similarityMatches.push({
-            id: `generic-${index}`,
-            text: trimmedSentence,
-            similarityScore: 70 + Math.floor(Math.random() * 15),
-            source: generateRelevantSource(),
-            matchLength: wordCount,
-            type: 'generic_statement',
-            severity: 'medium'
-          });
+          problematicWords += Math.floor(wordCount * 0.4);
           
           issues.push({
             type: 'generic_statement',
             text: trimmedSentence,
-            description: 'משפט כללי וחסר מקוריות',
-            suggestion: 'הוסף דוגמאות ספציפיות או ניתוח מעמיק יותר'
+            description: 'משפט כללי מדי - חסר פרטים ספציפיים',
+            suggestion: 'הוסף דוגמה קונקרטית או נתונים מדויקים'
           });
         }
       });
     });
-
+  
     // 3. זיהוי סגנון אנציקלופדי
     sentences.forEach((sentence, index) => {
       const trimmedSentence = sentence.trim();
@@ -208,9 +210,11 @@ const PlagiarismChecker = ({ content, onClose, onApplySuggestion }) => {
     });
 
     // 6. חישוב ציון מקוריות
-    const originalityScore = Math.max(0, Math.min(100, 
-      Math.floor(100 - (problematicWords / totalWords * 100))
-    ));
+    const problematicPercentage = totalWords > 0 ? (problematicWords / totalWords) * 100 : 0;
+    const rawScore = Math.max(10, Math.min(100, 100 - problematicPercentage));
+    const originalityScore = parseFloat(rawScore.toFixed(2));
+
+    problematicWords = Math.min(problematicWords, totalWords);
 
     return {
       originalityScore,
@@ -227,37 +231,46 @@ const PlagiarismChecker = ({ content, onClose, onApplySuggestion }) => {
   };
 
   const generateRelevantSource = () => {
-    const sources = [
+    const generalSources = [
       {
-        author: "שמיר, ח.",
-        year: 2019,
-        title: "ההיסטוריה של המהפכה התעשייתית",
-        journal: "כתב העת להיסטוריה",
+        author: "אברהם, י.",
+        year: 2020,
+        title: "מחקרים עכשוויים בתחום",
+        journal: "כתב עת למחקר",
         volume: 15,
         issue: 3,
         pages: "45-67"
       },
       {
         author: "כהן, ר.",
-        year: 2020,
-        title: "השפעות חברתיות של התיעוש",
-        journal: "מחקרים בהיסטוריה חברתית",
+        year: 2021,
+        title: "הבנות חדשות בנושא",
+        journal: "רבעון אקדמי",
         volume: 8,
         issue: 2,
         pages: "123-145"
       },
       {
         author: "לוי, מ.",
-        year: 2018,
-        title: "טכנולוגיה וחברה במאה ה-18",
-        journal: "רבעון לחקר טכנולוגיה",
+        year: 2019,
+        title: "תיאוריות ויישומים",
+        journal: "כתב עת מקצועי",
         volume: 12,
         issue: 1,
         pages: "78-95"
+      },
+      {
+        author: "רוזן, ד.",
+        year: 2022,
+        title: "גישות מודרניות",
+        journal: "מחקרים עכשוויים",
+        volume: 18,
+        issue: 4,
+        pages: "201-230"
       }
     ];
     
-    return sources[Math.floor(Math.random() * sources.length)];
+    return generalSources[Math.floor(Math.random() * generalSources.length)];
   };
   
   const highlightIssues = (matches, issues) => {
@@ -328,29 +341,48 @@ const PlagiarismChecker = ({ content, onClose, onApplySuggestion }) => {
     if (score >= 60) return "score-fair";
     return "score-poor";
   };
-  
-  const handleImproveText = (issue) => {
-    let suggestion = "";
-    
+
+  const getSuggestionForIssue = (issue) => {
+    const userContext = userSelectors.length > 0 ? 
+      ` (בהקשר של: ${userSelectors.join(', ')})` : '';
+      
     switch(issue.type) {
       case 'common_phrase':
-        suggestion = `\n[נסח מחדש: "${issue.text}" - השתמש בביטוי מקורי]\n`;
-        break;
+        if (issue.text.includes('לסיכום')) {
+          return `"המסקנה העיקרית שלי${userContext} היא..." או "מהניתוח עולה${userContext} כי..."`;
+        }
+        if (issue.text.includes('חשוב לציין')) {
+          return `"נקודה מרכזית${userContext} היא..." או "כדאי לשים לב${userContext} ש..."`;
+        }
+        if (issue.text.includes('ניתן לומר')) {
+          return `"נראה לי${userContext} ש..." או "מהנתונים משתמע${userContext} כי..."`;
+        }
+        return `נסח מחדש במילים שלך${userContext}`;
+        
       case 'generic_statement':
-        suggestion = `\n[הוסף דוגמאות ספציפיות ל: "${issue.text}"]\n`;
-        break;
+        return `הוסף דוגמה ספציפית${userContext} או נתונים מדויקים`;
+        
       case 'encyclopedic':
-        suggestion = `\n[שנה לסגנון אישי: "${issue.text}"]\n`;
-        break;
+        return `כתב בסגנון אישי${userContext} - מה דעתך על זה?`;
+        
       case 'missing_citation':
-        suggestion = `\n[הוסף ציטוט ל: "${issue.text}"]\n`;
-        break;
+        return `הוסף מקור מהימן או כתב "לדעתי"${userContext}`;
+        
       default:
-        suggestion = `\n[שפר את: "${issue.text}"]\n`;
+        return `נסח מחדש במילים שלך${userContext}`;
     }
+  };
+
+  const getUniqueIssuesCount = () => {
+    if (!plagiarismResults.issues) return 0;
     
-    const updatedContent = content + suggestion;
-    onApplySuggestion(updatedContent);
+    // יצירת set של טקסטים ייחודיים כדי למנוע כפילויות
+    const uniqueTexts = new Set();
+    plagiarismResults.issues.forEach(issue => {
+      uniqueTexts.add(issue.text);
+    });
+    
+    return uniqueTexts.size;
   };
   
   return (
@@ -364,21 +396,6 @@ const PlagiarismChecker = ({ content, onClose, onApplySuggestion }) => {
         </div>
       
         <div className="ai-tool-content">
-          <style>
-            {`.highlight-high-risk { background-color: #ffebee; border-bottom: 2px solid #f44336; }
-             .highlight-medium-risk { background-color: #fff3e0; border-bottom: 2px solid #ff9800; }
-             .highlight-low-risk { background-color: #f3e5f5; border-bottom: 2px solid #9c27b0; }
-             .issue-item { margin: 10px 0; padding: 15px; border-left: 4px solid #2196f3; background: #f8f9fa; }
-             .issue-item.common_phrase { border-left-color: #f44336; }
-             .issue-item.generic_statement { border-left-color: #ff9800; }
-             .issue-item.encyclopedic { border-left-color: #9c27b0; }
-             .issue-item.missing_citation { border-left-color: #f44336; }
-             .improve-button { background: #4caf50; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 10px; }
-             .improve-button:hover { background: #45a049; }
-             .score-breakdown { font-size: 14px; margin-top: 10px; }
-             .issue-severity { background: #e0e0e0; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
-             .originality-tips { background: #e8f5e8; padding: 15px; border-radius: 8px; margin: 15px 0; }`}
-          </style>
           {isLoading ? (
             <div className="ai-tool-loading">
               <div className="spinner"></div>
@@ -395,12 +412,12 @@ const PlagiarismChecker = ({ content, onClose, onApplySuggestion }) => {
               <div className="originality-score">
                 <h3>ציון מקוריות</h3>
                 <div className={`score-display ${getScoreColor()}`}>
-                  {plagiarismResults.originalityScore}%
+                  {plagiarismResults.originalityScore.toFixed(2)}%
                 </div>
                 <div className="score-breakdown">
                   <p>מילים כולל: {plagiarismResults.statistics?.totalWords}</p>
                   <p>מילים בעייתיות: {plagiarismResults.statistics?.problematicWords}</p>
-                  <p>בעיות שזוהו: {plagiarismResults.issues.length}</p>
+                  <p>בעיות שזוהו {getUniqueIssuesCount()}</p>
                 </div>
               </div>
               
@@ -428,7 +445,7 @@ const PlagiarismChecker = ({ content, onClose, onApplySuggestion }) => {
 
               {plagiarismResults.issues.length > 0 && (
                 <div className="issues-detected">
-                  <h3>בעיות שזוהו ({plagiarismResults.issues.length})</h3>
+                  <h3>בעיות שזוהו ({getUniqueIssuesCount()})</h3>
                   <div className="issues-list">
                     {plagiarismResults.issues.map((issue, index) => (
                       <div key={index} className={`issue-item ${issue.type}`}>
@@ -441,12 +458,9 @@ const PlagiarismChecker = ({ content, onClose, onApplySuggestion }) => {
                         <div className="issue-suggestion">
                           <strong>הצעה:</strong> {issue.suggestion}
                         </div>
-                        <button 
-                          className="improve-button"
-                          onClick={() => handleImproveText(issue)}
-                        >
-                          הוסף הערת שיפור
-                        </button>
+                        <div className="suggestion-box">
+                          <strong>במקום זה אפשר:</strong> {getSuggestionForIssue(issue)}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -479,11 +493,6 @@ const PlagiarismChecker = ({ content, onClose, onApplySuggestion }) => {
                   onClick={onClose}
                 >
                   סגור
-                </button>
-                <button 
-                  className="export-report-button"
-                >
-                  הפק דוח מקוריות מפורט
                 </button>
               </div>
             </div>

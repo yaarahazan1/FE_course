@@ -185,3 +185,112 @@
 .chat-button:hover {
     background-color: #8aabb7;
 }
+
+.project-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.project-left-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.project-right-section {
+  flex: 1;
+  text-align: right;
+}
+
+.project-right-section h3 {
+  margin: 0;
+  font-size: 1.2em;
+}
+
+.project-meta-inline {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.project-title-row {
+  width: 100%;
+}
+
+.project-title-row h3 {
+  margin: 0;
+  font-size: 1.2em;
+}
+
+.delete-project-btn {
+  background-color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  min-width: 40px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.delete-project-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.delete-project-btn:active {
+  transform: translateY(0);
+}
+
+.delete-project-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  font-size: 12px;
+}
+
+.project-summary {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+@keyframes fadeOutProject {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+    max-height: 200px;
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-100px);
+    max-height: 0;
+    padding: 0;
+    margin: 0;
+  }
+}
+
+.project-card.deleting {
+  animation: fadeOutProject 0.4s ease-out forwards;
+}
+
+.project-card {
+  position: relative;
+}
+
+.delete-project-btn {
+  z-index: 10;
+}
+
+.project-tasks{
+    font-size: 14px;
+    font-family: inherit;
+}
