@@ -6,7 +6,6 @@ import CitationHelper from "../../components/AcademicWritingHelper/CitationHelpe
 import PlagiarismChecker from "../../components/AcademicWritingHelper/PlagiarismChecker";
 import StructureImprover from "../../components/AcademicWritingHelper/StructureImprover";
 import { getDocumentStructureRequirements } from "../../utils/textAnalysis";
-
 // Firebase imports
 import { 
   collection, 
@@ -21,6 +20,173 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../../firebase/config';
 
+// HTML Templates moved outside the component
+const createPrintTemplate = (params) => `
+<!DOCTYPE html>
+<html dir="${params.direction}">
+<head>
+    <meta charset="UTF-8">
+    <title>${params.title}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: ${params.fontFamily};
+            font-size: 12pt;
+            line-height: 1.5;
+            direction: ${params.direction};
+            margin: 0;
+            padding: 20px;
+            background: white;
+        }
+        h1 {
+            font-size: 18pt;
+            font-weight: bold;
+            text-align: ${params.hasHebrew ? 'right' : 'center'};
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .document-info {
+            font-size: 10pt;
+            font-style: italic;
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 15px;
+            color: #666;
+        }
+        p {
+            margin-bottom: 12px;
+            text-align: justify;
+            text-indent: ${params.hasHebrew ? '0' : '1em'};
+        }
+        .content {
+            line-height: 1.6;
+        }
+        .instructions {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 9999;
+            max-width: 300px;
+            direction: ${params.direction};
+            text-align: center;
+        }
+        .instructions-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .keyboard-shortcut {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-weight: bold;
+        }
+        @media print {
+            .instructions { 
+                display: none !important; 
+            }
+        }
+    </style>
+    <script>
+        // פתיחה אוטומטית של דיאלוג ההדפסה
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                window.print();
+            }, 500);
+        });
+        
+        // קיצור מקלדת להדפסה
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                e.preventDefault();
+                window.print();
+            }
+        });
+    </script>
+</head>
+<body>
+    <div class="instructions">
+        <div class="instructions-title">📄 ${params.hasHebrew ? 'שמירה כ-PDF' : 'Save as PDF'}</div>
+        <div>${params.hasHebrew ? 'בחר "שמירה כ-PDF" ולחץ שמירה' : 'Select "Save as PDF" and click Save'}</div>
+        <div style="margin-top: 8px;">
+            <span class="keyboard-shortcut">Ctrl+P</span> 
+            ${params.hasHebrew ? 'להדפסה מהירה' : 'for quick print'}
+        </div>
+    </div>
+    
+    <h1>${params.title}</h1>
+    
+    <div class="document-info">
+        ${params.documentInfo}
+    </div>
+    
+    <div class="content">
+        ${params.contentParagraphs}
+    </div>
+</body>
+</html>
+`;
+
+const createWordTemplate = (params) => `
+<!DOCTYPE html>
+<html dir="${params.direction}">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: ${params.fontFamily};
+            font-size: 12pt;
+            line-height: 1.5;
+            margin: 2cm;
+            direction: ${params.direction};
+        }
+        h1 {
+            font-size: 18pt;
+            font-weight: bold;
+            text-align: ${params.hasHebrew ? 'right' : 'center'};
+            margin-bottom: 20px;
+        }
+        .document-info {
+            font-size: 10pt;
+            font-style: italic;
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 15px;
+        }
+        p {
+            margin-bottom: 12px;
+            text-align: justify;
+        }
+        .page-break {
+            page-break-before: always;
+        }
+    </style>
+</head>
+<body>
+    <h1>${params.title}</h1>
+    
+    <div class="document-info">
+        ${params.documentInfo}
+    </div>
+    
+    <div class="content">
+        ${params.contentParagraphs}
+    </div>
+</body>
+</html>
+`;
+
 const AcademicWriting = () => {
   // States קיימים
   const [documentType, setDocumentType] = useState("מאמר אקדמי");
@@ -33,7 +199,6 @@ const AcademicWriting = () => {
   const [wordCount, setWordCount] = useState(0);
   const [activeAITool, setActiveAITool] = useState(null);
   const [selectedExportFormat, setSelectedExportFormat] = useState("PDF");
-
   const [documents, setDocuments] = useState([]);
   const [currentDocumentId, setCurrentDocumentId] = useState(null);
   const [documentTitle, setDocumentTitle] = useState("");
@@ -108,9 +273,9 @@ const AcademicWriting = () => {
       } else {
         setAnalysis([]);
       }
-
       setWordCount(content.trim() ? content.trim().split(/\s+/).length : 0);
     }, 1000);
+
     return () => clearTimeout(timer);
   }, [content, documentType, documentStructure, citationStyle]);
 
@@ -121,14 +286,11 @@ const AcademicWriting = () => {
     }
 
     try {
-      // בדיקה אם יש עברית
       const hasHebrew = /[\u0590-\u05FF]/.test(content);
       
       if (hasHebrew) {
-        // אם יש עברית - ייצוא דרך Word/HTML שיכול להמיר לPDF
         await exportToWordAsPDF();
       } else {
-        // אם אין עברית - ייצוא רגיל דרך jsPDF
         exportRegularPDF();
       }
     } catch (error) {
@@ -150,127 +312,24 @@ const AcademicWriting = () => {
       `${translatedValues.labels.citationStyle}: ${citationStyle}`,
       `${translatedValues.labels.wordCount}: ${wordCount}`
     ].join(' | ');
+
+    const contentParagraphs = content.split('\n').filter(p => p.trim()).map(paragraph => 
+      `<p>${paragraph.replace(/\n/g, '<br>')}</p>`
+    ).join('');
+
+    const title = documentTitle || (language === 'he' ? 'מסמך אקדמי' : 'Academic Document');
     
     // יצירת חלון חדש עם התוכן המעוצב
     const printWindow = window.open('', '_blank');
     
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html dir="${direction}">
-      <head>
-          <meta charset="UTF-8">
-          <title>${documentTitle || (language === 'he' ? 'מסמך אקדמי' : 'Academic Document')}</title>
-          <style>
-              @page {
-                  size: A4;
-                  margin: 2cm;
-              }
-              body {
-                  font-family: ${fontFamily};
-                  font-size: 12pt;
-                  line-height: 1.5;
-                  direction: ${direction};
-                  margin: 0;
-                  padding: 20px;
-                  background: white;
-              }
-              h1 {
-                  font-size: 18pt;
-                  font-weight: bold;
-                  text-align: ${hasHebrew ? 'right' : 'center'};
-                  margin-bottom: 20px;
-                  color: #333;
-              }
-              .document-info {
-                  font-size: 10pt;
-                  font-style: italic;
-                  text-align: center;
-                  margin-bottom: 30px;
-                  border-bottom: 1px solid #ccc;
-                  padding-bottom: 15px;
-                  color: #666;
-              }
-              p {
-                  margin-bottom: 12px;
-                  text-align: justify;
-                  text-indent: ${hasHebrew ? '0' : '1em'};
-              }
-              .content {
-                  line-height: 1.6;
-              }
-              .instructions {
-                  position: fixed;
-                  top: 20px;
-                  right: 20px;
-                  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-                  color: white;
-                  padding: 15px 20px;
-                  border-radius: 8px;
-                  font-size: 14px;
-                  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                  z-index: 9999;
-                  max-width: 300px;
-                  direction: ${hasHebrew ? 'rtl' : 'ltr'};
-                  text-align: center;
-              }
-              .instructions-title {
-                  font-weight: bold;
-                  margin-bottom: 10px;
-              }
-              .keyboard-shortcut {
-                  background: rgba(255,255,255,0.2);
-                  padding: 4px 8px;
-                  border-radius: 4px;
-                  font-family: monospace;
-                  font-weight: bold;
-              }
-              @media print {
-                  .instructions { 
-                      display: none !important; 
-                  }
-              }
-          </style>
-          <script>
-              // פתיחה אוטומטית של דיאלוג ההדפסה
-              window.addEventListener('load', function() {
-                  setTimeout(() => {
-                      window.print();
-                  }, 500);
-              });
-              
-              // קיצור מקלדת להדפסה
-              document.addEventListener('keydown', function(e) {
-                  if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
-                      e.preventDefault();
-                      window.print();
-                  }
-              });
-          </script>
-      </head>
-      <body>
-          <div class="instructions">
-              <div class="instructions-title">📄 ${hasHebrew ? 'שמירה כ-PDF' : 'Save as PDF'}</div>
-              <div>${hasHebrew ? 'בחר "שמירה כ-PDF" ולחץ שמירה' : 'Select "Save as PDF" and click Save'}</div>
-              <div style="margin-top: 8px;">
-                  <span class="keyboard-shortcut">Ctrl+P</span> 
-                  ${hasHebrew ? 'להדפסה מהירה' : 'for quick print'}
-              </div>
-          </div>
-          
-          <h1>${documentTitle || (language === 'he' ? 'מסמך אקדמי' : 'Academic Document')}</h1>
-          
-          <div class="document-info">
-              ${documentInfo}
-          </div>
-          
-          <div class="content">
-              ${content.split('\n').filter(p => p.trim()).map(paragraph => 
-                `<p>${paragraph.replace(/\n/g, '<br>')}</p>`
-              ).join('')}
-          </div>
-      </body>
-      </html>
-    `;
+    const htmlContent = createPrintTemplate({
+      direction,
+      title,
+      fontFamily,
+      hasHebrew,
+      documentInfo,
+      contentParagraphs
+    });
     
     // כתיבת התוכן לחלון החדש
     printWindow.document.write(htmlContent);
@@ -353,7 +412,6 @@ const AcademicWriting = () => {
       alert('אין תוכן לייצוא');
       return;
     }
-
     try {
       // בדיקה של שפת התוכן
       const hasHebrew = /[\u0590-\u05FF]/.test(content);
@@ -369,58 +427,21 @@ const AcademicWriting = () => {
         `${translatedValues.labels.citationStyle}: ${citationStyle}`,
         `${translatedValues.labels.wordCount}: ${wordCount}`
       ].join(' | ');
+
+      const contentParagraphs = content.split('\n').filter(p => p.trim()).map(paragraph => 
+        `<p>${paragraph.replace(/\n/g, '<br>')}</p>`
+      ).join('');
+
+      const title = documentTitle || (language === 'he' ? 'מסמך אקדמי' : 'Academic Document');
       
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html dir="${direction}">
-        <head>
-            <meta charset="UTF-8">
-            <style>
-                body {
-                    font-family: ${fontFamily};
-                    font-size: 12pt;
-                    line-height: 1.5;
-                    margin: 2cm;
-                    direction: ${direction};
-                }
-                h1 {
-                    font-size: 18pt;
-                    font-weight: bold;
-                    text-align: ${hasHebrew ? 'right' : 'center'};
-                    margin-bottom: 20px;
-                }
-                .document-info {
-                    font-size: 10pt;
-                    font-style: italic;
-                    text-align: center;
-                    margin-bottom: 30px;
-                    border-bottom: 1px solid #ccc;
-                    padding-bottom: 15px;
-                }
-                p {
-                    margin-bottom: 12px;
-                    text-align: justify;
-                }
-                .page-break {
-                    page-break-before: always;
-                }
-            </style>
-        </head>
-        <body>
-            <h1>${documentTitle || (language === 'he' ? 'מסמך אקדמי' : 'Academic Document')}</h1>
-            
-            <div class="document-info">
-                ${documentInfo}
-            </div>
-            
-            <div class="content">
-                ${content.split('\n').filter(p => p.trim()).map(paragraph => 
-                  `<p>${paragraph.replace(/\n/g, '<br>')}</p>`
-                ).join('')}
-            </div>
-        </body>
-        </html>
-      `;
+      const htmlContent = createWordTemplate({
+        direction,
+        fontFamily,
+        hasHebrew,
+        title,
+        documentInfo,
+        contentParagraphs
+      });
       
       // יצירת Blob עם תוכן HTML
       const blob = new Blob([htmlContent], {

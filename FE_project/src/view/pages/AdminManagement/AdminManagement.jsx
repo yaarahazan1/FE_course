@@ -125,6 +125,7 @@ const AdminManagement = () => {
       formData.append('timestamp', timestamp);
       formData.append('api_key', CLOUDINARY_CONFIG.api_key);
       formData.append('signature', signature);
+      formData.append('access_mode', 'public');
 
       const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloud_name}/raw/destroy`, {
         method: 'POST',

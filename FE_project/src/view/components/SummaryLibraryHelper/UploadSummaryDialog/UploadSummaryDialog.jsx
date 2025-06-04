@@ -30,38 +30,60 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, cloudinaryConfi
     }, 3000);
   };
 
-  const uploadToCloudinary = async (file, metadata) => {
+  const uploadToCloudinary = async (file) => {
     try {
+      // נתחיל עם הגישה הכי פשוטה - רק הפרמטרים החיוניים
       const formData = new FormData();
+      
+      // רק הפרמטרים הבסיסיים ביותר
       formData.append('file', file);
       formData.append('upload_preset', cloudinaryConfig.upload_preset);
-      formData.append('resource_type', 'raw'); // לקבצי PDF
-      formData.append('public_id', `summaries/${Date.now()}_${file.name.replace('.pdf', '')}`);
-      
-      // הוספת מטא-דאטה
-      const contextData = {
-        title: metadata.title,
-        course: metadata.course,
-        professor: metadata.professor,
-        description: metadata.description,
-        uploadDate: new Date().toISOString()
-      };
-      
-      formData.append('context', JSON.stringify({ custom: contextData }));
-      
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloud_name}/raw/upload`,
-        {
-          method: 'POST',
-          body: formData
-        }
-      );
 
+      console.log('Uploading to Cloudinary with minimal config:', {
+        cloud_name: cloudinaryConfig.cloud_name,
+        upload_preset: cloudinaryConfig.upload_preset,
+        file_size: file.size,
+        file_type: file.type,
+        file_name: file.name
+      });
+
+      // נשתמש ב-auto upload - Cloudinary יחליט איך לטפל בקובץ
+      const endpoint = `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloud_name}/auto/upload`;
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        body: formData
+      });
+
+      // בדיקת תגובה ופרטי שגיאה
       if (!response.ok) {
-        throw new Error(`Upload failed: ${response.status}`);
+        let errorMessage = `Upload failed: ${response.status} ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          console.error('Cloudinary error details:', errorData);
+          
+          if (errorData.error && errorData.error.message) {
+            const cloudinaryError = errorData.error.message;
+            console.error('Cloudinary specific error:', cloudinaryError);
+            
+            // טיפול מיוחד בשגיאות נפוצות
+            if (cloudinaryError.includes('not allowed') || cloudinaryError.includes('Invalid')) {
+              errorMessage = `שגיאת הגדרות Cloudinary: ${cloudinaryError}\n\nפתרונות:\n1. בדוק שה-Upload Preset "${cloudinaryConfig.upload_preset}" קיים ב-Cloudinary Dashboard\n2. וודא שה-Upload Preset מוגדר כ-"Unsigned"\n3. בדוק ש"Mode" מוגדר כ-"Unsigned" (לא "Signed")\n4. וודא שאין הגבלות על סוג קבצים בהגדרות`;
+            } else if (cloudinaryError.includes('Access control') || cloudinaryError.includes('Blocked')) {
+              errorMessage = `בעיית הרשאות: ${cloudinaryError}\n\nפתרונות:\n1. בדוק את הגדרות Security ב-Cloudinary\n2. וודא שאין חסימה על קבצים מסוג זה\n3. בדוק הגדרות Access Control`;
+            } else {
+              errorMessage = `Cloudinary Error: ${cloudinaryError}`;
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing Cloudinary response:', e);
+        }
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
+      console.log('Upload successful with result:', result);
+      
       return result;
       
     } catch (error) {
@@ -86,26 +108,35 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, cloudinaryConfi
         description
       };
 
+      console.log('Starting upload process...');
+      
       // העלאה ל-Cloudinary
       const uploadResult = await uploadToCloudinary(file, metadata);
+      
+      console.log('Upload result:', uploadResult);
       
       // יצירת אובייקט הסיכום החדש
       const newSummary = {
         id: uploadResult.public_id,
         public_id: uploadResult.public_id,
         title: title,
-        author: "אתה", // או שם המשתמש
+        author: "אתה",
         date: new Date().toLocaleDateString('he-IL'),
         course: course,
         professor: professor,
         description: description,
-        rating: 5, // דירוג ברירת מחדל
+        rating: 5,
         downloads: 0,
-        pages: Math.floor(Math.random() * 20) + 5, // מספר עמודים משוער
+        pages: Math.floor(Math.random() * 20) + 5,
         isLocked: false,
         size: file.size,
-        cloudinaryUrl: uploadResult.secure_url
+        cloudinaryUrl: uploadResult.secure_url,
+        fileUrl: uploadResult.secure_url,
+        originalFilename: file.name,
+        fileType: file.type
       };
+
+      console.log('Created summary object:', newSummary);
 
       // קריאה לפונקציה שמעדכנת את הקומפוננט הראשי
       onUploadSuccess(newSummary);
@@ -114,7 +145,27 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, cloudinaryConfi
       
     } catch (error) {
       console.error('Upload error:', error);
-      showToast("שגיאה", "שגיאה בהעלאת הקובץ. נסה שוב.");
+      
+      // הצגת הודעת שגיאה מפורטת יותר
+      let errorMessage = "שגיאה לא ידועה בהעלאת הקובץ";
+      
+      if (error.message.includes('Access control') || error.message.includes('Blocked')) {
+        errorMessage = error.message;
+      } else if (error.message.includes('Upload failed: 400')) {
+        errorMessage = "שגיאה בהגדרות Cloudinary.\n\nבדוק:\n1. ה-Upload Preset נכון ותקין\n2. הפרמטרים מותרים בהגדרות\n3. סוג הקובץ נתמך";
+      } else if (error.message.includes('Upload failed: 401')) {
+        errorMessage = "שגיאת הרשאה.\n\nבדוק:\n1. שם החשבון (Cloud Name) נכון\n2. ה-Upload Preset קיים ומוגדר כ-Unsigned";
+      } else if (error.message.includes('Upload failed: 403')) {
+        errorMessage = "הגישה נדחתה.\n\nבדוק:\n1. הגדרות ה-Upload Preset\n2. Security Settings ב-Cloudinary\n3. הגבלות על סוג הקובץ";
+      } else if (error.message.includes('network')) {
+        errorMessage = "שגיאת רשת. בדוק את החיבור לאינטרנט ונסה שוב";
+      } else if (error.message.includes('not allowed')) {
+        errorMessage = error.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      showToast("שגיאה בהעלאה", errorMessage);
     } finally {
       setIsUploading(false);
     }
@@ -128,9 +179,14 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, cloudinaryConfi
   };
 
   const processFile = (selectedFile) => {
-    // בדיקה שהקובץ הוא PDF
-    if (selectedFile.type !== "application/pdf") {
-      showToast("סוג קובץ לא נתמך", "אנא העלה קובץ PDF בלבד");
+    // בדיקה שהקובץ הוא רק DOCX או DOC
+    const allowedTypes = [
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
+      "application/msword" // .doc (legacy)
+    ];
+    
+    if (!allowedTypes.includes(selectedFile.type)) {
+      showToast("סוג קובץ לא נתמך", "אנא העלה קובץ WORD (DOC או DOCX) בלבד");
       return;
     }
     
@@ -141,6 +197,11 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, cloudinaryConfi
     }
     
     setFile(selectedFile);
+    console.log('File selected:', {
+      name: selectedFile.name,
+      size: selectedFile.size,
+      type: selectedFile.type
+    });
   };
 
   const handleDragOver = (e) => {
@@ -202,7 +263,8 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, cloudinaryConfi
                 onChange={(e) => setTitle(e.target.value)}
                 className="upload-form-input"
                 placeholder="לדוגמה: סיכום מבוא לסטטיסטיקה - פרק 3"
-              required={true}/>
+                required={true}
+              />
             </div>
             
             <div className="upload-form-field">
@@ -214,7 +276,8 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, cloudinaryConfi
                 className="upload-form-input"
                 onChange={(e) => setCourse(e.target.value)}
                 placeholder="שם הקורס"
-              required={true}/>
+                required={true}
+              />
             </div>
             
             <div className="upload-form-field">
@@ -226,7 +289,8 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, cloudinaryConfi
                 className="upload-form-input"
                 onChange={(e) => setProfessor(e.target.value)}
                 placeholder="שם המרצה"
-              required={true}/>
+                required={true}
+              />
             </div>
             
             <div className="upload-form-field">
@@ -242,7 +306,10 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, cloudinaryConfi
             </div>
             
             <div className="upload-form-field">
-              <label className="upload-form-label">קובץ PDF *</label>
+              <label className="upload-form-label">קובץ מסמך *</label>
+              <div className="upload-file-info-box">
+                <p><strong>חשוב: </strong>העלאת קבצי WORD בלבד (DOC או DOCX)</p>
+              </div>
               {!file ? (
                 <div 
                   className={`upload-file-drop-zone ${isDragOver ? 'drag-over' : ''}`}
@@ -258,13 +325,13 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, cloudinaryConfi
                     <line x1="16" y1="17" x2="8" y2="17"></line>
                     <polyline points="10,9 9,9 8,9"></polyline>
                   </svg>
-                  <p className="upload-file-drop-text">לחץ להעלאת קובץ</p>
+                  <p className="upload-file-drop-text">לחץ להעלאת קובץ WORD</p>
                   <p className="upload-file-drop-subtext">או גרור קובץ לכאן</p>
-                  <p className="upload-file-drop-info">PDF בלבד, עד 10MB</p>
+                  <p className="upload-file-drop-info">DOC או DOCX בלבד, עד 10MB</p>
                   <input
                     id="file-upload"
                     type="file"
-                    accept=".pdf"
+                    accept=".doc,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword"
                     className="upload-hidden-input"
                     onChange={handleFileChange}
                   />

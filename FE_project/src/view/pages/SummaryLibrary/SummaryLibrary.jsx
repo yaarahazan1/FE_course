@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import UploadSummaryDialog from "../../components/SummaryLibraryHelper/UploadSummaryDialog/UploadSummaryDialog";
 import "./SummaryLibrary.css";
@@ -20,13 +21,11 @@ const getUserId = () => {
   return userId;
 };
 
-// פונקציה למחיקת קובץ מ-Cloudinary - מתוקנת עם Web Crypto API
 const deleteFromCloudinary = async (publicId) => {
   try {
     const timestamp = Math.round(new Date().getTime() / 1000);
     const stringToSign = `public_id=${publicId}&timestamp=${timestamp}${CLOUDINARY_CONFIG.api_secret}`;
     
-    // שימוש ב-Web Crypto API במקום crypto של Node.js
     const encoder = new TextEncoder();
     const data = encoder.encode(stringToSign);
     const hashBuffer = await crypto.subtle.digest('SHA-1', data);
@@ -44,6 +43,8 @@ const deleteFromCloudinary = async (publicId) => {
     formData.append('timestamp', timestamp);
     formData.append('api_key', CLOUDINARY_CONFIG.api_key);
     formData.append('signature', signature);
+    formData.append('access_mode', 'public');
+
 
     const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloud_name}/raw/destroy`, {
       method: 'POST',
@@ -83,14 +84,13 @@ const deleteFromCloudinary = async (publicId) => {
   }
 };
 
-// רכיב כרטיס סיכום
-const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, currentUserId }) => {
+const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateSummary, currentUserId }) => {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
   
-  // בדיקה האם הסיכום שייך למשתמש הנוכחי
   const isOwnSummary = summary.uploadedBy === currentUserId;
 
-  // פונקציה להצגת כוכבי דירוג
   const renderRatingStars = (rating) => {
     const stars = [];
     const fullStars = Math.floor(rating);
@@ -112,42 +112,497 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, currentUs
     return stars;
   };
 
-  const handleDownload = async () => {
+ const handleDownload = async () => {
     if (summary.isLocked && !hasAccess) {
       onAccessRequired();
-    } else {
-      try {
-        // יצירת URL להורדה של הקובץ מ-Cloudinary
-        const downloadUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/fl_attachment/${summary.public_id}.pdf`;
+      return;
+    }
+
+    try {
+      setIsDownloading(true);
+      
+      console.log('Summary public_id:', summary.public_id);
+      
+      const getFileExtension = (publicId) => {
+        if (publicId.includes('.')) {
+          return publicId.split('.').pop().toLowerCase();
+        }
+        return 'unknown';
+      };
+      
+      const fileExtension = getFileExtension(summary.public_id);
+      const isDocFile = ['doc', 'docx'].includes(fileExtension);
+      
+      const cleanTitle = summary.title.replace(/[<>:"/\\|?*]/g, '_').trim();
+      let fileName = cleanTitle;
+      if (isDocFile) {
+        fileName += `.${fileExtension}`;
+      } else {
+        fileName += '.pdf';
+      }
+      
+      console.log('File type detected:', fileExtension, 'Download as:', fileName);
+      
+      if (summary.fileUrl) {
+        console.log('Using direct file URL:', summary.fileUrl);
         
-        // פתיחת הקובץ בטאב חדש להורדה
         const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.download = `${summary.title}.pdf`;
+        link.href = summary.fileUrl;
+        link.download = fileName;
+        link.target = '_blank'; 
+        
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         
-        alert("מוריד את הסיכום: " + summary.title);
-      } catch (error) {
-        console.error('Error downloading file:', error);
-        alert("שגיאה בהורדת הקובץ");
+        updateDownloadCount(summary.id);
+        return;
       }
+      
+      const downloadUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/fl_attachment/${summary.public_id}`;
+      
+      console.log('Trying download URL:', downloadUrl);
+      
+      try {
+        const response = await fetch(downloadUrl, {
+          method: 'GET',
+          mode: 'cors',
+          credentials: 'omit'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const blob = await response.blob();
+        
+        if (blob.size === 0) {
+          throw new Error('Downloaded file is empty');
+        }
+        
+        const blobUrl = window.URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = fileName;
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        window.URL.revokeObjectURL(blobUrl);
+        
+        updateDownloadCount(summary.id);
+        console.log('File downloaded successfully via fetch as:', fileName);
+        
+      } catch (fetchError) {
+        console.log('Fetch failed, trying direct link method:', fetchError.message);
+        
+        const directUrls = [
+          `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/fl_attachment/${summary.public_id}`,
+          `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/image/upload/fl_attachment/${summary.public_id}`,
+          `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/${summary.public_id}`,
+          `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/image/upload/${summary.public_id}`
+        ];
+        
+        let downloadStarted = false;
+        
+        for (const url of directUrls) {
+          try {
+            console.log('Trying direct download URL:', url);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName; // שימוש בשם הקובץ עם הסיומת הנכונה
+            link.target = '_blank'; // פתיחה בטאב חדש כ-fallback
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            updateDownloadCount(summary.id);
+            downloadStarted = true;
+            console.log('Direct download started with URL:', url, 'as:', fileName);
+            break;
+            
+          } catch (directError) {
+            console.log('Direct download failed for URL:', url, directError.message);
+            continue;
+          }
+        }
+        
+        if (!downloadStarted) {
+          throw new Error('כל שיטות ההורדה נכשלו');
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      
+      let errorMessage = 'שגיאה בהורדת הקובץ:\n\n';
+      
+      if (error.message.includes('CORS')) {
+        errorMessage += 'בעיית הרשאות גישה. נסה להוריד את הקובץ בדפדפן אחר או בחלון גלישה פרטית.';
+      } else if (error.message.includes('not found') || error.message.includes('404')) {
+        errorMessage += 'הקובץ לא נמצא בשרת. ייתכן שהוא נמחק או שהקישור פגום.';
+      } else if (error.message.includes('network') || error.message.includes('fetch')) {
+        errorMessage += 'בעיית חיבור לאינטרנט. נסה שוב מאוחר יותר.';
+      } else {
+        errorMessage += error.message;
+      }
+      
+      errorMessage += '\n\nאם הבעיה נמשכת, נסה:';
+      errorMessage += '\n1. לרענן את הדף';
+      errorMessage += '\n2. לנסות בדפדפן אחר';
+      errorMessage += '\n3. להשבית את חוסם הפרסומות זמנית';
+      
+      alert(errorMessage);
+      
+      const fallbackUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/${summary.public_id}`;
+      console.log('Opening fallback URL in new tab:', fallbackUrl);
+      window.open(fallbackUrl, '_blank');
+      
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+  
+  const handlePreview = async () => {
+    if (summary.isLocked && !hasAccess) {
+      onAccessRequired();
+      return;
+    }
+
+    try {
+      // פתיחת מודל התצוגה המקדימה
+      setShowPreviewModal(true);
+      
+    } catch (error) {
+      console.error('Error opening preview:', error);
+      alert(`שגיאה בפתיחת התצוגה המקדימה: ${error.message}`);
     }
   };
 
-  const handlePreview = () => {
-    if (summary.isLocked && !hasAccess) {
-      onAccessRequired();
-    } else {
-      try {
-        // יצירת URL לתצוגה מקדימה של הקובץ מ-Cloudinary
-        const previewUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/${summary.public_id}.pdf`;
-        window.open(previewUrl, '_blank');
-      } catch (error) {
-        console.error('Error previewing file:', error);
-        alert("שגיאה בתצוגה מקדימה");
+  const PreviewContent = ({ summary }) => {
+    const [previewUrl, setPreviewUrl] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [currentViewerIndex, setCurrentViewerIndex] = useState(0);
+
+    const getFileExtension = (publicId) => {
+      if (publicId.includes('.')) {
+        return publicId.split('.').pop().toLowerCase();
       }
+      return 'unknown';
+    };
+
+    const fileExtension = getFileExtension(summary.public_id);
+    const isDocFile = ['doc', 'docx'].includes(fileExtension);
+    const isPdfFile = ['pdf'].includes(fileExtension);
+
+    useEffect(() => {
+      const loadPreview = async () => {
+        try {
+          setIsLoading(true);
+          setError(null);
+          
+          console.log('Loading preview for file type:', fileExtension);
+          console.log('Public ID:', summary.public_id);
+          
+          // URL ישיר לקובץ
+          const directUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/${summary.public_id}`;
+          console.log('Direct URL:', directUrl);
+          
+          // רשימת viewers שונים לפי סוג הקובץ
+          let viewers = [];
+          
+          if (isDocFile) {
+            // עבור קבצי DOC/DOCX
+            viewers = [
+              // Microsoft Office Online Viewer - הכי טוב לקבצי Word
+              `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(directUrl)}`,
+              
+              // Google Docs Viewer - גם תומך בקבצי Word
+              `https://docs.google.com/viewer?url=${encodeURIComponent(directUrl)}&embedded=true`,
+              
+              // Google Drive Viewer (חלופה)
+              `https://drive.google.com/viewerng/viewer?url=${encodeURIComponent(directUrl)}&embedded=true`,
+              
+              // הצגה ישירה (לא תמיד עובד עם DOC)
+              directUrl
+            ];
+          } else if (isPdfFile) {
+            // עבור קבצי PDF
+            viewers = [
+              // PDF.js - הכי טוב לPDF
+              `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(directUrl)}`,
+              
+              // Google Docs Viewer
+              `https://docs.google.com/viewer?url=${encodeURIComponent(directUrl)}&embedded=true`,
+              
+              // Microsoft Office Viewer
+              `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(directUrl)}`,
+              
+              // הצגה ישירה
+              directUrl
+            ];
+          } else {
+            // עבור קבצים אחרים
+            viewers = [
+              `https://docs.google.com/viewer?url=${encodeURIComponent(directUrl)}&embedded=true`,
+              `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(directUrl)}`,
+              directUrl
+            ];
+          }
+          
+          // התחל עם הviewer הראשון
+          setPreviewUrl(viewers[0]);
+          
+        } catch (err) {
+          console.error('Error loading preview:', err);
+          setError('לא ניתן לטעון את התצוגה המקדימה');
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      loadPreview();
+    }, [summary.public_id, fileExtension]);
+
+    const handleIframeError = () => {
+      console.log('Current viewer failed, trying next one');
+      
+      const directUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/${summary.public_id}`;
+      
+      let viewers = [];
+      if (isDocFile) {
+        viewers = [
+          `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(directUrl)}`,
+          `https://docs.google.com/viewer?url=${encodeURIComponent(directUrl)}&embedded=true`,
+          `https://drive.google.com/viewerng/viewer?url=${encodeURIComponent(directUrl)}&embedded=true`,
+          directUrl
+        ];
+      } else if (isPdfFile) {
+        viewers = [
+          `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(directUrl)}`,
+          `https://docs.google.com/viewer?url=${encodeURIComponent(directUrl)}&embedded=true`,
+          `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(directUrl)}`,
+          directUrl
+        ];
+      }
+      
+      const nextIndex = currentViewerIndex + 1;
+      
+      if (nextIndex < viewers.length) {
+        console.log(`Trying viewer ${nextIndex}:`, viewers[nextIndex]);
+        setCurrentViewerIndex(nextIndex);
+        setPreviewUrl(viewers[nextIndex]);
+      } else {
+        console.log('All viewers failed');
+        setError('לא ניתן לטעון את התצוגה המקדימה. הקובץ עשוי להיות פגום או לא נגיש.');
+      }
+    };
+
+    // פונקציה לבדיקת זמינות הקובץ
+    const checkFileAvailability = async () => {
+      try {
+        const directUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/${summary.public_id}`;
+        const response = await fetch(directUrl, { method: 'HEAD' });
+        
+        if (!response.ok) {
+          throw new Error(`File not accessible: ${response.status}`);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        console.log('File content type:', contentType);
+        
+        return true;
+      } catch (error) {
+        console.error('File availability check failed:', error);
+        return false;
+      }
+    };
+
+    if (isLoading) {
+      return (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: 'calc(100% - 60px)',
+          fontSize: '16px'
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ marginBottom: '10px', fontSize: '20px' }}>⏳</div>
+            <div>טוען תצוגה מקדימה...</div>
+            <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
+              סוג קובץ: {fileExtension.toUpperCase()}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: 'calc(100% - 60px)',
+          fontSize: '16px',
+          color: '#666',
+          padding: '20px'
+        }}>
+          <div style={{ marginBottom: '10px', fontSize: '30px' }}>⚠️</div>
+          <div style={{ marginBottom: '15px', fontWeight: 'bold', textAlign: 'center' }}>
+            {error}
+          </div>
+          <div style={{ fontSize: '14px', marginBottom: '20px', textAlign: 'center' }}>
+            {isDocFile ? 
+              'קבצי Word לפעמים דורשים הורדה לצפייה מלאה' : 
+              'הקובץ עשוי להיות פגום או לא נגיש'
+            }
+          </div>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button
+              onClick={() => {
+                const directUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/${summary.public_id}`;
+                window.open(directUrl, '_blank');
+              }}
+              style={{
+                background: '#4CAF50',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '10px 20px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              פתח קובץ בטאב חדש
+            </button>
+            <button
+              onClick={async () => {
+                // בדוק זמינות הקובץ ונסה שוב
+                const isAvailable = await checkFileAvailability();
+                if (isAvailable) {
+                  setCurrentViewerIndex(0);
+                  setError(null);
+                  setIsLoading(true);
+                  
+                  const directUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/${summary.public_id}`;
+                  const firstViewer = isDocFile ? 
+                    `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(directUrl)}` :
+                    `https://docs.google.com/viewer?url=${encodeURIComponent(directUrl)}&embedded=true`;
+                  
+                  setPreviewUrl(firstViewer);
+                  setTimeout(() => setIsLoading(false), 1000);
+                } else {
+                  alert('הקובץ לא נגיש. נסה להוריד אותו במקום.');
+                }
+              }}
+              style={{
+                background: '#2196F3',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '10px 20px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              נסה שוב
+            </button>
+            {isDocFile && (
+              <button
+                onClick={() => {
+                  // לקבצי DOC, נסה להמיר לPDF דרך Google
+                  const directUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/${summary.public_id}`;
+                  const convertUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(directUrl)}&embedded=true&a=v&pagenumber=1&w=100%`;
+                  setPreviewUrl(convertUrl);
+                  setError(null);
+                }}
+                style={{
+                  background: '#FF9800',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  padding: '10px 20px',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                נסה תצוגה מותאמת
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ height: '100%', position: 'relative' }}>
+        {/* מציג מידע על הviewer הנוכחי */}
+        <div style={{
+          position: 'absolute',
+          top: '10px',
+          right: '10px',
+          background: 'rgba(0,0,0,0.7)',
+          color: 'white',
+          padding: '5px 10px',
+          borderRadius: '15px',
+          fontSize: '12px',
+          zIndex: 1000
+        }}>
+          {isDocFile ? 'Word Document' : isPdfFile ? 'PDF' : 'Document'} 
+          {currentViewerIndex === 0 && ' - Microsoft Viewer'}
+          {currentViewerIndex === 1 && ' - Google Viewer'}
+          {currentViewerIndex === 2 && ' - Alternative Viewer'}
+          {currentViewerIndex === 3 && ' - Direct View'}
+        </div>
+        
+        <iframe
+          src={previewUrl}
+          style={{
+            width: '100%',
+            height: '100%',
+            border: 'none',
+            borderRadius: '0 0 8px 8px'
+          }}
+          title={`תצוגה מקדימה: ${summary.title}`}
+          onError={handleIframeError}
+          onLoad={() => {
+            console.log('Preview loaded successfully with viewer index:', currentViewerIndex);
+            console.log('Viewer URL:', previewUrl);
+          }}
+          // הוספת sandbox לבטיחות
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+        />
+      </div>
+    );
+  };
+
+  const updateDownloadCount = (summaryId) => {
+    try {
+      const savedSummaries = localStorage.getItem('uploaded_summaries');
+      if (savedSummaries) {
+        const summariesArray = JSON.parse(savedSummaries);
+        const updatedSummaries = summariesArray.map(sum => {
+          if (sum.id === summaryId) {
+            return { ...sum, downloads: (sum.downloads || 0) + 1 };
+          }
+          return sum;
+        });
+        localStorage.setItem('uploaded_summaries', JSON.stringify(updatedSummaries));
+        
+        if (onUpdateSummary) {
+          onUpdateSummary(summaryId, { downloads: (summary.downloads || 0) + 1 });
+        }
+      }
+    } catch (error) {
+      console.error('Error updating download count:', error);
     }
   };
 
@@ -158,15 +613,12 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, currentUs
       try {
         console.log('Starting deletion process for:', summary.public_id);
         
-        // ניסיון למחוק מ-Cloudinary
         const cloudinaryDeleted = await deleteFromCloudinary(summary.public_id);
         
         if (cloudinaryDeleted) {
-          // מחיקה מהאחסון המקומי רק אם המחיקה מ-Cloudinary הצליחה
           await onDelete(summary.public_id);
           alert("הסיכום נמחק בהצלחה מכל המקומות!");
         } else {
-          // במקרה של כשל במחיקה מ-Cloudinary, שאל את המשתמש אם להמשיך
           const shouldContinue = window.confirm(
             "לא הצלחנו למחוק את הקובץ מהשרת (Cloudinary). זה יכול להיות בגלל בעיית רשת או הרשאות.\n\n" +
             "האם ברצונך למחוק אותו רק מהממשק המקומי? (הקובץ עדיין יישאר בשרת)"
@@ -187,82 +639,159 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, currentUs
   };
 
   return (
-    <div className="summary-card">
-      <div className="summary-card-header">
-        {summary.isLocked && !hasAccess ? (
-          <div className="locked-indicator">
-            <span className="lock-icon">🔒</span>
+    <>
+      <div className="summary-card">
+        <div className="summary-card-header">
+          {summary.isLocked && !hasAccess ? (
+            <div className="locked-indicator">
+              <span className="lock-icon">🔒</span>
+            </div>
+          ) : null}
+          
+          <div className="summary-type">
+            {summary.course}
           </div>
-        ) : null}
-        
-        <div className="summary-type">
-          {summary.course.includes("פסיכולוגיה") ? "פסיכולוגיה חברתית" : 
-           summary.course.includes("סטטיסטיקה") ? "סטטיסטיקה למדעי החברה" :
-           summary.course.includes("נתונים") ? "מבנה נתונים" :
-           "אלגברה לינארית"}
+          
+          {hasAccess && isOwnSummary && (
+            <button 
+              className="delete-button" 
+              onClick={handleDelete} 
+              title="מחק סיכום"
+              disabled={isDeleting}
+              style={{ opacity: isDeleting ? 0.5 : 1 }}
+            >
+              {isDeleting ? '⏳' : '🗑️'}
+            </button>
+          )}
         </div>
-        
-        {/* כפתור מחיקה - יוצג רק אם הסיכום שייך למשתמש הנוכחי */}
-        {hasAccess && isOwnSummary && (
+
+        <div className="summary-card-content">
+          <h3 className="summary-title">{summary.title}</h3>
+          <div className="summary-meta">
+            <span className="summary-author">{summary.author}</span>
+            <span className="summary-date">{summary.date}</span>
+          </div>
+          <div className="summary-professor">
+            <span className="professor-label">מרצה: </span>
+            <span className="professor-name">{summary.professor}</span>
+          </div>
+          <div className="summary-stats">
+            <div className="summary-pages">
+              <span className="pages-icon">📄</span>
+              <span>{summary.pages} עמודים</span>
+            </div>
+            <div className="summary-rating">
+              <div className="rating-value">{summary.rating}</div>
+              <div className="rating-stars">{renderRatingStars(summary.rating)}</div>
+            </div>
+            <div className="summary-downloads">
+              <span className="downloads-count">{summary.downloads}</span>
+              <span className="downloads-icon">⬇️</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="summary-card-actions">
           <button 
-            className="delete-button" 
-            onClick={handleDelete} 
-            title="מחק סיכום"
-            disabled={isDeleting}
-            style={{ opacity: isDeleting ? 0.5 : 1 }}
+            className={`download-button ${summary.isLocked && !hasAccess ? "locked-button" : ""} ${isDownloading ? "loading" : ""}`}
+            onClick={handleDownload}
+            disabled={isDownloading}
           >
-            {isDeleting ? '⏳' : '🗑️'}
+            <span className="download-icon">{isDownloading ? '⏳' : '⬇️'}</span>
+            <span>{isDownloading ? 'מוריד...' : 'הורד'}</span>
           </button>
-        )}
-      </div>
-
-      <div className="summary-card-content">
-        <h3 className="summary-title">{summary.title}</h3>
-        <div className="summary-meta">
-          <span className="summary-author">{summary.author}</span>
-          <span className="summary-date">{summary.date}</span>
-        </div>
-        <div className="summary-professor">
-          <span className="professor-label">מרצה: </span>
-          <span className="professor-name">{summary.professor}</span>
-        </div>
-        <div className="summary-stats">
-          <div className="summary-pages">
-            <span className="pages-icon">📄</span>
-            <span>{summary.pages} עמודים</span>
-          </div>
-          <div className="summary-rating">
-            <div className="rating-value">{summary.rating}</div>
-            <div className="rating-stars">{renderRatingStars(summary.rating)}</div>
-          </div>
-          <div className="summary-downloads">
-            <span className="downloads-count">{summary.downloads}</span>
-            <span className="downloads-icon">⬇️</span>
-          </div>
+          <button 
+            className={`preview-button ${summary.isLocked && !hasAccess ? "locked-button" : ""}`}
+            onClick={handlePreview}
+            disabled={isDownloading}
+          >
+            <span className="preview-icon">👁️</span>
+            <span>תצוגה מקדימה</span>
+          </button>
         </div>
       </div>
-
-      <div className="summary-card-actions">
-        <button 
-          className={`download-button ${summary.isLocked && !hasAccess ? "locked-button" : ""}`}
-          onClick={handleDownload}
+      {showPreviewModal && (
+        <div 
+          className="preview-modal-overlay"
+          onClick={() => setShowPreviewModal(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            zIndex: 10000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
         >
-          <span className="download-icon">⬇️</span>
-          <span>הורד</span>
-        </button>
-        <button 
-          className={`preview-button ${summary.isLocked && !hasAccess ? "locked-button" : ""}`}
-          onClick={handlePreview}
-        >
-          <span className="preview-icon">👁️</span>
-          <span>תצוגה מקדימה</span>
-        </button>
-      </div>
-    </div>
+          <div 
+            className="preview-modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '90%',
+              height: '90%',
+              backgroundColor: 'white',
+              borderRadius: '8px',
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '10px 15px',
+              borderBottom: '1px solid #ddd',
+              backgroundColor: '#f5f5f5'
+            }}>
+              <h3 style={{ margin: 0, fontSize: '16px' }}>
+                תצוגה מקדימה: {summary.title}
+              </h3>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={handleDownload}
+                  disabled={isDownloading}
+                  style={{
+                    background: '#4CAF50',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '5px 10px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    opacity: isDownloading ? 0.5 : 1
+                  }}
+                >
+                  {isDownloading ? '⏳ מוריד...' : '⬇️ הורד'}
+                </button>
+                <button
+                  onClick={() => setShowPreviewModal(false)}
+                  style={{
+                    background: '#ff4444',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '5px 10px',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  ✕ סגור
+                </button>
+              </div>
+            </div>
+            <PreviewContent summary={summary} cloudinaryConfig={CLOUDINARY_CONFIG} />
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
-// רכיב ראשי של ספריית הסיכומים
 const SummaryLibrary = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCourse, setSelectedCourse] = useState("");
@@ -274,7 +803,16 @@ const SummaryLibrary = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [currentUserId] = useState(getUserId());
 
-  // בדיקה האם המשתמש כבר העלה סיכום
+  const handleUpdateSummary = (summaryId, updates) => {
+    setSummaries(prevSummaries => 
+      prevSummaries.map(summary => 
+        summary.id === summaryId 
+          ? { ...summary, ...updates }
+          : summary
+      )
+    );
+  };
+
   const checkUserUploadStatus = () => {
     const savedSummaries = localStorage.getItem('uploaded_summaries');
     if (savedSummaries) {
@@ -514,6 +1052,7 @@ const SummaryLibrary = () => {
               hasAccess={hasUploaded}
               onAccessRequired={() => setIsDialogOpen(true)}
               onDelete={deleteSummaryFromStorage}
+              onUpdateSummary={handleUpdateSummary}
               currentUserId={currentUserId}
             />
           ))}
