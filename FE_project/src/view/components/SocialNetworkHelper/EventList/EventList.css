@@ -13,10 +13,144 @@
   font-weight: bold;
   padding: 0.75rem;
   font-size: 1.1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.add-event-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.add-event-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.add-event-form {
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.add-event-form input,
+.add-event-form textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+  font-family: inherit;
+}
+
+.add-event-form input:focus,
+.add-event-form textarea:focus {
+  outline: none;
+  border-color: #998675;
+  box-shadow: 0 0 0 2px rgba(153, 134, 117, 0.2);
+}
+
+.form-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.form-row input {
+  flex: 1;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.submit-btn {
+  background-color: #998675;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.submit-btn:hover {
+  background-color: #8a7a68;
+}
+
+.cancel-btn {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.cancel-btn:hover {
+  background-color: #5a6268;
+}
+
+.event-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  gap: 1rem;
+}
+
+.loading-spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid #f0f0f0;
+  border-top: 3px solid #998675;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .event-list {
   padding: 0.75rem 1rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.no-events {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #666;
+}
+
+.no-events-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.no-events p {
+  margin: 0 0 0.25rem 0;
+  font-weight: 500;
+}
+
+.no-events small {
+  color: #999;
 }
 
 .event-item {
@@ -28,26 +162,107 @@
   gap: 0.75rem;
   margin-bottom: 0.75rem;
   border: 1px solid #ececec;
+  transition: all 0.2s ease;
+}
+
+.event-item:hover {
+  background-color: #f0f0f0;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.event-item:last-child {
+  margin-bottom: 0;
 }
 
 .event-icon {
   font-size: 1.25rem;
   color: #B3C8CF;
   margin-top: 0.2rem;
+  flex-shrink: 0;
 }
 
 .event-details {
   display: flex;
   flex-direction: column;
+  gap: 0.25rem;
+  flex-grow: 1;
 }
 
 .event-title {
   font-weight: 600;
   color: #4B4F55;
+  line-height: 1.3;
 }
 
 .event-time {
   font-size: 0.85rem;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.event-location {
+  font-size: 0.8rem;
+  color: #777;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.event-description {
+  font-size: 0.85rem;
+  color: #555;
+  line-height: 1.4;
+  margin-top: 0.25rem;
+}
+
+.event-creator {
+  font-size: 0.75rem;
   color: #999;
   margin-top: 0.25rem;
+  font-style: italic;
+}
+
+/* Custom scrollbar for event list */
+.event-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.event-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.event-list::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.event-list::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+@media (max-width: 768px) {
+  .form-row {
+    flex-direction: column;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .submit-btn,
+  .cancel-btn {
+    width: 100%;
+  }
+  
+  .event-item {
+    padding: 0.5rem;
+  }
+  
+  .event-details {
+    gap: 0.2rem;
+  }
 }
