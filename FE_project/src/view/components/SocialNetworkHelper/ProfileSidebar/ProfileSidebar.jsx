@@ -1,7 +1,75 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+} from "firebase/firestore";
+import { db } from "../../../../firebase/config";
 import "./ProfileSidebar.css";
 
 const ProfileSidebar = ({ user, studyGroups = [] }) => {
+  const [userStats, setUserStats] = useState({
+    postsCount: 0,
+    commentsCount: 0,
+    likesReceived: 0,
+    eventsCreated: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user?.uid) {
+      fetchUserStats();
+    }
+  }, [user]);
+
+  const fetchUserStats = async () => {
+    try {
+      // ספירת פוסטים של המשתמש
+      const postsQuery = query(
+        collection(db, "socialPosts"),
+        where("authorId", "==", user.uid)
+      );
+      const postsSnapshot = await getDocs(postsQuery);
+      const userPosts = postsSnapshot.docs.map(doc => doc.data());
+      
+      // ספירת לייקים שהמשתמש קיבל
+      const totalLikes = userPosts.reduce((sum, post) => sum + (post.likes || 0), 0);
+      
+      // ספירת תגובות של המשתמש (בכל הפוסטים)
+      let commentsCount = 0;
+      const allPostsSnapshot = await getDocs(collection(db, "socialPosts"));
+      
+      for (const postDoc of allPostsSnapshot.docs) {
+        const commentsQuery = query(
+          collection(db, "socialPosts", postDoc.id, "comments"),
+          where("authorId", "==", user.uid)
+        );
+        const commentsSnapshot = await getDocs(commentsQuery);
+        commentsCount += commentsSnapshot.size;
+      }
+
+      // ספירת אירועים שהמשתמש יצר
+      const eventsQuery = query(
+        collection(db, "socialEvents"),
+        where("createdBy", "==", user.uid)
+      );
+      const eventsSnapshot = await getDocs(eventsQuery);
+
+      setUserStats({
+        postsCount: userPosts.length,
+        commentsCount,
+        likesReceived: totalLikes,
+        eventsCreated: eventsSnapshot.size
+      });
+      
+    } catch (error) {
+      console.error("Error fetching user stats:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getUserDisplayName = () => {
     if (user?.displayName) return user.displayName;
     if (user?.email) return user.email.split('@')[0];
@@ -11,6 +79,87 @@ const ProfileSidebar = ({ user, studyGroups = [] }) => {
   const getUserInitials = () => {
     const name = getUserDisplayName();
     return name.charAt(0).toUpperCase();
+  };
+
+  const getAchievements = () => {
+    const achievements = [];
+    
+    // הישג פוסטים
+    if (userStats.postsCount >= 5) {
+      achievements.push({
+        icon: "📝",
+        title: "כותב פעיל",
+        desc: `${userStats.postsCount} פוסטים`
+      });
+    } else if (userStats.postsCount >= 1) {
+      achievements.push({
+        icon: "✍️",
+        title: "כותב מתחיל",
+        desc: `${userStats.postsCount} פוסטים`
+      });
+    }
+
+    // הישג תגובות
+    if (userStats.commentsCount >= 10) {
+      achievements.push({
+        icon: "💬",
+        title: "דיון פעיל",
+        desc: `${userStats.commentsCount} תגובות`
+      });
+    } else if (userStats.commentsCount >= 3) {
+      achievements.push({
+        icon: "🗨️",
+        title: "משתתף בדיונים",
+        desc: `${userStats.commentsCount} תגובות`
+      });
+    }
+
+    // הישג לייקים
+    if (userStats.likesReceived >= 20) {
+      achievements.push({
+        icon: "⭐",
+        title: "תוכן פופולרי",
+        desc: `${userStats.likesReceived} לייקים`
+      });
+    } else if (userStats.likesReceived >= 5) {
+      achievements.push({
+        icon: "👍",
+        title: "תוכן מוערך",
+        desc: `${userStats.likesReceived} לייקים`
+      });
+    }
+
+    // הישג אירועים
+    if (userStats.eventsCreated >= 3) {
+      achievements.push({
+        icon: "🎯",
+        title: "מארגן אירועים",
+        desc: `${userStats.eventsCreated} אירועים`
+      });
+    } else if (userStats.eventsCreated >= 1) {
+      achievements.push({
+        icon: "📅",
+        title: "יוזם אירועים",
+        desc: `${userStats.eventsCreated} אירועים`
+      });
+    }
+
+    // הישג קבוצות
+    if (studyGroups.length >= 3) {
+      achievements.push({
+        icon: "🤝",
+        title: "חבר פעיל",
+        desc: `${studyGroups.length} קבוצות`
+      });
+    } else if (studyGroups.length >= 1) {
+      achievements.push({
+        icon: "👥",
+        title: "חבר קבוצה",
+        desc: `${studyGroups.length} קבוצות`
+      });
+    }
+
+    return achievements.slice(0, 4); // מקסימום 4 הישגים
   };
 
   return (
@@ -36,6 +185,10 @@ const ProfileSidebar = ({ user, studyGroups = [] }) => {
           <div className="profile-stat">
             <span className="profile-stat-number">{studyGroups.length}</span>
             <span className="profile-stat-label">קבוצות לימוד</span>
+          </div>
+          <div className="profile-stat">
+            <span className="profile-stat-number">{userStats.postsCount}</span>
+            <span className="profile-stat-label">פוסטים</span>
           </div>
         </div>
       </div>
@@ -99,27 +252,38 @@ const ProfileSidebar = ({ user, studyGroups = [] }) => {
         )}
       </div>
 
-      {/* הישגים מהירים */}
+      {/* הישגים חכמים */}
       <div className="achievements-section">
         <h4 className="section-title">הישגים</h4>
         
-        <div className="achievements-grid">
-          <div className="achievement-badge">
-            <div className="achievement-icon">📚</div>
-            <div className="achievement-info">
-              <span className="achievement-title">חבר פעיל</span>
-              <span className="achievement-desc">משתתף בקבוצות לימוד</span>
-            </div>
+        {loading ? (
+          <div className="achievements-loading">
+            <div className="loading-spinner"></div>
+            <p>טוען הישגים...</p>
           </div>
-          
-          <div className="achievement-badge">
-            <div className="achievement-icon">🤝</div>
-            <div className="achievement-info">
-              <span className="achievement-title">עוזר לאחרים</span>
-              <span className="achievement-desc">תגובות מועילות</span>
-            </div>
+        ) : (
+          <div className="achievements-grid">
+            {getAchievements().length > 0 ? (
+              getAchievements().map((achievement, index) => (
+                <div key={index} className="achievement-badge">
+                  <div className="achievement-icon">{achievement.icon}</div>
+                  <div className="achievement-info">
+                    <span className="achievement-title">{achievement.title}</span>
+                    <span className="achievement-desc">{achievement.desc}</span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="no-achievements">
+                <div className="achievement-icon">🌟</div>
+                <div className="achievement-info">
+                  <span className="achievement-title">התחל לפעול!</span>
+                  <span className="achievement-desc">שתף פוסטים וצבור הישגים</span>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

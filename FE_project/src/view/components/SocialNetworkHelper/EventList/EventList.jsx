@@ -9,7 +9,7 @@ import {
   where,
   Timestamp 
 } from "firebase/firestore";
-import { db } from "../../../config/firebase";
+import { db } from "../../../../firebase/config";
 import "./EventList.css";
 
 const EventList = ({ currentUser }) => {

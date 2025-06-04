@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { collection, addDoc, getDocs, orderBy, query, updateDoc, doc, arrayUnion, arrayRemove, deleteDoc } from "firebase/firestore";
-import { auth, db } from "../../../firebase/firebase";
+import { auth, db } from "../../../firebase/config";
 import { useAuthState } from "react-firebase-hooks/auth";
 import SocialHeader from "../../components/SocialNetworkHelper/SocialHeader/SocialHeader";
 import ProfileSidebar from "../../components/SocialNetworkHelper/ProfileSidebar/ProfileSidebar";

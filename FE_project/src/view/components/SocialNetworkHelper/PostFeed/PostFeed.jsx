@@ -10,7 +10,7 @@ import {
   addDoc,
   serverTimestamp 
 } from "firebase/firestore";
-import { db } from "../../../config/firebase";
+import { db } from "../../../../firebase/config";
 import "./PostFeed.css";
 
 const PostFeed = ({ currentUser }) => {

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../../../config/firebase"; // התאם את הנתיב לקובץ Firebase שלך
+import { db } from "../../../../firebase/config";
 import "./PostForm.css";
 
 const PostForm = ({ currentUser, onPostAdded }) => {
