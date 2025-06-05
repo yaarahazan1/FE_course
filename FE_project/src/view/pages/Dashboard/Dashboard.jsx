@@ -17,7 +17,7 @@ const Dashboard = () => {
     timeSpentData: [],
     summaryUploadData: [],
     summaryRatings: [],
-    userEngagement: { visitors: 24, activeUsers: 8, newUsers: 5 },
+    userEngagement: { visitors: 0, activeUsers: 0, newUsers: 0 },
     currentUserData: {
       name: "משתמש אלמוני",
       tasksCompleted: 0,
@@ -88,7 +88,6 @@ const Dashboard = () => {
   // Fetch user activities from Firebase
   const fetchUserActivities = async (userId) => {
     try {
-      // נסה קודם activities, אם לא קיים - צור פעילויות מדומות מנתונים אחרים
       const activitiesRef = collection(db, 'activities');
       const q = query(
         activitiesRef, 
@@ -103,27 +102,16 @@ const Dashboard = () => {
         const data = doc.data();
         activities.push({
           id: doc.id,
-          activity: data.activityType || 'פעילות',
+          activity: data.activityType || data.type || 'פעילות',
           details: data.details || data.description || 'פעילות במערכת',
           date: data.timestamp?.toDate ? data.timestamp.toDate().toLocaleDateString('he-IL') : new Date().toLocaleDateString('he-IL')
         });
       });
 
-      // אם אין פעילויות, צור כמה דוגמאות
-      if (activities.length === 0) {
-        return [
-          { id: '1', activity: 'כניסה למערכת', details: 'התחברת למערכת', date: new Date().toLocaleDateString('he-IL') },
-          { id: '2', activity: 'צפייה בלוח מחוונים', details: 'צפית בנתונים האישיים', date: new Date().toLocaleDateString('he-IL') }
-        ];
-      }
-
       return activities;
     } catch (error) {
       console.error("Error fetching activities:", error);
-      // החזר פעילויות דמה במקרה של שגיאה
-      return [
-        { id: '1', activity: 'כניסה למערכת', details: 'התחברת למערכת', date: new Date().toLocaleDateString('he-IL') }
-      ];
+      return [];
     }
   };
 
@@ -148,23 +136,10 @@ const Dashboard = () => {
       });
 
       const result = Object.entries(courseTime).map(([name, hours]) => ({ name, hours }));
-      
-      // אם אין נתונים, החזר דוגמאות
-      if (result.length === 0) {
-        return [
-          { name: 'מתמטיקה', hours: 5 },
-          { name: 'פיזיקה', hours: 3 },
-          { name: 'כימיה', hours: 4 }
-        ];
-      }
-      
       return result;
     } catch (error) {
       console.error("Error fetching time data:", error);
-      return [
-        { name: 'מתמטיקה', hours: 5 },
-        { name: 'פיזיקה', hours: 3 }
-      ];
+      return [];
     }
   };
 
@@ -181,17 +156,9 @@ const Dashboard = () => {
         ratings.push({
           id: doc.id,
           title: data.summaryTitle || data.title || 'סיכום',
-          rating: data.rating || Math.floor(Math.random() * 5) + 1
+          rating: data.rating || 0
         });
       });
-
-      // אם אין דירוגים, החזר כמה דוגמאות
-      if (ratings.length === 0) {
-        return [
-          { id: '1', title: 'סיכום מתמטיקה', rating: 4 },
-          { id: '2', title: 'סיכום פיזיקה', rating: 5 }
-        ];
-      }
 
       return ratings;
     } catch (error) {
@@ -214,6 +181,7 @@ const Dashboard = () => {
           lastActive: userData.lastActive?.toDate ? userData.lastActive.toDate().toLocaleDateString('he-IL') : new Date().toLocaleDateString('he-IL')
         };
       }
+
       return { 
         name: user?.displayName || 'משתמש אלמוני', 
         lastActive: new Date().toLocaleDateString('he-IL') 
@@ -227,32 +195,134 @@ const Dashboard = () => {
     }
   };
 
+  // Fetch user engagement data
+  const fetchUserEngagement = async () => {
+    try {
+      // ספירת משתמשים פעילים (כניסות ב-24 השעות האחרונות)
+      const usersRef = collection(db, 'users');
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      const activeUsersQuery = query(usersRef, where('lastActive', '>=', yesterday));
+      const activeUsersSnapshot = await getDocs(activeUsersQuery);
+      
+      // ספירת סה"כ משתמשים
+      const allUsersSnapshot = await getDocs(usersRef);
+      
+      // ספירת משתמשים חדשים (נרשמו בשבוע האחרון)
+      const lastWeek = new Date();
+      lastWeek.setDate(lastWeek.getDate() - 7);
+      
+      const newUsersQuery = query(usersRef, where('createdAt', '>=', lastWeek));
+      const newUsersSnapshot = await getDocs(newUsersQuery);
+
+      return {
+        visitors: allUsersSnapshot.size,
+        activeUsers: activeUsersSnapshot.size,
+        newUsers: newUsersSnapshot.size
+      };
+    } catch (error) {
+      console.error("Error fetching user engagement:", error);
+      return { visitors: 0, activeUsers: 0, newUsers: 0 };
+    }
+  };
+
+  // Fetch study progress data (last 7 days)
+  const fetchStudyProgress = async (userId) => {
+    try {
+      const studyRef = collection(db, 'studyTime');
+      const lastWeek = new Date();
+      lastWeek.setDate(lastWeek.getDate() - 7);
+      
+      const q = query(
+        studyRef, 
+        where('userId', '==', userId),
+        where('date', '>=', lastWeek)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      
+      // יצירת מפה של ימים
+      const dailyHours = {};
+      const days = ['יום א\'', 'יום ב\'', 'יום ג\'', 'יום ד\'', 'יום ה\'', 'יום ו\'', 'שבת'];
+      
+      // אתחול כל הימים ל-0
+      days.forEach(day => {
+        dailyHours[day] = 0;
+      });
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const date = data.date?.toDate ? data.date.toDate() : new Date();
+        const dayName = days[date.getDay()];
+        const hours = data.hours || data.duration || 0;
+        
+        dailyHours[dayName] += hours;
+      });
+      
+      return days.map(day => ({
+        day,
+        hours: dailyHours[day] || 0
+      }));
+    } catch (error) {
+      console.error("Error fetching study progress:", error);
+      // eslint-disable-next-line no-undef
+      return days.map(day => ({ day, hours: 0 }));
+    }
+  };
+
+  // Generate monthly summary upload data
+  const generateSummaryUploadData = (summariesCount) => {
+    // אם אין סיכומים, החזר נתונים ריקים
+    if (summariesCount === 0) {
+      return [
+        { month: "ינואר", uploads: 0 },
+        { month: "פברואר", uploads: 0 },
+        { month: "מרץ", uploads: 0 },
+        { month: "אפריל", uploads: 0 }
+      ];
+    }
+
+    // אחרת, חלק את הסיכומים על פני החודשים (זהו קירוב)
+    const baseUploads = Math.floor(summariesCount / 4);
+    const remainder = summariesCount % 4;
+    
+    return [
+      { month: "ינואר", uploads: baseUploads },
+      { month: "פברואר", uploads: baseUploads + (remainder > 0 ? 1 : 0) },
+      { month: "מרץ", uploads: baseUploads + (remainder > 1 ? 1 : 0) },
+      { month: "אפריל", uploads: baseUploads + (remainder > 2 ? 1 : 0) }
+    ];
+  };
+
   // Main data fetching function
   const fetchAllData = async () => {
     if (!user) return;
-
+    
     setIsLoading(true);
     setDataError(null);
     
     try {
-      // שימוש ב-Promise.allSettled במקום Promise.all כדי שאם אחד נכשל, השאר יעבוד
       const results = await Promise.allSettled([
         fetchUserTasks(user.uid),
         fetchRecentSummaries(),
         fetchUserActivities(user.uid),
         fetchTimeSpentData(user.uid),
         fetchSummaryRatings(user.uid),
-        fetchUserProfile(user.uid)
+        fetchUserProfile(user.uid),
+        fetchUserEngagement(),
+        fetchStudyProgress(user.uid)
       ]);
 
-      // חילוץ התוצאות
       const [
         tasksResult,
         summariesResult,
         activitiesResult,
         timeDataResult,
         ratingsResult,
-        userProfileResult
+        userProfileResult,
+        engagementResult,
+        progressResult
       ] = results;
 
       const tasksData = tasksResult.status === 'fulfilled' ? tasksResult.value : { completed: 0, pending: 0, totalTasks: 0 };
@@ -261,46 +331,29 @@ const Dashboard = () => {
       const timeData = timeDataResult.status === 'fulfilled' ? timeDataResult.value : [];
       const ratings = ratingsResult.status === 'fulfilled' ? ratingsResult.value : [];
       const userProfile = userProfileResult.status === 'fulfilled' ? userProfileResult.value : { name: 'משתמש אלמוני', lastActive: new Date().toLocaleDateString('he-IL') };
+      const engagement = engagementResult.status === 'fulfilled' ? engagementResult.value : { visitors: 0, activeUsers: 0, newUsers: 0 };
+      const progressData = progressResult.status === 'fulfilled' ? progressResult.value : [];
 
-      // Calculate progress data (last 7 days)
-      const progressData = [];
-      const days = ['יום א\'', 'יום ב\'', 'יום ג\'', 'יום ד\'', 'יום ה\'', 'יום ו\'', 'שבת'];
-      for (let i = 0; i < 7; i++) {
-        progressData.push({
-          day: days[i],
-          hours: Math.floor(Math.random() * 6) + 1 // זמני - ניתן להחליף בנתונים אמיתיים
-        });
-      }
-
-      // Calculate top courses distribution
+      // חישוב נתונים נוספים
       const totalHours = timeData.reduce((sum, course) => sum + course.hours, 0);
-      const topCourses = timeData.map(course => ({
+      const topCourses = timeData.length > 0 ? timeData.map(course => ({
         name: course.name,
         percent: totalHours > 0 ? Math.round((course.hours / totalHours) * 100) : 0
-      }));
+      })) : [];
 
       setDashboardData({
         tasks: { completed: tasksData.completed, pending: tasksData.pending },
         recentSummaries: summaries,
         recentActivities: activities,
         timeSpentData: timeData,
-        summaryUploadData: [
-          { month: "ינואר", uploads: Math.max(1, Math.floor(summaries.length * 0.3)) },
-          { month: "פברואר", uploads: Math.max(1, Math.floor(summaries.length * 0.5)) },
-          { month: "מרץ", uploads: Math.max(1, Math.floor(summaries.length * 0.8)) },
-          { month: "אפריל", uploads: Math.max(1, summaries.length) }
-        ],
+        summaryUploadData: generateSummaryUploadData(summaries.length),
         summaryRatings: ratings,
-        userEngagement: { 
-          visitors: 24,
-          activeUsers: 8, 
-          newUsers: 5 
-        },
+        userEngagement: engagement,
         currentUserData: {
           name: userProfile.name,
           tasksCompleted: tasksData.completed,
           tasksTotal: tasksData.totalTasks,
-          studyHours: timeData.reduce((sum, course) => sum + course.hours, 0),
+          studyHours: totalHours,
           summariesUploaded: summaries.length,
           lastActive: userProfile.lastActive,
           progress: progressData,
@@ -374,7 +427,12 @@ const Dashboard = () => {
 
         setDashboardData(prev => ({
           ...prev,
-          recentSummaries: summaries
+          recentSummaries: summaries,
+          summaryUploadData: generateSummaryUploadData(summaries.length),
+          currentUserData: {
+            ...prev.currentUserData,
+            summariesUploaded: summaries.length
+          }
         }));
       }, (error) => {
         console.error("Error listening to summaries:", error);
@@ -466,9 +524,10 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-container">
-        <div>
-          <Link to="/" className="dashboard-home-link">חזרה לדף הבית</Link>
-        </div>
+      <div>
+        <Link to="/" className="dashboard-home-link">חזרה לדף הבית</Link>
+      </div>
+
       <div className="dashboard-header">
         <div>
           <h1 className="dashboard-title">לוח מחוונים מערכתי</h1>
@@ -496,12 +555,12 @@ const Dashboard = () => {
             <div className="stat-card">
               <div className="stat-number">{currentUserData.studyHours}</div>
               <div className="stat-label">שעות למידה</div>
-              <div className="stat-sublabel">בשבוע האחרון</div>
+              <div className="stat-sublabel">בסה"כ</div>
             </div>
             <div className="stat-card">
               <div className="stat-number">{currentUserData.summariesUploaded}</div>
               <div className="stat-label">סיכומים שהועלו</div>
-              <div className="stat-sublabel">בחודש האחרון</div>
+              <div className="stat-sublabel">בסה"כ</div>
             </div>
             <div className="stat-card">
               <div className="stat-number">{completionRate}%</div>
@@ -514,44 +573,53 @@ const Dashboard = () => {
             <div className="chart-section">
               <h3 className="chart-title">
                 <Clock className="chart-icon" />
-                פעילות לפי ימים
+                פעילות לפי ימים (שבוע אחרון)
               </h3>
               <div className="chart-container">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={currentUserData.progress}>
-                    <XAxis dataKey="day" />
-                    <YAxis direction={"ltr"}/>
-                    <Tooltip />
-                    <Bar dataKey="hours" fill="#89A8B2" />
-                  </BarChart>
-                </ResponsiveContainer>
+                {currentUserData.progress.length > 0 && currentUserData.progress.some(day => day.hours > 0) ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={currentUserData.progress}>
+                      <XAxis dataKey="day" />
+                      <YAxis direction={"ltr"}/>
+                      <Tooltip />
+                      <Bar dataKey="hours" fill="#89A8B2" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="empty-chart">אין נתוני פעילות לשבוע האחרון</div>
+                )}
               </div>
             </div>
+
             <div className="chart-section">
               <h3 className="chart-title">
                 <Trophy className="chart-icon" />
                 התפלגות זמן לפי קורסים
               </h3>
               <div className="chart-container">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={currentUserData.topCourses}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="percent"
-                      label={({ name, percent }) => `${name} ${percent}%`}
-                    >
-                      {currentUserData.topCourses.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={['#89A8B2', '#B3C8CF', '#FDE1D3', '#FEF7CD'][index % 4]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+                {currentUserData.topCourses.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={currentUserData.topCourses}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="percent"
+                        label={({ name, percent }) => `${name} ${percent}%`}
+                      >
+                        {currentUserData.topCourses.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={['#89A8B2', '#B3C8CF', '#FDE1D3', '#FEF7CD'][index % 4]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="empty-chart">אין נתוני זמן למידה</div>
+                )}
               </div>
             </div>
           </div>
@@ -575,24 +643,28 @@ const Dashboard = () => {
           <div className="card-content">
             <h2 className="card-title">סטטוס משימות</h2>
             <div className="pie-chart-container">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+              {tasks.completed > 0 || tasks.pending > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="empty-chart">אין משימות עדיין</div>
+              )}
               <div className="pie-legend">
                 <div className="legend-item">
                   <div className="legend-dot completed"></div>

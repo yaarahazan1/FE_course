@@ -4,6 +4,7 @@ import { FirebaseDataProvider } from './contexts/FirebaseDataContext';
 import ProtectedRoute from './ProtectedRoute';
 import MainLayout from '../src/view/layouts/MainLayout/MainLayout';
 import HomePage from '../src/view/pages/HomePage/HomePage';
+import LandingPage from '../src/view/pages/LandingPage/LandingPage';
 import HelpSettings from '../src/view/pages/HelpSettings/HelpSettings';
 import TimeManagement from '../src/view/pages/TimeManagement/TimeManagement';
 import SummaryLibrary from '../src/view/pages/SummaryLibrary/SummaryLibrary';
@@ -23,7 +24,25 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route element={<MainLayout />}>
-              <Route path="/" element={<HomePage />} />
+              {/* Root route - shows LandingPage for non-authenticated users, HomePage for authenticated users */}
+              <Route 
+                path="/" 
+                element={
+                  <ProtectedRoute requireAuth={false} showHomeForAuth={true}>
+                    <LandingPage />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Home page - only for authenticated users */}
+              <Route 
+                path="/Home" 
+                element={
+                  <ProtectedRoute requireAuth={true}>
+                    <HomePage />
+                  </ProtectedRoute>
+                } 
+              />
               
               <Route 
                 path="/HelpSettings" 

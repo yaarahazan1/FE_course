@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import "./UploadSummaryDialog.css";
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from "../../../../firebase/config";
 
 const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, cloudinaryConfig }) => {
   const [title, setTitle] = useState("");
@@ -9,6 +11,8 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, cloudinaryConfi
   const [file, setFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+
+  const [user] = useAuthState(auth);
 
   const showToast = (title, description, type = "error") => {
     // יצירת toast פשוט
@@ -120,7 +124,7 @@ const UploadSummaryDialog = ({ isOpen, onClose, onUploadSuccess, cloudinaryConfi
         id: uploadResult.public_id,
         public_id: uploadResult.public_id,
         title: title,
-        author: "אתה",
+        author: user.displayName || user.email || "משתמש לא מזוהה",
         date: new Date().toLocaleDateString('he-IL'),
         course: course,
         professor: professor,

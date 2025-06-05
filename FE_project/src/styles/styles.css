@@ -1,4 +1,51 @@
-/* Ensure parent links don't have underlines */
+.footer {
+    background-color: #F9F9F9;
+    border-top: 1px solid #E5E1DA;
+    padding-top: 1.5rem;
+    margin-top: auto;
+    text-align: center;
+}
+
+.footer-container {
+  display: flex;
+  justify-content: center;
+}
+
+.footer-links {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding-bottom: 1rem;
+    align-items: center;
+}
+
+.footer-link {
+    color: #89A8B2;
+    transition: color 0.3s ease;
+    text-decoration: none;
+}
+
+.footer-link:hover {
+    color: rgba(137, 168, 178, 0.8);
+}
+
+.footer-separator {
+    display: none;
+    color: #E5E1DA;
+}
+
+.footer-item {
+    color: #89A8B2;
+    cursor: pointer;
+    transition: color 0.3s ease;
+    text-decoration: none;
+}
+
+.footer-item:hover {
+    color: rgba(137, 168, 178, 0.8);
+}
+
 a {
 text-decoration: none;
 }

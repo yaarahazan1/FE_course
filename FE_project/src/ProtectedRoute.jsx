@@ -1,8 +1,9 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
+import HomePage from './view/pages/HomePage/HomePage';
 
-const ProtectedRoute = ({ children, requireAuth = true }) => {
+const ProtectedRoute = ({ children, requireAuth = true, showHomeForAuth = false }) => {
   const { currentUser, loading } = useAuth();
   const location = useLocation();
 
@@ -47,8 +48,13 @@ const ProtectedRoute = ({ children, requireAuth = true }) => {
   }
 
   // אם לא נדרש אימות והמשתמש כן מחובר (למשל דפי כניסה/הרשמה)
-  if (!requireAuth && currentUser) {
-    return <Navigate to="/" replace />;
+  if (!requireAuth && currentUser && !showHomeForAuth) {
+    return <Navigate to="/Home" replace />;
+  }
+
+  // מקרה מיוחד: עמוד ראשי - אם המשתמש מחובר מציג HomePage, אחרת מציג את הילדים (LandingPage)
+  if (showHomeForAuth && currentUser) {
+    return <HomePage />;
   }
 
   return children;

@@ -1,12 +1,13 @@
-import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import PageHeader from '../PageHeader';
-import './MainLayout.css';
+import '../../../styles/styles.css';
 
 const MainLayout = () => {
   const location = useLocation();
-  const hideHeaderPaths = ['/', '/Login', '/Signup', '/Dashboard', '/HelpSettings', '/AdminManagement']; // נתיבים שבהם לא נציג Header
-
+  
+  // נתיבים שבהם לא נציג Header
+  const hideHeaderPaths = ['/', '/Home', '/Login', '/Signup', '/Dashboard', '/HelpSettings', '/AdminManagement'];
+  
   return (
     <div>
       {!hideHeaderPaths.includes(location.pathname) && <PageHeader />}

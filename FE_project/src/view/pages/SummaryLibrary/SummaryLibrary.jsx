@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import UploadSummaryDialog from "../../components/SummaryLibraryHelper/UploadSummaryDialog/UploadSummaryDialog";
 import "./SummaryLibrary.css";
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '../../../firebase/config';
 
 // Cloudinary configuration
 const CLOUDINARY_CONFIG = {
@@ -13,6 +15,7 @@ const CLOUDINARY_CONFIG = {
 // פונקציה לקבלת מזהה משתמש ייחודי (מבוסס על localStorage)
 const getUserId = () => {
   let userId = localStorage.getItem('user_id');
+  
   if (!userId) {
     userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     localStorage.setItem('user_id', userId);
@@ -87,11 +90,31 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
-  
+  const [summaries, setSummaries] = useState([]);
+
   const isOwnSummary = summary.uploadedBy === currentUserId;
   const isRejected = summary.status === 'נדחה';
   const isPending = summary.status === 'ממתין לאישור' || !summary.status;
   const isApproved = summary.status === 'מאושר';
+
+  const [user] = useAuthState(auth);
+
+  useEffect(() => {
+    getSummaries();
+  }, []);
+
+  const getSummaries = () => {
+    const savedSummaries = localStorage.getItem('uploaded_summaries');
+    if (savedSummaries) {
+      const summariesArray = JSON.parse(savedSummaries);
+      // בדיקה של כל הסיכומים של המשתמש (לא רק מאושרים)
+      const userSummaries = summariesArray.filter(summary => 
+        summary.author === user.displayName
+      );
+
+      setSummaries(userSummaries);
+    }
+  };
 
   const renderRatingStars = (rating) => {
     const stars = [];
@@ -115,12 +138,11 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
   };
 
   const handleDownload = async () => {
-    // רק הבעלים יכול להוריד סיכומים נדחים - לכל השאר זה נעול
-    const isAccessible = isApproved || (isOwnSummary && !isRejected);
-    
+    const isAccessible = summary.status === 'מאושר' || 
+                        (summary.uploadedBy === currentUserId && !isRejected);
+        
     if (!isAccessible) {
       if (isRejected && !isOwnSummary) {
-        // עבור משתמשים אחרים - סיכום נדחה מתנהג כמו סיכום נעול
         onAccessRequired();
         return;
       } else if (isRejected && isOwnSummary) {
@@ -522,7 +544,7 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
     }
 
     return (
-      <div className="preview-content-container">
+      <div className="preview-content-summary-container">
         <div className="viewer-info">
           {isDocFile ? 'Word Document' : isPdfFile ? 'PDF' : 'Document'} 
           {currentViewerIndex === 0 && ' - Microsoft Viewer'}
@@ -600,8 +622,36 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
     }
   };
 
+  const isSummaryLocked = (summary) => {
+    const isOwnSummary = summary.uploadedBy === currentUserId; 
+    const isRejected = summary.status === 'נדחה';
+
+    // האם המשתמש העלה סיכום כלשהו?
+    const userHasSubmittedAny = summaries.length > 0;
+
+    // האם המשתמש העלה סיכום מאושר?
+    const userHasApprovedSummary = summaries.some(s => s.status === 'מאושר');
+
+    // 1. אם לא העלה סיכום בכלל → נעול
+    if (!userHasSubmittedAny) {
+      return true;
+    }
+
+    // 2. הסיכום שלו → אף פעם לא נעול (גם אם דחוי)
+    if (isOwnSummary) {
+      return false;
+    }
+
+    // 3. סיכום של מישהו אחר
+    if (!userHasApprovedSummary) {
+      return true;  // אם המשתמש לא העלה סיכום מאושר → סיכומים אחרים נעולים
+    }
+
+    return isRejected; // אם המשתמש העלה סיכום מאושר → סיכומים אחרים נעולים רק אם דחויים
+  };
+
   // בדיקה אם הסיכום צריך להיראות כנעול
-  const shouldDisplayAsLocked = (summary.isLocked && !hasAccess) || (isRejected && !isOwnSummary);
+  const shouldDisplayAsLocked = isSummaryLocked(summary)
 
   return (
     <>
@@ -610,6 +660,7 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
           {shouldDisplayAsLocked ? (
             <div className="locked-indicator">
               <span className="lock-icon">🔒</span>
+              <span className="locked-text">נעול</span>
             </div>
           ) : null}
           
@@ -758,6 +809,8 @@ const SummaryLibrary = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [currentUserId] = useState(getUserId());
 
+  const [user] = useAuthState(auth);
+
   const handleUpdateSummary = (summaryId, updates) => {
     setSummaries(prevSummaries => 
       prevSummaries.map(summary => 
@@ -772,24 +825,27 @@ const SummaryLibrary = () => {
     const savedSummaries = localStorage.getItem('uploaded_summaries');
     if (savedSummaries) {
       const summariesArray = JSON.parse(savedSummaries);
-      const userSummaries = summariesArray.filter(summary => summary.uploadedBy === currentUserId);
+      // בדיקה של כל הסיכומים של המשתמש (לא רק מאושרים)
+      const userSummaries = summariesArray.filter(summary => 
+        summary.author === user.displayName
+      );
       return userSummaries.length > 0;
     }
     return false;
   };
 
   useEffect(() => {
-    const userHasUploaded = checkUserUploadStatus();
+    console.log('Checking user upload status...');
+    const userHasUploaded = checkUserUploadStatus(user);
+    console.log('User has uploaded:', userHasUploaded);
     setHasUploaded(userHasUploaded);
     localStorage.setItem('user_uploaded_summary', userHasUploaded ? 'true' : 'false');
-  }, [currentUserId]);
+  }, [user, summaries]); 
 
-  // פונקציה לטעינת סיכומים מ-localStorage (פתרון זמני עד להקמת backend)
   const loadSummariesFromLocalStorage = () => {
     try {
       setIsLoading(true);
       
-      // טעינת סיכומים מ-localStorage
       const savedSummaries = localStorage.getItem('uploaded_summaries');
       let localSummaries = [];
       
@@ -798,10 +854,13 @@ const SummaryLibrary = () => {
       }
       
       const userHasUploaded = checkUserUploadStatus();
+      console.log('Loading summaries - user has uploaded:', userHasUploaded);
+      console.log('Total summaries:', localSummaries.length);
+      console.log('User summaries:', localSummaries.filter(s => s.uploadedBy === currentUserId).length);
       
       const allSummaries = localSummaries.map(summary => ({
         ...summary,
-        isLocked: !userHasUploaded
+        isLocked: !userHasUploaded || (summary.uploadedBy !== currentUserId && !userHasUploaded)
       }));
       
       setSummaries(allSummaries);
@@ -819,29 +878,33 @@ const SummaryLibrary = () => {
     try {
       console.log('Deleting summary from storage:', publicId);
       
-      setSummaries(prevSummaries => {
-        const updatedSummaries = prevSummaries.filter(summary => summary.public_id !== publicId);
-        
-        localStorage.setItem('uploaded_summaries', JSON.stringify(updatedSummaries));
-        console.log('Updated localStorage with remaining summaries:', updatedSummaries.length);
-        
-        const userSummariesAfterDelete = updatedSummaries.filter(summary => summary.uploadedBy === currentUserId);
-        const userStillHasUploads = userSummariesAfterDelete.length > 0;
-        
-        console.log('User summaries after delete:', userSummariesAfterDelete.length);
-        
-        setHasUploaded(userStillHasUploads);
-        localStorage.setItem('user_uploaded_summary', userStillHasUploads ? 'true' : 'false');
-        
-        if (!userStillHasUploads) {
-          return updatedSummaries.map(summary => ({
-            ...summary,
-            isLocked: true
-          }));
-        }
-        
-        return updatedSummaries;
-      });
+      const updatedSummaries = summaries.filter(summary => summary.public_id !== publicId);
+      
+      localStorage.setItem('uploaded_summaries', JSON.stringify(updatedSummaries));
+      console.log('Updated localStorage with remaining summaries:', updatedSummaries.length);
+      
+      // בדיקה אם למשתמש עדיין יש סיכומים (כל סוג)
+      const userSummariesAfterDelete = updatedSummaries.filter(summary => summary.uploadedBy === currentUserId);
+      const userStillHasUploads = userSummariesAfterDelete.length > 0;
+      
+      console.log('User summaries after delete:', userSummariesAfterDelete.length);
+      console.log('User still has uploads:', userStillHasUploads);
+      
+      // עדכון hasUploaded מיד
+      setHasUploaded(userStillHasUploads);
+      localStorage.setItem('user_uploaded_summary', userStillHasUploads ? 'true' : 'false');
+      
+      // עדכון רשימת הסיכומים
+      if (!userStillHasUploads) {
+        // אם אין למשתמש עוד סיכומים - נעל את כל הסיכומים של אחרים
+        const summariesWithLock = updatedSummaries.map(summary => ({
+          ...summary,
+          isLocked: summary.uploadedBy !== currentUserId
+        }));
+        setSummaries(summariesWithLock);
+      } else {
+        setSummaries(updatedSummaries);
+      }
       
     } catch (error) {
       console.error('Error deleting summary from storage:', error);
@@ -853,10 +916,12 @@ const SummaryLibrary = () => {
     loadSummariesFromLocalStorage();
   }, []);
 
+
   const filteredSummaries = summaries.filter(summary => {
     const isApproved = summary.status === 'מאושר';
     const isOwnSummary = summary.uploadedBy === currentUserId;
     
+    // הצג סיכומים מאושרים לכולם, וסיכומים של המשתמש עצמו (כולל ממתינים/נדחים)
     if (!isApproved && !isOwnSummary) {
       return false;
     }
@@ -885,39 +950,41 @@ const SummaryLibrary = () => {
     return 0;
   });
 
+
   const handleUploadSuccess = (uploadedSummary) => {
-    setHasUploaded(true);
-    localStorage.setItem('user_uploaded_summary', 'true');
+    console.log('Upload success - starting process...');
     
     const summaryWithUserId = {
-        ...uploadedSummary,
-        uploadedBy: currentUserId,
-        isLocked: false,
-        id: Date.now().toString(),
-        status: 'ממתין לאישור',
-        uploadedAt: new Date().toISOString()
-      };
-    
+      ...uploadedSummary,
+      uploadedBy: currentUserId,
+      isLocked: false,
+      id: Date.now().toString(),
+      status: 'ממתין לאישור',
+      uploadedAt: new Date().toISOString()
+    };
+
     // שמירה ב-localStorage
     const existingSummaries = JSON.parse(localStorage.getItem('uploaded_summaries') || '[]');
     const updatedSummaries = [summaryWithUserId, ...existingSummaries];
     localStorage.setItem('uploaded_summaries', JSON.stringify(updatedSummaries));
     
+    console.log('Saved to localStorage, total summaries:', updatedSummaries.length);
+    console.log('User summaries count:', updatedSummaries.filter(s => s.uploadedBy === currentUserId).length);
+    
+    // עדכון המצב מיד אחרי העלאה
+    setHasUploaded(true);
+    localStorage.setItem('user_uploaded_summary', 'true');
+    console.log('Set hasUploaded to true');
+    
     // הוספת הסיכום החדש לרשימה
-    setSummaries(prevSummaries => [summaryWithUserId, ...prevSummaries]);
+    setSummaries(prevSummaries => {
+      const newSummaries = [summaryWithUserId, ...prevSummaries.map(s => ({ ...s, isLocked: false }))];
+      console.log('Updated summaries state, new count:', newSummaries.length);
+      return newSummaries;
+    });
     
     alert("הסיכום הועלה בהצלחה! כעת יש לך גישה מלאה לכל הסיכומים בספרייה.");
     setIsDialogOpen(false);
-    
-    // עדכון הסטטוס של כל הסיכומים - הסרת הנעילה
-    setSummaries(prevSummaries => 
-      prevSummaries.map(summary => ({ ...summary, isLocked: false }))
-    );
-    
-    // רענון הרשימה כדי לוודא שהסיכום החדש מופיע
-    setTimeout(() => {
-      loadSummariesFromLocalStorage();
-    }, 100);
   };
 
   const uniqueCourses = [...new Set(summaries.map(summary => summary.course))];
@@ -925,7 +992,7 @@ const SummaryLibrary = () => {
 
   if (isLoading) {
     return (
-      <div className="container">
+      <div className="summary-container">
         <div style={{ textAlign: 'center', padding: '50px' }}>
           <div>טוען סיכומים...</div>
         </div>
@@ -934,7 +1001,7 @@ const SummaryLibrary = () => {
   }
 
   return (
-    <div className="container">
+    <div className="summary-container">
       <header className="page-title">
         <h1>ספריית סיכומים</h1>
         <p className="subtitle">
@@ -955,7 +1022,7 @@ const SummaryLibrary = () => {
           />
         </div>
         
-        <div className="filter-container">
+        <div className="filter-summary-container">
           <select 
             value={selectedCourse} 
             onChange={(e) => setSelectedCourse(e.target.value)}
@@ -968,7 +1035,7 @@ const SummaryLibrary = () => {
           </select>
         </div>
         
-        <div className="filter-container">
+        <div className="filter-summary-container">
           <select 
             value={selectedProfessor} 
             onChange={(e) => setSelectedProfessor(e.target.value)}
@@ -981,7 +1048,7 @@ const SummaryLibrary = () => {
           </select>
         </div>
         
-        <div className="filter-container">
+        <div className="filter-summary-container">
           <select 
             value={sortBy} 
             onChange={(e) => setSortBy(e.target.value)}

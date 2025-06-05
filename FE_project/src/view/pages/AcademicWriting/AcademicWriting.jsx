@@ -16,11 +16,13 @@ import {
   doc, 
   query, 
   orderBy, 
+  where,
   serverTimestamp 
 } from 'firebase/firestore';
-import { db } from '../../../firebase/config';
+import { auth, db } from '../../../firebase/config';
+import { useAuthState } from 'react-firebase-hooks/auth'; 
 
-// HTML Templates moved outside the component
+
 const createPrintTemplate = (params) => `
 <!DOCTYPE html>
 <html dir="${params.direction}">
@@ -207,6 +209,8 @@ const AcademicWriting = () => {
   const [showDocumentsList, setShowDocumentsList] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
 
+  const [user, loading, error] = useAuthState(auth);
+
   // Translation objects
   const translations = {
     he: {
@@ -251,20 +255,20 @@ const AcademicWriting = () => {
     }
   };
 
-  // Function to detect language
   const detectLanguage = (text) => {
     const hebrewRegex = /[\u0590-\u05FF]/;
     return hebrewRegex.test(text) ? 'he' : 'en';
   };
 
-  // Function to get translated values
   const getTranslatedValues = (language) => {
     return translations[language] || translations.he;
   };
 
   useEffect(() => {
-    loadDocuments();
-  }, []);
+    if (user) {
+      loadDocuments();
+    }
+  }, [user]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -475,10 +479,16 @@ const AcademicWriting = () => {
   }, [content, documentTitle, currentDocumentId, documentType, documentStructure, citationStyle]);
 
   const loadDocuments = async () => {
+    if (!user) {
+      setDocuments([]);
+      return;
+    }
+    
     setIsLoading(true);
     try {
       const q = query(
-        collection(db, 'academicDocuments'), 
+        collection(db, 'academicDocuments'),
+        where('userId', '==', user.uid), // הוסף את השורה הזו
         orderBy('updatedAt', 'desc')
       );
       
@@ -497,7 +507,13 @@ const AcademicWriting = () => {
     setIsLoading(false);
   };
 
+
   const saveDocument = async (showMessage = true) => {
+    if (!user) {
+      if (showMessage) setSaveMessage("נדרש להתחבר כדי לשמור מסמכים");
+      return;
+    }
+    
     if (!content.trim() && !documentTitle.trim()) {
       if (showMessage) setSaveMessage("אין תוכן לשמירה");
       return;
@@ -513,6 +529,7 @@ const AcademicWriting = () => {
         citationStyle,
         wordCount,
         analysis,
+        userId: user.uid, // הוסף את השורה הזו
         updatedAt: serverTimestamp()
       };
 
@@ -873,6 +890,10 @@ const AcademicWriting = () => {
     
     const wordCountRecommendation = getWordCountRecommendation(documentType, wordCount);
     
+    if (loading) return <div>טוען...</div>;
+    if (error) return <div>שגיאה: {error.message}</div>;
+    if (!user) return <div>נדרש להתחבר כדי להשתמש בכלי</div>;
+
     return (
       <div>
         <div className="ai-panel-section">

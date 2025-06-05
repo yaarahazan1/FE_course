@@ -8,9 +8,12 @@ import {
   deleteDoc,
   query,
   orderBy,
-  onSnapshot 
+  onSnapshot,
+  where,
+  getDocs
 } from "firebase/firestore";
-import { db } from "../../../firebase/config"
+import { db, auth } from "../../../firebase/config";
+import { onAuthStateChanged } from "firebase/auth";
 import UserList from "../../components/AdminManagementHelper/UserList/UserList";
 import SummaryList from "../../components/AdminManagementHelper/SummaryList/SummaryList";
 import UserDetailDialog from "../../components/AdminManagementHelper/UserDetailDialog/UserDetailDialog";
@@ -41,24 +44,63 @@ const AdminManagement = () => {
   const [summaries, setSummaries] = useState([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [isLoadingSummaries, setIsLoadingSummaries] = useState(true);
+  const [isAuthenticating, setIsAuthenticating] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
 
-  useEffect(() => {
-    const isAdmin = localStorage.getItem("isAdmin") === "true";
-    if (!isAdmin) {
-      toast.error("אין לך הרשאת גישה לדף הניהול");
-      navigate("/");
+  // פונקציה לבדיקת הרשאות אדמין בשרת
+  const checkAdminPermissions = async (userId) => {
+    try {
+      const userQuery = query(
+        collection(db, "users"), 
+        where("uid", "==", userId),
+        where("isAdmin", "==", true)
+      );
+      const querySnapshot = await getDocs(userQuery);
+      return !querySnapshot.empty;
+    } catch (error) {
+      console.error("Error checking admin permissions:", error);
+      return false;
     }
+  };
+
+  // אימות משתמש ובדיקת הרשאות
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      setIsAuthenticating(true);
+      
+      if (!user) {
+        toast.error("יש להתחבר כדי לגשת לדף הניהול");
+        navigate("/login");
+        return;
+      }
+
+      setCurrentUser(user);
+      
+      // בדיקת הרשאות אדמין בשרת
+      const isAdmin = await checkAdminPermissions(user.uid);
+      
+      if (!isAdmin) {
+        toast.error("אין לך הרשאת גישה לדף הניהול");
+        navigate("/");
+        return;
+      }
+
+      setIsAuthenticating(false);
+    });
+
+    return () => unsubscribeAuth();
   }, [navigate]);
 
-  // טעינת משתמשים מ-Firebase
+  // טעינת משתמשים מ-Firebase (רק אחרי אימות)
   useEffect(() => {
+    if (isAuthenticating || !currentUser) return;
+
     const loadUsers = async () => {
       try {
         setIsLoadingUsers(true);
         const usersCollection = collection(db, "users");
         const usersQuery = query(usersCollection, orderBy("createdAt", "desc"));
         
-        // שימוש ב-onSnapshot לעדכון בזמן אמת
         const unsubscribe = onSnapshot(usersQuery, (querySnapshot) => {
           const usersData = [];
           querySnapshot.forEach((doc) => {
@@ -80,17 +122,18 @@ const AdminManagement = () => {
     };
 
     loadUsers();
-  }, []);
+  }, [isAuthenticating, currentUser]);
 
-  // טעינת סיכומים מ-localStorage (Cloudinary)
+  // טעינת סיכומים מ-localStorage (רק אחרי אימות)
   useEffect(() => {
+    if (isAuthenticating || !currentUser) return;
+
     const loadSummaries = () => {
       try {
         setIsLoadingSummaries(true);
         const savedSummaries = localStorage.getItem('uploaded_summaries');
         if (savedSummaries) {
           const summariesData = JSON.parse(savedSummaries);
-          // הוספת מידע נוסף לסיכומים אם נדרש
           const summariesWithStatus = summariesData.map(summary => ({
             ...summary,
             status: summary.status || 'ממתין לאישור'
@@ -106,7 +149,7 @@ const AdminManagement = () => {
     };
 
     loadSummaries();
-  }, []);
+  }, [isAuthenticating, currentUser]);
 
   // פונקציה למחיקת קובץ מ-Cloudinary
   const deleteFromCloudinary = async (publicId) => {
@@ -195,7 +238,6 @@ const AdminManagement = () => {
 
   const handleSummaryAction = async (action, summaryId) => {
     try {
-      // עדכון ב-localStorage
       const savedSummaries = localStorage.getItem('uploaded_summaries');
       if (savedSummaries) {
         let summariesData = JSON.parse(savedSummaries);
@@ -222,7 +264,6 @@ const AdminManagement = () => {
               };
               break;
             case 'מחיקה':
-              // מחיקה מ-Cloudinary
               if (currentSummary.public_id) {
                 const cloudinaryDeleted = await deleteFromCloudinary(currentSummary.public_id);
                 if (!cloudinaryDeleted) {
@@ -230,17 +271,13 @@ const AdminManagement = () => {
                   return;
                 }
               }
-              // הסרה מהמערך
               summariesData = summariesData.filter(s => s.id !== summaryId);
               break;
             default:
               return;
           }
           
-          // שמירה ב-localStorage
           localStorage.setItem('uploaded_summaries', JSON.stringify(summariesData));
-          
-          // עדכון הסטייט המקומי
           setSummaries(summariesData);
         }
       }
@@ -269,6 +306,17 @@ const AdminManagement = () => {
     setSelectedSummary(summary);
     setIsSummaryDetailOpen(true);
   };
+
+  // הצגת מסך טעינה במהלך האימות
+  if (isAuthenticating) {
+    return (
+      <div className="admin-container">
+        <div style={{ textAlign: 'center', padding: '50px' }}>
+          <h2>מאמת הרשאות...</h2>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-container">
