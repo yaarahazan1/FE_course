@@ -53,8 +53,7 @@
 ## הוראות התקנה והרצה מקומית
 
 ### דמו של הפרויקט:
-https://melodious-conkies-cdb105.netlify.app/
-
+https://smart-student-1cf98.web.app/
 ## טכנולוגיות
 
 * **Frontend**: React + Vite
