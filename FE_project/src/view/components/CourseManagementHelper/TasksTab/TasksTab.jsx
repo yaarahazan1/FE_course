@@ -115,7 +115,7 @@ const TasksTab = () => {
                 <h3 className="task-title">{task.title || "ללא כותרת"}</h3>
                 <div className="task-actions">
                   <button
-                    className="delete-btn"
+                    className="delete-btn-task"
                     onClick={() => deleteTask(task.id)}
                     disabled={deletingTaskId === task.id}
                     title="מחק משימה"

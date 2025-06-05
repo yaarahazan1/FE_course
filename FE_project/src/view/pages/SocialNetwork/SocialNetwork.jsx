@@ -33,14 +33,14 @@ const SocialNetwork = () => {
   const loadPosts = async () => {
     try {
       const postsQuery = query(
-        collection(db, "social_posts"),
+        collection(db, "socialPosts"),
         orderBy("createdAt", "desc")
       );
       const snapshot = await getDocs(postsQuery);
       const postsData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate() || new Date()
+        createdAt: new Date()
       }));
       setPosts(postsData);
     } catch (error) {
@@ -103,7 +103,7 @@ const SocialNetwork = () => {
         shares: 0
       };
 
-      const docRef = await addDoc(collection(db, "social_posts"), newPost);
+      const docRef = await addDoc(collection(db, "socialPosts"), newPost);
       
       // עדכון מקומי
       setPosts(prev => [{
@@ -176,7 +176,7 @@ const SocialNetwork = () => {
     if (!user) return;
 
     try {
-      const postRef = doc(db, "social_posts", postId);
+      const postRef = doc(db, "socialPosts", postId);
       const post = posts.find(p => p.id === postId);
       
       if (!post) return;
@@ -220,7 +220,7 @@ const SocialNetwork = () => {
         createdAt: new Date()
       };
 
-      const postRef = doc(db, "social_posts", postId);
+      const postRef = doc(db, "socialPosts", postId);
       await updateDoc(postRef, {
         comments: arrayUnion(comment)
       });
@@ -284,7 +284,7 @@ const SocialNetwork = () => {
 
     if (window.confirm("האם אתה בטוח שברצונך למחוק את הפוסט?")) {
       try {
-        await deleteDoc(doc(db, "social_posts", postId));
+        await deleteDoc(doc(db, "socialPosts", postId));
         setPosts(prev => prev.filter(p => p.id !== postId));
       } catch (error) {
         console.error("Error deleting post:", error);
@@ -331,13 +331,17 @@ const SocialNetwork = () => {
           <EventList 
             events={events} 
             currentUser={user}
+            onCreateEvent={() => setShowEventDialog(true)}  
             onJoinEvent={handleJoinEvent}
           />
         </div>
 
         {/* Main Feed */}
         <div className="social-main">
-          <PostForm onSubmit={handleAddPost} />
+          <PostForm 
+            onSubmit={handleAddPost}
+            currentUser={user} 
+          />
           <PostFeed 
             posts={posts}
             currentUser={user}

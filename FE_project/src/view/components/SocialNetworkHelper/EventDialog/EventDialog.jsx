@@ -18,19 +18,24 @@ const EventDialog = ({ isOpen, onClose, currentUser }) => {
     reminderTime: "15"
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
 
   const eventTypes = [
-    { value: "אקדמי", emoji: "🎓", color: "#007bff" },
-    { value: "חברתי", emoji: "🎉", color: "#28a745" },
-    { value: "ספורט", emoji: "🏃", color: "#fd7e14" },
-    { value: "תרבות", emoji: "🎭", color: "#6f42c1" },
-    { value: "מזון", emoji: "🍕", color: "#dc3545" },
-    { value: "עבודה", emoji: "💼", color: "#6c757d" }
+    { value: "אקדמי", emoji: "🎓", color: "#3B82F6" },
+    { value: "חברתי", emoji: "🎉", color: "#10B981" },
+    { value: "ספורט", emoji: "🏃", color: "#EF4444" },
+    { value: "תרבות", emoji: "🎭", color: "#8B5CF6" },
+    { value: "מזון", emoji: "🍕", color: "#F59E0B" },
+    { value: "עבודה", emoji: "💼", color: "#6B7280" }
   ];
 
   const availableTags = [
-    "מבחן", "פרויקט", "הרצאה", "סדנה", "מפגש", "חגיגה", 
-    "יום הולדת", "אימון", "משחק", "קונצרט", "סרט", "ארוחה"
+    { name: "מבחן", color: "#EF4444" },
+    { name: "פרויקט", color: "#3B82F6" },
+    { name: "הרצאה", color: "#8B5CF6" },
+    { name: "סדנה", color: "#10B981" },
+    { name: "מפגש", color: "#F59E0B" },
+    { name: "חגיגה", color: "#EC4899" }
   ];
 
   const reminderOptions = [
@@ -48,12 +53,12 @@ const EventDialog = ({ isOpen, onClose, currentUser }) => {
     }));
   };
 
-  const handleTagToggle = (tag) => {
+  const handleTagToggle = (tagName) => {
     setFormData(prev => ({
       ...prev,
-      tags: prev.tags.includes(tag) 
-        ? prev.tags.filter(t => t !== tag)
-        : [...prev.tags, tag]
+      tags: prev.tags.includes(tagName) 
+        ? prev.tags.filter(t => t !== tagName)
+        : [...prev.tags, tagName]
     }));
   };
 
@@ -63,14 +68,12 @@ const EventDialog = ({ isOpen, onClose, currentUser }) => {
 
     setIsLoading(true);
     try {
-      // Create event date with time
       const eventDate = new Date(formData.date);
       if (formData.startTime) {
         const [hours, minutes] = formData.startTime.split(':');
         eventDate.setHours(parseInt(hours), parseInt(minutes));
       }
 
-      // Create end date if end time provided
       let endDateTime = null;
       if (formData.endTime) {
         endDateTime = new Date(formData.date);
@@ -91,7 +94,7 @@ const EventDialog = ({ isOpen, onClose, currentUser }) => {
         location: formData.location.trim(),
         eventType: formData.eventType,
         eventTypeEmoji: selectedEventType?.emoji || "📅",
-        eventTypeColor: selectedEventType?.color || "#007bff",
+        eventTypeColor: selectedEventType?.color || "#3B82F6",
         maxAttendees: formData.maxAttendees ? parseInt(formData.maxAttendees) : null,
         isPublic: formData.isPublic,
         tags: formData.tags,
@@ -107,7 +110,6 @@ const EventDialog = ({ isOpen, onClose, currentUser }) => {
 
       await addDoc(collection(db, "socialEvents"), eventData);
       
-      // Reset form
       setFormData({
         title: "",
         description: "",
@@ -122,201 +124,268 @@ const EventDialog = ({ isOpen, onClose, currentUser }) => {
         reminderTime: "15"
       });
       
+      setCurrentStep(1);
       onClose();
-      alert("האירוע נוצר בהצלחה!");
       
     } catch (error) {
       console.error("Error creating event:", error);
-      alert("שגיאה ביצירת האירוע. נסה שוב.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Get minimum date (today)
   const getMinDate = () => {
     const today = new Date();
     return today.toISOString().split('T')[0];
   };
 
+  const nextStep = () => {
+    if (currentStep < 3) setCurrentStep(currentStep + 1);
+  };
+
+  const prevStep = () => {
+    if (currentStep > 1) setCurrentStep(currentStep - 1);
+  };
+
+  const isStepValid = () => {
+    switch (currentStep) {
+      case 1:
+        return formData.title.trim() && formData.eventType;
+      case 2:
+        return formData.date;
+      case 3:
+        return true;
+      default:
+        return false;
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className="dialog-overlay" onClick={onClose}>
+    <div className="dialog-overlay-event-dialog" onClick={onClose}>
       <div className="event-dialog" onClick={(e) => e.stopPropagation()}>
+        
         <div className="dialog-header">
-          <h2>צור אירוע חדש</h2>
-          <button className="close-btn" onClick={onClose}>✕</button>
+          <h2>יצירת אירוע חדש</h2>
+          <button className="close-btn" onClick={onClose}>×</button>
+        </div>
+
+        <div className="steps-indicator">
+          <div className="steps-container">
+            {[1, 2, 3].map(step => (
+              <div key={step} className={`step-event-dialog ${currentStep >= step ? 'active' : ''}`}>
+                <span className="step-number">{step}</span>
+                <span className="step-label">
+                  {step === 1 && "פרטים בסיסיים"}
+                  {step === 2 && "זמן ומקום"}
+                  {step === 3 && "הגדרות"}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="event-form">
-          <div className="form-section">
-            <h3>פרטי האירוע</h3>
-            
-            <div className="input-group">
-              <label>כותרת האירוע *</label>
-              <input
-                type="text"
-                value={formData.title}
-                onChange={(e) => handleInputChange("title", e.target.value)}
-                placeholder="למשל: 'מפגש לימוד לקראת המבחן'"
-                required
-              />
-            </div>
-
-            <div className="input-group">
-              <label>תיאור האירוע</label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => handleInputChange("description", e.target.value)}
-                placeholder="תאר את האירוע, מה יקרה, מה צריך להביא..."
-                rows={3}
-              />
-            </div>
-
-            <div className="input-group">
-              <label>סוג האירוע</label>
-              <div className="event-types-grid">
-                {eventTypes.map(type => (
-                  <button
-                    key={type.value}
-                    type="button"
-                    className={`event-type-btn ${formData.eventType === type.value ? 'selected' : ''}`}
-                    onClick={() => handleInputChange("eventType", type.value)}
-                    style={{
-                      borderColor: formData.eventType === type.value ? type.color : undefined,
-                      backgroundColor: formData.eventType === type.value ? type.color : undefined,
-                      color: formData.eventType === type.value ? 'white' : undefined
-                    }}
-                  >
-                    {type.emoji} {type.value}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="form-section">
-            <h3>זמן ומקום</h3>
-            
-            <div className="form-row">
-              <div className="input-group">
-                <label>תאריך *</label>
+          
+          {/* שלב 1: פרטים בסיסיים */}
+          {currentStep === 1 && (
+            <div className="form-step-event-dialog">
+              <div className="form-group-event-dialog">
+                <label>שם האירוע *</label>
                 <input
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => handleInputChange("date", e.target.value)}
-                  min={getMinDate()}
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => handleInputChange("title", e.target.value)}
+                  placeholder="הזן שם לאירוע"
                   required
                 />
               </div>
-              <div className="input-group">
-                <label>שעת התחלה</label>
-                <input
-                  type="time"
-                  value={formData.startTime}
-                  onChange={(e) => handleInputChange("startTime", e.target.value)}
-                />
-              </div>
-            </div>
 
-            <div className="form-row">
-              <div className="input-group">
-                <label>שעת סיום</label>
-                <input
-                  type="time"
-                  value={formData.endTime}
-                  onChange={(e) => handleInputChange("endTime", e.target.value)}
-                  min={formData.startTime}
+              <div className="form-group-event-dialog">
+                <label>תיאור</label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => handleInputChange("description", e.target.value)}
+                  placeholder="תאר את האירוע (אופציונלי)"
+                  rows={3}
                 />
               </div>
-              <div className="input-group">
-                <label>תזכורת</label>
-                <select
-                  value={formData.reminderTime}
-                  onChange={(e) => handleInputChange("reminderTime", e.target.value)}
-                >
-                  {reminderOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
+
+              <div className="form-group-event-dialog">
+                <label>סוג האירוע *</label>
+                <div className="event-types">
+                  {eventTypes.map(type => (
+                    <button
+                      key={type.value}
+                      type="button"
+                      className={`event-type ${formData.eventType === type.value ? 'selected' : ''}`}
+                      onClick={() => handleInputChange("eventType", type.value)}
+                      style={{ '--type-color': type.color }}
+                    >
+                      <span className="type-emoji">{type.emoji}</span>
+                      <span className="type-name">{type.value}</span>
+                    </button>
                   ))}
-                </select>
+                </div>
               </div>
             </div>
+          )}
 
-            <div className="input-group">
-              <label>מיקום</label>
-              <input
-                type="text"
-                value={formData.location}
-                onChange={(e) => handleInputChange("location", e.target.value)}
-                placeholder="כתובת, חדר, או לינק למפגש מקוון"
-              />
-            </div>
-          </div>
+          {/* שלב 2: זמן ומקום */}
+          {currentStep === 2 && (
+            <div className="form-step-event-dialog">
+              <div className="form-row">
+                <div className="form-group-event-dialog">
+                  <label>תאריך *</label>
+                  <input
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => handleInputChange("date", e.target.value)}
+                    min={getMinDate()}
+                    required
+                  />
+                </div>
 
-          <div className="form-section">
-            <h3>הגדרות נוספות</h3>
-            
-            <div className="form-row">
-              <div className="input-group">
-                <label>מספר משתתפים מקסימלי</label>
+                <div className="form-group-event-dialog">
+                  <label>שעת התחלה</label>
+                  <input
+                    type="time"
+                    value={formData.startTime}
+                    onChange={(e) => handleInputChange("startTime", e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group-event-dialog">
+                  <label>שעת סיום</label>
+                  <input
+                    type="time"
+                    value={formData.endTime}
+                    onChange={(e) => handleInputChange("endTime", e.target.value)}
+                    min={formData.startTime}
+                  />
+                </div>
+
+                <div className="form-group-event-dialog">
+                  <label>תזכורת</label>
+                  <select
+                    value={formData.reminderTime}
+                    onChange={(e) => handleInputChange("reminderTime", e.target.value)}
+                  >
+                    {reminderOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group-event-dialog">
+                <label>מיקום</label>
                 <input
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={formData.maxAttendees}
-                  onChange={(e) => handleInputChange("maxAttendees", e.target.value)}
-                  placeholder="ללא הגבלה"
+                  type="text"
+                  value={formData.location}
+                  onChange={(e) => handleInputChange("location", e.target.value)}
+                  placeholder="איפה האירוע יתקיים?"
                 />
               </div>
-              <div className="input-group checkbox-group">
-                <label className="checkbox-label">
+            </div>
+          )}
+
+          {/* שלב 3: הגדרות */}
+          {currentStep === 3 && (
+            <div className="form-step-event-dialog">
+              <div className="form-row">
+                <div className="form-group-event-dialog">
+                  <label>מספר משתתפים מקסימלי</label>
                   <input
-                    type="checkbox"
-                    checked={formData.isPublic}
-                    onChange={(e) => handleInputChange("isPublic", e.target.checked)}
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={formData.maxAttendees}
+                    onChange={(e) => handleInputChange("maxAttendees", e.target.value)}
+                    placeholder="ללא הגבלה"
                   />
-                  <span className="checkbox-text">אירוע ציבורי</span>
-                </label>
-                <small>אירועים ציבוריים נראים לכל המשתמשים</small>
+                </div>
+
+                <div className="form-group-event-dialog">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={formData.isPublic}
+                      onChange={(e) => handleInputChange("isPublic", e.target.checked)}
+                    />
+                    אירוע ציבורי
+                  </label>
+                </div>
+              </div>
+
+              <div className="form-group-event-dialog">
+                <label>תגים</label>
+                <div className="tags-container">
+                  {availableTags.map(tag => (
+                    <button
+                      key={tag.name}
+                      type="button"
+                      className={`tag ${formData.tags.includes(tag.name) ? 'selected' : ''}`}
+                      onClick={() => handleTagToggle(tag.name)}
+                      style={{ '--tag-color': tag.color }}
+                    >
+                      {tag.name}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
+          )}
 
-            <div className="input-group">
-              <label>תגיות</label>
-              <div className="tags-grid">
-                {availableTags.map(tag => (
-                  <button
-                    key={tag}
-                    type="button"
-                    className={`tag-btn ${formData.tags.includes(tag) ? 'selected' : ''}`}
-                    onClick={() => handleTagToggle(tag)}
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>
+          {/* כפתורי ניווט */}
+          <div className="form-actions">
+            <div className="actions-left">
+              {currentStep > 1 && (
+                <button 
+                  type="button" 
+                  className="btn btn-secondary"
+                  onClick={prevStep}
+                  disabled={isLoading}
+                >
+                  קודם
+                </button>
+              )}
             </div>
-          </div>
-
-          <div className="dialog-actions">
-            <button 
-              type="button" 
-              className="cancel-btn"
-              onClick={onClose}
-              disabled={isLoading}
-            >
-              ביטול
-            </button>
-            <button 
-              type="submit" 
-              className="submit-btn"
-              disabled={!formData.title.trim() || !formData.date || isLoading}
-            >
-              {isLoading ? "יוצר..." : "צור אירוע"}
-            </button>
+            
+            <div className="actions-right">
+              <button 
+                type="button" 
+                className="btn btn-outline"
+                onClick={onClose}
+                disabled={isLoading}
+              >
+                ביטול
+              </button>
+              
+              {currentStep < 3 ? (
+                <button 
+                  type="button" 
+                  className="btn btn-primary"
+                  onClick={nextStep}
+                  disabled={!isStepValid()}
+                >
+                  הבא
+                </button>
+              ) : (
+                <button 
+                  type="submit" 
+                  className="btn btn-primary"
+                  disabled={!formData.title.trim() || !formData.date || isLoading}
+                >
+                  {isLoading ? "יוצר..." : "צור אירוע"}
+                </button>
+              )}
+            </div>
           </div>
         </form>
       </div>
@@ -324,4 +393,4 @@ const EventDialog = ({ isOpen, onClose, currentUser }) => {
   );
 };
 
-export default EventDialog; 
+export default EventDialog;

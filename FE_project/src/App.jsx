@@ -25,7 +25,6 @@ function App() {
             <Route element={<MainLayout />}>
               <Route path="/" element={<HomePage />} />
               
-              {/* דפים שדורשים אימות */}
               <Route 
                 path="/HelpSettings" 
                 element={

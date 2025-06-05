@@ -94,7 +94,6 @@ const SummaryList = ({
                   onClick={() => onSummarySelect(summary)}
                   title="לחץ לצפייה בפרטים"
                 >
-                  <FileText className="file-icon" />
                   <span className="title-text">
                     {summary.title || "ללא כותרת"}
                   </span>
@@ -124,16 +123,7 @@ const SummaryList = ({
                   </span>
                 </td>
                 <td>
-                  <div className="action-buttons">
-                    <button 
-                      className="action-btn-summary details-btn"
-                      onClick={() => onSummarySelect(summary)}
-                      title="צפייה בפרטים מלאים"
-                    >
-                      <FileText className="btn-icon" />
-                      פרטים
-                    </button>
-                    
+                  <div className="action-buttons-summary">                    
                     {summary.status !== "מאושר" && (
                       <button 
                         className="action-btn-summary approve-btn"

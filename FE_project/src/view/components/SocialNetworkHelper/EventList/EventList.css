@@ -20,17 +20,15 @@
 
 .add-event-btn {
   background: rgba(255, 255, 255, 0.2);
-  color: white;
   border: none;
   width: 30px;
   height: 30px;
-  border-radius: 50%;
   cursor: pointer;
   font-size: 1.2rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s ease;
+  padding: 10px;
 }
 
 .add-event-btn:hover {
@@ -265,4 +263,32 @@
   .event-details {
     gap: 0.2rem;
   }
+}
+
+.event-content {
+  display: flex;
+  flex: 1;
+}
+
+.event-actions {
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
+.delete-event-btn {
+  background-color: none;
+  padding: 8px 8px;
+  cursor: pointer;
+  font-size: 14px;
+  background-color: #f0f0f0;
+}
+
+.delete-event-btn:hover {
+  transform: translateY(-1px);
+  background-color: #c2bfbf;
+}
+
+.delete-event-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

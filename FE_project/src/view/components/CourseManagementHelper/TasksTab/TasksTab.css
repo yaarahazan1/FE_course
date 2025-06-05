@@ -144,7 +144,7 @@
   flex-shrink: 0;
 }
 
-.delete-btn {
+.delete-btn-task {
   background-color: white;
   border: none;
   border-radius: 6px;
@@ -160,17 +160,17 @@
   justify-content: center;
 }
 
-.delete-btn:hover:not(:disabled) {
+.delete-btn-task:hover:not(:disabled) {
   background: #ff3742;
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(255, 71, 87, 0.3);
 }
 
-.delete-btn:active {
+.delete-btn-task:active {
   transform: translateY(0);
 }
 
-.delete-btn:disabled {
+.delete-btn-task:disabled {
   background: #ccc;
   cursor: not-allowed;
   transform: none;

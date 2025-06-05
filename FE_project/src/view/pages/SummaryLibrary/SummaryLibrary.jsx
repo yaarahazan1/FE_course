@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import UploadSummaryDialog from "../../components/SummaryLibraryHelper/UploadSummaryDialog/UploadSummaryDialog";
 import "./SummaryLibrary.css";
@@ -90,6 +89,9 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   
   const isOwnSummary = summary.uploadedBy === currentUserId;
+  const isRejected = summary.status === 'נדחה';
+  const isPending = summary.status === 'ממתין לאישור' || !summary.status;
+  const isApproved = summary.status === 'מאושר';
 
   const renderRatingStars = (rating) => {
     const stars = [];
@@ -112,7 +114,27 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
     return stars;
   };
 
- const handleDownload = async () => {
+  const handleDownload = async () => {
+    // רק הבעלים יכול להוריד סיכומים נדחים - לכל השאר זה נעול
+    const isAccessible = isApproved || (isOwnSummary && !isRejected);
+    
+    if (!isAccessible) {
+      if (isRejected && !isOwnSummary) {
+        // עבור משתמשים אחרים - סיכום נדחה מתנהג כמו סיכום נעול
+        onAccessRequired();
+        return;
+      } else if (isRejected && isOwnSummary) {
+        alert("סיכום זה נדחה על ידי המנהל ואינו זמין להורדה");
+        return;
+      } else if (isPending) {
+        alert("סיכום זה ממתין לאישור המנהל");
+        return;
+      } else {
+        alert("סיכום זה אינו זמין להורדה");
+        return;
+      }
+    }
+
     if (summary.isLocked && !hasAccess) {
       onAccessRequired();
       return;
@@ -268,13 +290,32 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
   };
   
   const handlePreview = async () => {
+    // רק הבעלים יכול לצפות בסיכומים נדחים - לכל השאר זה נעול
+    const isAccessible = isApproved || (isOwnSummary && !isRejected);
+    
+    if (!isAccessible) {
+      if (isRejected && !isOwnSummary) {
+        // עבור משתמשים אחרים - סיכום נדחה מתנהג כמו סיכום נעול
+        onAccessRequired();
+        return;
+      } else if (isRejected && isOwnSummary) {
+        alert("סיכום זה נדחה על ידי המנהל ואינו זמין לצפייה");
+        return;
+      } else if (isPending) {
+        alert("סיכום זה ממתין לאישור המנהל");
+        return;
+      } else {
+        alert("סיכום זה אינו זמין לצפייה");
+        return;
+      }
+    }
+    
     if (summary.isLocked && !hasAccess) {
       onAccessRequired();
       return;
     }
 
     try {
-      // פתיחת מודל התצוגה המקדימה
       setShowPreviewModal(true);
       
     } catch (error) {
@@ -309,45 +350,26 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
           console.log('Loading preview for file type:', fileExtension);
           console.log('Public ID:', summary.public_id);
           
-          // URL ישיר לקובץ
           const directUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/${summary.public_id}`;
           console.log('Direct URL:', directUrl);
           
-          // רשימת viewers שונים לפי סוג הקובץ
           let viewers = [];
           
           if (isDocFile) {
-            // עבור קבצי DOC/DOCX
             viewers = [
-              // Microsoft Office Online Viewer - הכי טוב לקבצי Word
               `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(directUrl)}`,
-              
-              // Google Docs Viewer - גם תומך בקבצי Word
               `https://docs.google.com/viewer?url=${encodeURIComponent(directUrl)}&embedded=true`,
-              
-              // Google Drive Viewer (חלופה)
               `https://drive.google.com/viewerng/viewer?url=${encodeURIComponent(directUrl)}&embedded=true`,
-              
-              // הצגה ישירה (לא תמיד עובד עם DOC)
               directUrl
             ];
           } else if (isPdfFile) {
-            // עבור קבצי PDF
             viewers = [
-              // PDF.js - הכי טוב לPDF
               `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(directUrl)}`,
-              
-              // Google Docs Viewer
               `https://docs.google.com/viewer?url=${encodeURIComponent(directUrl)}&embedded=true`,
-              
-              // Microsoft Office Viewer
               `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(directUrl)}`,
-              
-              // הצגה ישירה
               directUrl
             ];
           } else {
-            // עבור קבצים אחרים
             viewers = [
               `https://docs.google.com/viewer?url=${encodeURIComponent(directUrl)}&embedded=true`,
               `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(directUrl)}`,
@@ -355,7 +377,6 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
             ];
           }
           
-          // התחל עם הviewer הראשון
           setPreviewUrl(viewers[0]);
           
         } catch (err) {
@@ -403,7 +424,6 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
       }
     };
 
-    // פונקציה לבדיקת זמינות הקובץ
     const checkFileAvailability = async () => {
       try {
         const directUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/${summary.public_id}`;
@@ -425,17 +445,11 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
 
     if (isLoading) {
       return (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: 'calc(100% - 60px)',
-          fontSize: '16px'
-        }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ marginBottom: '10px', fontSize: '20px' }}>⏳</div>
-            <div>טוען תצוגה מקדימה...</div>
-            <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
+        <div className="preview-loading">
+          <div className="preview-loading-content">
+            <div className="preview-loading-icon">⏳</div>
+            <div className="preview-loading-text">טוען תצוגה מקדימה...</div>
+            <div className="preview-loading-subtext">
               סוג קובץ: {fileExtension.toUpperCase()}
             </div>
           </div>
@@ -445,47 +459,29 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
 
     if (error) {
       return (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: 'calc(100% - 60px)',
-          fontSize: '16px',
-          color: '#666',
-          padding: '20px'
-        }}>
-          <div style={{ marginBottom: '10px', fontSize: '30px' }}>⚠️</div>
-          <div style={{ marginBottom: '15px', fontWeight: 'bold', textAlign: 'center' }}>
+        <div className="preview-error">
+          <div className="preview-error-icon">⚠️</div>
+          <div className="preview-error-title">
             {error}
           </div>
-          <div style={{ fontSize: '14px', marginBottom: '20px', textAlign: 'center' }}>
+          <div className="preview-error-description">
             {isDocFile ? 
               'קבצי Word לפעמים דורשים הורדה לצפייה מלאה' : 
               'הקובץ עשוי להיות פגום או לא נגיש'
             }
           </div>
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+          <div className="preview-error-actions">
             <button
               onClick={() => {
                 const directUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/${summary.public_id}`;
                 window.open(directUrl, '_blank');
               }}
-              style={{
-                background: '#4CAF50',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                padding: '10px 20px',
-                cursor: 'pointer',
-                fontSize: '14px'
-              }}
+              className="preview-error-btn primary"
             >
               פתח קובץ בטאב חדש
             </button>
             <button
               onClick={async () => {
-                // בדוק זמינות הקובץ ונסה שוב
                 const isAvailable = await checkFileAvailability();
                 if (isAvailable) {
                   setCurrentViewerIndex(0);
@@ -503,36 +499,19 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
                   alert('הקובץ לא נגיש. נסה להוריד אותו במקום.');
                 }
               }}
-              style={{
-                background: '#2196F3',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                padding: '10px 20px',
-                cursor: 'pointer',
-                fontSize: '14px'
-              }}
+              className="preview-error-btn secondary"
             >
               נסה שוב
             </button>
             {isDocFile && (
               <button
                 onClick={() => {
-                  // לקבצי DOC, נסה להמיר לPDF דרך Google
                   const directUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/${summary.public_id}`;
                   const convertUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(directUrl)}&embedded=true&a=v&pagenumber=1&w=100%`;
                   setPreviewUrl(convertUrl);
                   setError(null);
                 }}
-                style={{
-                  background: '#FF9800',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  padding: '10px 20px',
-                  cursor: 'pointer',
-                  fontSize: '14px'
-                }}
+                className="preview-error-btn warning"
               >
                 נסה תצוגה מותאמת
               </button>
@@ -543,19 +522,8 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
     }
 
     return (
-      <div style={{ height: '100%', position: 'relative' }}>
-        {/* מציג מידע על הviewer הנוכחי */}
-        <div style={{
-          position: 'absolute',
-          top: '10px',
-          right: '10px',
-          background: 'rgba(0,0,0,0.7)',
-          color: 'white',
-          padding: '5px 10px',
-          borderRadius: '15px',
-          fontSize: '12px',
-          zIndex: 1000
-        }}>
+      <div className="preview-content-container">
+        <div className="viewer-info">
           {isDocFile ? 'Word Document' : isPdfFile ? 'PDF' : 'Document'} 
           {currentViewerIndex === 0 && ' - Microsoft Viewer'}
           {currentViewerIndex === 1 && ' - Google Viewer'}
@@ -565,19 +533,13 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
         
         <iframe
           src={previewUrl}
-          style={{
-            width: '100%',
-            height: '100%',
-            border: 'none',
-            borderRadius: '0 0 8px 8px'
-          }}
+          className="preview-iframe"
           title={`תצוגה מקדימה: ${summary.title}`}
           onError={handleIframeError}
           onLoad={() => {
             console.log('Preview loaded successfully with viewer index:', currentViewerIndex);
             console.log('Viewer URL:', previewUrl);
           }}
-          // הוספת sandbox לבטיחות
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
         />
       </div>
@@ -638,15 +600,38 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
     }
   };
 
+  // בדיקה אם הסיכום צריך להיראות כנעול
+  const shouldDisplayAsLocked = (summary.isLocked && !hasAccess) || (isRejected && !isOwnSummary);
+
   return (
     <>
       <div className="summary-card">
         <div className="summary-card-header">
-          {summary.isLocked && !hasAccess ? (
+          {shouldDisplayAsLocked ? (
             <div className="locked-indicator">
               <span className="lock-icon">🔒</span>
             </div>
           ) : null}
+          
+           {isOwnSummary && (
+            <div className="status-indicator">
+              {isPending && (
+                <span className="status-pending" title="ממתין לאישור מנהל">
+                  ⏳ ממתין לאישור
+                </span>
+              )}
+              {isRejected && (
+                <span className="status-rejected" title={`נדחה: ${summary.feedback || 'ללא הסבר'}`}>
+                  ❌ נדחה
+                </span>
+              )}
+              {isApproved && (
+                <span className="status-approved" title="מאושר">
+                  ✅ מאושר
+                </span>
+              )}
+            </div>
+          )}
           
           <div className="summary-type">
             {summary.course}
@@ -666,7 +651,7 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
         </div>
 
         <div className="summary-card-content">
-          <h3 className="summary-title">{summary.title}</h3>
+          <h3 className="summary-library-title">{summary.title}</h3>
           <div className="summary-meta">
             <span className="summary-author">{summary.author}</span>
             <span className="summary-date">{summary.date}</span>
@@ -691,94 +676,64 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
           </div>
         </div>
 
-        <div className="summary-card-actions">
-          <button 
-            className={`download-button ${summary.isLocked && !hasAccess ? "locked-button" : ""} ${isDownloading ? "loading" : ""}`}
-            onClick={handleDownload}
-            disabled={isDownloading}
-          >
-            <span className="download-icon">{isDownloading ? '⏳' : '⬇️'}</span>
-            <span>{isDownloading ? 'מוריד...' : 'הורד'}</span>
-          </button>
-          <button 
-            className={`preview-button ${summary.isLocked && !hasAccess ? "locked-button" : ""}`}
-            onClick={handlePreview}
-            disabled={isDownloading}
-          >
-            <span className="preview-icon">👁️</span>
-            <span>תצוגה מקדימה</span>
-          </button>
-        </div>
+      <div className="summary-card-actions">
+        <button 
+          className={`download-button ${
+            shouldDisplayAsLocked || (!isApproved && !isOwnSummary) || (isRejected && isOwnSummary)
+              ? "locked-button" 
+              : ""
+          } ${isDownloading ? "loading" : ""}`}
+          onClick={handleDownload}
+          disabled={isDownloading || (!isApproved && !isOwnSummary) || (isRejected && isOwnSummary)}
+        >
+          <span className="download-icon">{isDownloading ? '⏳' : '⬇️'}</span>
+          <span>
+            {isDownloading ? 'מוריד...' : 
+            shouldDisplayAsLocked ? 'נעול' :
+            !isApproved && !isOwnSummary ? (isRejected ? 'נדחה' : 'ממתין') : 
+            (isRejected && isOwnSummary) ? 'נדחה' : 'הורד'}
+          </span>
+        </button>
+        <button 
+          className={`preview-button ${
+            shouldDisplayAsLocked || (!isApproved && !isOwnSummary) || (isRejected && isOwnSummary)
+              ? "locked-button" 
+              : ""
+          }`}
+          onClick={handlePreview}
+          disabled={isDownloading || (!isApproved && !isOwnSummary) || (isRejected && isOwnSummary)}
+        >
+          <span className="preview-icon">👁️</span>
+          <span>
+            {!isApproved && !isOwnSummary ? (isRejected ? 'נדחה' : 'ממתין') : 'תצוגה מקדימה'}
+          </span>
+        </button>
+      </div>
       </div>
       {showPreviewModal && (
         <div 
           className="preview-modal-overlay"
           onClick={() => setShowPreviewModal(false)}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            backgroundColor: 'rgba(0,0,0,0.8)',
-            zIndex: 10000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
         >
           <div 
             className="preview-modal-content"
             onClick={(e) => e.stopPropagation()}
-            style={{
-              width: '90%',
-              height: '90%',
-              backgroundColor: 'white',
-              borderRadius: '8px',
-              position: 'relative',
-              display: 'flex',
-              flexDirection: 'column'
-            }}
           >
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '10px 15px',
-              borderBottom: '1px solid #ddd',
-              backgroundColor: '#f5f5f5'
-            }}>
-              <h3 style={{ margin: 0, fontSize: '16px' }}>
+            <div className="preview-modal-header">
+              <h3 className="preview-modal-title">
                 תצוגה מקדימה: {summary.title}
               </h3>
-              <div style={{ display: 'flex', gap: '10px' }}>
+              <div className="preview-modal-actions">
                 <button
                   onClick={handleDownload}
                   disabled={isDownloading}
-                  style={{
-                    background: '#4CAF50',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    padding: '5px 10px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    opacity: isDownloading ? 0.5 : 1
-                  }}
+                  className={`preview-modal-btn download ${isDownloading ? 'loading' : ''}`}
                 >
                   {isDownloading ? '⏳ מוריד...' : '⬇️ הורד'}
                 </button>
                 <button
                   onClick={() => setShowPreviewModal(false)}
-                  style={{
-                    background: '#ff4444',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    padding: '5px 10px',
-                    cursor: 'pointer',
-                    fontSize: '14px'
-                  }}
+                  className="preview-modal-btn close"
                 >
                   ✕ סגור
                 </button>
@@ -842,10 +797,8 @@ const SummaryLibrary = () => {
         localSummaries = JSON.parse(savedSummaries);
       }
       
-      // בדיקה האם המשתמש העלה סיכום
       const userHasUploaded = checkUserUploadStatus();
       
-      // עדכון סטטוס הנעילה לכל הסיכומים
       const allSummaries = localSummaries.map(summary => ({
         ...summary,
         isLocked: !userHasUploaded
@@ -862,30 +815,24 @@ const SummaryLibrary = () => {
     }
   };
 
-  // פונקציה למחיקת סיכום מ-localStorage
   const deleteSummaryFromStorage = async (publicId) => {
     try {
       console.log('Deleting summary from storage:', publicId);
       
-      // עדכון רשימת הסיכומים - הסרה מהמערך הנוכחי
       setSummaries(prevSummaries => {
         const updatedSummaries = prevSummaries.filter(summary => summary.public_id !== publicId);
         
-        // עדכון localStorage - שמירה רק של הסיכומים שנותרו
         localStorage.setItem('uploaded_summaries', JSON.stringify(updatedSummaries));
         console.log('Updated localStorage with remaining summaries:', updatedSummaries.length);
         
-        // בדיקה האם המשתמש עדיין יש לו סיכומים אחרי המחיקה
         const userSummariesAfterDelete = updatedSummaries.filter(summary => summary.uploadedBy === currentUserId);
         const userStillHasUploads = userSummariesAfterDelete.length > 0;
         
         console.log('User summaries after delete:', userSummariesAfterDelete.length);
         
-        // עדכון סטטוס ההעלאה
         setHasUploaded(userStillHasUploads);
         localStorage.setItem('user_uploaded_summary', userStillHasUploads ? 'true' : 'false');
         
-        // אם המשתמש לא נותר לו סיכומים, נעיל את כל הסיכומים האחרים
         if (!userStillHasUploads) {
           return updatedSummaries.map(summary => ({
             ...summary,
@@ -902,13 +849,18 @@ const SummaryLibrary = () => {
     }
   };
 
-  // טעינת סיכומים בעת טעינת הרכיב
   useEffect(() => {
     loadSummariesFromLocalStorage();
   }, []);
 
-  // פונקציה לסינון וחיפוש סיכומים
   const filteredSummaries = summaries.filter(summary => {
+    const isApproved = summary.status === 'מאושר';
+    const isOwnSummary = summary.uploadedBy === currentUserId;
+    
+    if (!isApproved && !isOwnSummary) {
+      return false;
+    }
+    
     const matchesSearch = searchQuery === "" || 
       summary.title.includes(searchQuery) || 
       summary.course.includes(searchQuery) || 
@@ -920,7 +872,6 @@ const SummaryLibrary = () => {
     return matchesSearch && matchesCourse && matchesProfessor;
   });
 
-  // מיון סיכומים
   const sortedSummaries = [...filteredSummaries].sort((a, b) => {
     if (sortBy === "recent") {
       return new Date(b.date).getTime() - new Date(a.date).getTime();
@@ -938,13 +889,14 @@ const SummaryLibrary = () => {
     setHasUploaded(true);
     localStorage.setItem('user_uploaded_summary', 'true');
     
-    // הוספת מזהה המשתמש לסיכום החדש
     const summaryWithUserId = {
-      ...uploadedSummary,
-      uploadedBy: currentUserId,
-      isLocked: false,
-      id: Date.now().toString() // מזהה ייחודי
-    };
+        ...uploadedSummary,
+        uploadedBy: currentUserId,
+        isLocked: false,
+        id: Date.now().toString(),
+        status: 'ממתין לאישור',
+        uploadedAt: new Date().toISOString()
+      };
     
     // שמירה ב-localStorage
     const existingSummaries = JSON.parse(localStorage.getItem('uploaded_summaries') || '[]');

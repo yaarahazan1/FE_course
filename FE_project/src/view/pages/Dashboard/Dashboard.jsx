@@ -615,7 +615,7 @@ const Dashboard = () => {
               {recentSummaries.length > 0 ? (
                 recentSummaries.map(summary => (
                   <div key={summary.id} className="summary-item">
-                    <div className="summary-title">{summary.title}</div>
+                    <div className="summary-title-dashboard">{summary.title}</div>
                     <div className="summary-details">
                       <span>מועלה ע"י: {summary.author}</span>
                       <span>{summary.date}</span>

@@ -8,17 +8,38 @@ const PostForm = ({ currentUser, onPostAdded }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTag, setSelectedTag] = useState("");
 
+  // הוסף לוגים מפורטים לבדיקה
+  console.log("PostForm - currentUser:", currentUser);
+  console.log("PostForm - currentUser exists:", !!currentUser);
+  console.log("PostForm - currentUser uid:", currentUser?.uid);
+  console.log("PostForm - currentUser displayName:", currentUser?.displayName);
+  console.log("PostForm - currentUser email:", currentUser?.email);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!text.trim() || isLoading) return;
 
+    // בדיקה משופרת שהמשתמש מחובר
+    if (!currentUser || !currentUser.uid) {
+      console.error("No valid user found:", currentUser);
+      alert("אנא התחבר קודם כדי לפרסם פוסט");
+      return;
+    }
+
+    console.log("Creating post with user:", currentUser);
+
     setIsLoading(true);
     try {
+      // יצירת שם מחבר מתוקן
+      const authorName = currentUser.displayName || 
+                        currentUser.email || 
+                        `משתמש ${currentUser.uid.slice(-6)}`;
+
       const postData = {
         content: text.trim(),
-        author: currentUser?.displayName || "משתמש אנונימי",
-        authorId: currentUser?.uid || "anonymous",
-        role: currentUser?.role || "חבר קבוצה",
+        author: authorName,
+        authorId: currentUser.uid, // וודא שזה תמיד קיים
+        role: currentUser.role || "חבר קבוצה",
         tag: selectedTag,
         likes: 0,
         comments: 0,
@@ -27,6 +48,8 @@ const PostForm = ({ currentUser, onPostAdded }) => {
         createdAt: new Date().toISOString(),
         isActive: true
       };
+
+      console.log("Post data to be saved:", postData);
 
       const docRef = await addDoc(collection(db, "socialPosts"), postData);
       
@@ -60,9 +83,29 @@ const PostForm = ({ currentUser, onPostAdded }) => {
     { name: "עדכון", emoji: "📢", color: "#FFEAA7" }
   ];
 
+  // בדיקה משופרת אם המשתמש מחובר
+  if (!currentUser || !currentUser.uid) {
+    return (
+      <div className="post-form-container">
+        <div className="post-form-header">
+          <div style={{ color: 'red', padding: '10px' }}>
+            אנא התחבר כדי לפרסם פוסט
+            <br />
+            <small>Debug: currentUser = {JSON.stringify(currentUser)}</small>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="post-form-container">
-      <div className="post-form-header">שתף עדכון</div>
+      <div className="post-form-header">
+        שתף עדכון
+        <div style={{ fontSize: '14px', color: '#666', marginTop: '5px' }}>
+          מחובר כ: {currentUser.displayName || currentUser.email || currentUser.uid}
+        </div>
+      </div>
       <form onSubmit={handleSubmit} className="post-form">
         <textarea
           className="post-input"
@@ -73,7 +116,7 @@ const PostForm = ({ currentUser, onPostAdded }) => {
           disabled={isLoading}
         />
         
-        <div className="post-actions">
+        <div className="post-form-actions">
           <div className="post-tags">
             {tags.map((tag) => (
               <button

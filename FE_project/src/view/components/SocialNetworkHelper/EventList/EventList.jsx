@@ -5,6 +5,8 @@ import {
   orderBy, 
   onSnapshot,
   addDoc,
+  deleteDoc,
+  doc,
   serverTimestamp,
   where,
   Timestamp 
@@ -12,10 +14,11 @@ import {
 import { db } from "../../../../firebase/config";
 import "./EventList.css";
 
-const EventList = ({ currentUser }) => {
+const EventList = ({ currentUser, onCreateEvent}) => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [deletingEvent, setDeletingEvent] = useState(null);
   const [newEvent, setNewEvent] = useState({
     title: "",
     date: "",
@@ -90,6 +93,25 @@ const EventList = ({ currentUser }) => {
     }
   };
 
+  const handleDeleteEvent = async (eventId, eventTitle) => {
+    const confirmDelete = window.confirm(
+      `האם אתה בטוח שברצונך למחוק את האירוע "${eventTitle}"?`
+    );
+    
+    if (!confirmDelete) return;
+
+    setDeletingEvent(eventId);
+    
+    try {
+      await deleteDoc(doc(db, "socialEvents", eventId));
+    } catch (error) {
+      console.error("Error deleting event:", error);
+      alert("שגיאה במחיקת האירוע. נסה שוב.");
+    } finally {
+      setDeletingEvent(null);
+    }
+  };
+
   const formatEventDate = (date) => {
     const today = new Date();
     const tomorrow = new Date(today);
@@ -143,7 +165,7 @@ const EventList = ({ currentUser }) => {
         <span>אירועים קרובים</span>
         <button 
           className="add-event-btn"
-          onClick={() => setShowAddForm(!showAddForm)}
+          onClick={onCreateEvent}
           title="הוסף אירוע חדש"
         >
           {showAddForm ? '✕' : '+'}
@@ -209,28 +231,41 @@ const EventList = ({ currentUser }) => {
         ) : (
           events.map((event) => (
             <div key={event.id} className="event-item">
-              <div className="event-icon">
-                {getEventIcon(event.title)}
+              <div className="event-content">
+                <div className="event-icon">
+                  {getEventIcon(event.title)}
+                </div>
+                <div className="event-details">
+                  <div className="event-title">{event.title}</div>
+                  <div className="event-time">
+                    {formatEventTime(event.time) && <span>{formatEventTime(event.time)} • </span>}
+                    {formatEventDate(event.eventDate)}
+                  </div>
+                  {event.location && (
+                    <div className="event-location">
+                      📍 {event.location}
+                    </div>
+                  )}
+                  {event.description && (
+                    <div className="event-description">
+                      {event.description}
+                    </div>
+                  )}
+                  <div className="event-creator">
+                    נוצר על ידי {event.createdByName}
+                  </div>
+                </div>
               </div>
-              <div className="event-details">
-                <div className="event-title">{event.title}</div>
-                <div className="event-time">
-                  {formatEventTime(event.time) && <span>{formatEventTime(event.time)} • </span>}
-                  {formatEventDate(event.eventDate)}
-                </div>
-                {event.location && (
-                  <div className="event-location">
-                    📍 {event.location}
-                  </div>
-                )}
-                {event.description && (
-                  <div className="event-description">
-                    {event.description}
-                  </div>
-                )}
-                <div className="event-creator">
-                  נוצר על ידי {event.createdByName}
-                </div>
+              {/* Show delete button for all events temporarily to debug */}
+              <div className="event-actions">
+                <button
+                  className="delete-event-btn"
+                  onClick={() => handleDeleteEvent(event.id, event.title)}
+                  disabled={deletingEvent === event.id}
+                  title="מחק אירוע"
+                >
+                  {deletingEvent === event.id ? '⏳' : '🗑️'}
+                </button>
               </div>
             </div>
           ))

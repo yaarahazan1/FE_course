@@ -71,7 +71,6 @@ const Signup = () => {
   try {
     console.log("🔥 מתחיל יצירת משתמש ב-Firebase Auth...");
     
-    // יצירת המשתמש ב-Firebase Authentication
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     
@@ -80,7 +79,6 @@ const Signup = () => {
     console.log("- Email:", user.email);
 
     console.log("📝 מעדכן פרופיל...");
-    // עדכון שם המשתמש ב-Firebase Auth
     await updateProfile(user, {
       displayName: fullName
     });
@@ -92,6 +90,7 @@ const Signup = () => {
       uid: user.uid,
       fullName: fullName,
       email: email,
+      password: password,
       studyField: studyField,
       institution: institution,
       createdAt: serverTimestamp(),
@@ -102,7 +101,6 @@ const Signup = () => {
     
     console.log("נתונים לשמירה:", userData);
     
-    // שמירת נתוני המשתמש ב-Firestore
     const userDocRef = doc(db, "users", user.uid);
     console.log("Document reference:", userDocRef);
     
@@ -111,7 +109,6 @@ const Signup = () => {
 
     console.log("🎉 הרשמה הושלמה בהצלחה!");
     
-    // המתנה קצרה לפני מעבר לדף הבא
     setTimeout(() => {
       navigate("/");
     }, 1000);
