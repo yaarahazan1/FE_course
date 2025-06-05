@@ -52,35 +52,8 @@
 
 ## הוראות התקנה והרצה מקומית
 
-### דרישות מוקדמות
-* Node.js (גרסה 16 או גבוהה יותר)
-* npm או yarn
-
-### התקנה
-
-1. **שכפל את הפרויקט:**
-```bash
-git clone [repository-url]
-cd FE_project
-```
-
-2. **התקן תלויות:**
-```bash
-npm install
-```
-
-
-### הרצה
-
-```bash
-npm run dev
-```
-
-### בניית הפרויקט לפרודקשן
-
-```bash
-npm run build
-```
+### דמו של הפרויקט:
+https://melodious-conkies-cdb105.netlify.app/
 
 ## טכנולוגיות
 
