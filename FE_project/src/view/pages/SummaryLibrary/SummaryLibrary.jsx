@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import UploadSummaryDialog from "../../components/SummaryLibraryHelper/UploadSummaryDialog/UploadSummaryDialog";
+import { collection, addDoc, getDocs, deleteDoc, doc, query, where, updateDoc, onSnapshot } from 'firebase/firestore';
 import "./SummaryLibrary.css";
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '../../../firebase/config';
+import { auth, db } from '../../../firebase/config';
 
-// Cloudinary configuration
 const CLOUDINARY_CONFIG = {
   cloud_name: 'doxht9fpl',
   upload_preset: 'summaries_preset',
@@ -12,15 +12,8 @@ const CLOUDINARY_CONFIG = {
   api_secret: 'HDKDKxj2LKE-tPHgd6VeRPFGJaU'
 };
 
-// פונקציה לקבלת מזהה משתמש ייחודי (מבוסס על localStorage)
 const getUserId = () => {
-  let userId = localStorage.getItem('user_id');
-  
-  if (!userId) {
-    userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    localStorage.setItem('user_id', userId);
-  }
-  return userId;
+  return auth.currentUser?.uid || null;
 };
 
 const deleteFromCloudinary = async (publicId) => {
@@ -103,16 +96,25 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
     getSummaries();
   }, []);
 
-  const getSummaries = () => {
-    const savedSummaries = localStorage.getItem('uploaded_summaries');
-    if (savedSummaries) {
-      const summariesArray = JSON.parse(savedSummaries);
-      // בדיקה של כל הסיכומים של המשתמש (לא רק מאושרים)
-      const userSummaries = summariesArray.filter(summary => 
-        summary.author === user.displayName
-      );
-
+  const getSummaries = async () => {
+    if (!user?.uid) return;
+    
+    try {
+      const summariesRef = collection(db, 'summaries');
+      const q = query(summariesRef, where('uploadedBy', '==', user.uid));
+      const querySnapshot = await getDocs(q);
+      
+      const userSummaries = [];
+      querySnapshot.forEach((doc) => {
+        userSummaries.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+      
       setSummaries(userSummaries);
+    } catch (error) {
+      console.error('Error getting user summaries:', error);
     }
   };
 
@@ -568,23 +570,23 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
     );
   };
 
-  const updateDownloadCount = (summaryId) => {
+  const updateDownloadCount = async (summaryId) => {
     try {
-      const savedSummaries = localStorage.getItem('uploaded_summaries');
-      if (savedSummaries) {
-        const summariesArray = JSON.parse(savedSummaries);
-        const updatedSummaries = summariesArray.map(sum => {
-          if (sum.id === summaryId) {
-            return { ...sum, downloads: (sum.downloads || 0) + 1 };
-          }
-          return sum;
-        });
-        localStorage.setItem('uploaded_summaries', JSON.stringify(updatedSummaries));
-        
-        if (onUpdateSummary) {
-          onUpdateSummary(summaryId, { downloads: (summary.downloads || 0) + 1 });
-        }
+      const summary = summaries.find(s => s.id === summaryId);
+      if (!summary) return;
+      
+      const newDownloadCount = (summary.downloads || 0) + 1;
+      
+      // עדכון ב-Firebase
+      await updateDoc(doc(db, 'summaries', summaryId), {
+        downloads: newDownloadCount
+      });
+      
+      // עדכון מקומי
+      if (onUpdateSummary) {
+        onUpdateSummary(summaryId, { downloads: newDownloadCount });
       }
+      
     } catch (error) {
       console.error('Error updating download count:', error);
     }
@@ -821,85 +823,99 @@ const SummaryLibrary = () => {
     );
   };
 
-  const checkUserUploadStatus = () => {
-    const savedSummaries = localStorage.getItem('uploaded_summaries');
-    if (savedSummaries) {
-      const summariesArray = JSON.parse(savedSummaries);
-      // בדיקה של כל הסיכומים של המשתמש (לא רק מאושרים)
-      const userSummaries = summariesArray.filter(summary => 
-        summary.author === user.displayName
-      );
-      return userSummaries.length > 0;
+  const checkUserUploadStatus = async (user) => {
+    if (!user?.uid) return false;
+    
+    try {
+      const summariesRef = collection(db, 'summaries');
+      const q = query(summariesRef, where('uploadedBy', '==', user.uid));
+      const querySnapshot = await getDocs(q);
+      return !querySnapshot.empty;
+    } catch (error) {
+      console.error('Error checking user upload status:', error);
+      return false;
     }
-    return false;
   };
 
   useEffect(() => {
-    console.log('Checking user upload status...');
-    const userHasUploaded = checkUserUploadStatus(user);
-    console.log('User has uploaded:', userHasUploaded);
-    setHasUploaded(userHasUploaded);
-    localStorage.setItem('user_uploaded_summary', userHasUploaded ? 'true' : 'false');
-  }, [user, summaries]); 
+    const checkUploadStatus = async () => {
+      if (user) {
+        console.log('Checking user upload status...');
+        const userHasUploaded = await checkUserUploadStatus(user);
+        console.log('User has uploaded:', userHasUploaded);
+        setHasUploaded(userHasUploaded);
+      }
+    };
+    
+    checkUploadStatus();
+  }, [user, summaries]);
 
-  const loadSummariesFromLocalStorage = () => {
+
+  const loadSummariesFromFirebase = async () => {
     try {
       setIsLoading(true);
       
-      const savedSummaries = localStorage.getItem('uploaded_summaries');
-      let localSummaries = [];
+      const summariesRef = collection(db, 'summaries');
+      const querySnapshot = await getDocs(summariesRef);
       
-      if (savedSummaries) {
-        localSummaries = JSON.parse(savedSummaries);
-      }
+      const firebaseSummaries = [];
+      querySnapshot.forEach((doc) => {
+        firebaseSummaries.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
       
-      const userHasUploaded = checkUserUploadStatus();
+      const userHasUploaded = await checkUserUploadStatus(user);
       console.log('Loading summaries - user has uploaded:', userHasUploaded);
-      console.log('Total summaries:', localSummaries.length);
-      console.log('User summaries:', localSummaries.filter(s => s.uploadedBy === currentUserId).length);
       
-      const allSummaries = localSummaries.map(summary => ({
+      const allSummaries = firebaseSummaries.map(summary => ({
         ...summary,
-        isLocked: !userHasUploaded || (summary.uploadedBy !== currentUserId && !userHasUploaded)
+        isLocked: !userHasUploaded || (summary.uploadedBy !== user?.uid && !userHasUploaded)
       }));
       
       setSummaries(allSummaries);
       setHasUploaded(userHasUploaded);
       
     } catch (error) {
-      console.error('Error loading summaries from localStorage:', error);
+      console.error('Error loading summaries from Firebase:', error);
       setSummaries([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const deleteSummaryFromStorage = async (publicId) => {
+  const deleteSummaryFromFirebase = async (publicId) => {
     try {
-      console.log('Deleting summary from storage:', publicId);
+      console.log('Deleting summary from Firebase:', publicId);
       
+      // מצא את הסיכום לפי public_id
+      const summaryToDelete = summaries.find(summary => summary.public_id === publicId);
+      if (!summaryToDelete) {
+        throw new Error('Summary not found');
+      }
+      
+      // מחק מ-Firebase
+      await deleteDoc(doc(db, 'summaries', summaryToDelete.id));
+      console.log('Deleted from Firebase successfully');
+      
+      // עדכן את הרשימה המקומית
       const updatedSummaries = summaries.filter(summary => summary.public_id !== publicId);
       
-      localStorage.setItem('uploaded_summaries', JSON.stringify(updatedSummaries));
-      console.log('Updated localStorage with remaining summaries:', updatedSummaries.length);
-      
-      // בדיקה אם למשתמש עדיין יש סיכומים (כל סוג)
-      const userSummariesAfterDelete = updatedSummaries.filter(summary => summary.uploadedBy === currentUserId);
+      // בדיקה אם למשתמש עדיין יש סיכומים
+      const userSummariesAfterDelete = updatedSummaries.filter(summary => summary.uploadedBy === user?.uid);
       const userStillHasUploads = userSummariesAfterDelete.length > 0;
       
       console.log('User summaries after delete:', userSummariesAfterDelete.length);
       console.log('User still has uploads:', userStillHasUploads);
       
-      // עדכון hasUploaded מיד
       setHasUploaded(userStillHasUploads);
-      localStorage.setItem('user_uploaded_summary', userStillHasUploads ? 'true' : 'false');
       
       // עדכון רשימת הסיכומים
       if (!userStillHasUploads) {
-        // אם אין למשתמש עוד סיכומים - נעל את כל הסיכומים של אחרים
         const summariesWithLock = updatedSummaries.map(summary => ({
           ...summary,
-          isLocked: summary.uploadedBy !== currentUserId
+          isLocked: summary.uploadedBy !== user?.uid
         }));
         setSummaries(summariesWithLock);
       } else {
@@ -907,14 +923,24 @@ const SummaryLibrary = () => {
       }
       
     } catch (error) {
-      console.error('Error deleting summary from storage:', error);
+      console.error('Error deleting summary from Firebase:', error);
       throw error;
     }
   };
 
   useEffect(() => {
-    loadSummariesFromLocalStorage();
-  }, []);
+    if (user) {
+      loadSummariesFromFirebase();
+      
+      const summariesRef = collection(db, 'summaries');
+      const unsubscribe = onSnapshot(summariesRef, () => {
+        console.log('Real-time update detected');
+        loadSummariesFromFirebase();
+      });
+      
+      return () => unsubscribe();
+    }
+  }, [user]);
 
 
   const filteredSummaries = summaries.filter(summary => {
@@ -950,41 +976,50 @@ const SummaryLibrary = () => {
     return 0;
   });
 
-
-  const handleUploadSuccess = (uploadedSummary) => {
-    console.log('Upload success - starting process...');
+  const handleUploadSuccess = async (uploadedSummary) => {
+    console.log('Upload success - starting Firebase save process...');
+    
+    if (!user?.uid) {
+      alert('שגיאה: לא ניתן לזהות את המשתמש');
+      return;
+    }
     
     const summaryWithUserId = {
       ...uploadedSummary,
-      uploadedBy: currentUserId,
+      uploadedBy: user.uid,
+      author: user.displayName || user.email,
       isLocked: false,
-      id: Date.now().toString(),
       status: 'ממתין לאישור',
       uploadedAt: new Date().toISOString()
     };
 
-    // שמירה ב-localStorage
-    const existingSummaries = JSON.parse(localStorage.getItem('uploaded_summaries') || '[]');
-    const updatedSummaries = [summaryWithUserId, ...existingSummaries];
-    localStorage.setItem('uploaded_summaries', JSON.stringify(updatedSummaries));
-    
-    console.log('Saved to localStorage, total summaries:', updatedSummaries.length);
-    console.log('User summaries count:', updatedSummaries.filter(s => s.uploadedBy === currentUserId).length);
-    
-    // עדכון המצב מיד אחרי העלאה
-    setHasUploaded(true);
-    localStorage.setItem('user_uploaded_summary', 'true');
-    console.log('Set hasUploaded to true');
-    
-    // הוספת הסיכום החדש לרשימה
-    setSummaries(prevSummaries => {
-      const newSummaries = [summaryWithUserId, ...prevSummaries.map(s => ({ ...s, isLocked: false }))];
-      console.log('Updated summaries state, new count:', newSummaries.length);
-      return newSummaries;
-    });
-    
-    alert("הסיכום הועלה בהצלחה! כעת יש לך גישה מלאה לכל הסיכומים בספרייה.");
-    setIsDialogOpen(false);
+    try {
+      // שמירה ב-Firebase
+      const docRef = await addDoc(collection(db, 'summaries'), summaryWithUserId);
+      console.log('Saved to Firebase with ID:', docRef.id);
+      
+      // עדכון המצב מיד אחרי העלאה
+      setHasUploaded(true);
+      
+      // הוספת הסיכום החדש לרשימה עם ה-ID מ-Firebase
+      const summaryWithFirebaseId = {
+        ...summaryWithUserId,
+        id: docRef.id
+      };
+      
+      setSummaries(prevSummaries => {
+        const newSummaries = [summaryWithFirebaseId, ...prevSummaries.map(s => ({ ...s, isLocked: false }))];
+        console.log('Updated summaries state, new count:', newSummaries.length);
+        return newSummaries;
+      });
+      
+      alert("הסיכום הועלה בהצלחה! כעת יש לך גישה מלאה לכל הסיכומים בספרייה.");
+      setIsDialogOpen(false);
+      
+    } catch (error) {
+      console.error('Error saving to Firebase:', error);
+      alert('שגיאה בשמירת הסיכום. נסה שוב.');
+    }
   };
 
   const uniqueCourses = [...new Set(summaries.map(summary => summary.course))];
@@ -1070,7 +1105,7 @@ const SummaryLibrary = () => {
               summary={summary} 
               hasAccess={hasUploaded}
               onAccessRequired={() => setIsDialogOpen(true)}
-              onDelete={deleteSummaryFromStorage}
+              onDelete={deleteSummaryFromFirebase}
               onUpdateSummary={handleUpdateSummary}
               currentUserId={currentUserId}
             />
