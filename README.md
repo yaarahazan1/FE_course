@@ -53,8 +53,7 @@
 ## הוראות התקנה והרצה מקומית
 
 ### דמו של הפרויקט:
-https://melodious-conkies-cdb105.netlify.app/
-
+https://smart-student-1cf98.web.app/
 ## טכנולוגיות
 
 * **Frontend**: React + Vite
@@ -68,5 +67,3 @@ https://melodious-conkies-cdb105.netlify.app/
 ---
 
 **מפותח במסגרת קורס פיתוח Frontend**  
-**מגישה**: יערה חזן (214474207)  
-**מרצה**: גלעד יריב
