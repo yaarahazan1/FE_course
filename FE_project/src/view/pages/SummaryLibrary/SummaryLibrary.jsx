@@ -12,6 +12,7 @@ const CLOUDINARY_CONFIG = {
   api_secret: 'HDKDKxj2LKE-tPHgd6VeRPFGJaU'
 };
 
+console.log(auth.currentUser, 'Current user in SummaryLibrary');
 const getUserId = () => {
   return auth.currentUser?.uid || null;
 };
