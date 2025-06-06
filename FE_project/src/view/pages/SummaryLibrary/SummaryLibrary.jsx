@@ -1,20 +1,25 @@
 import React, { useState, useEffect } from "react";
 import UploadSummaryDialog from "../../components/SummaryLibraryHelper/UploadSummaryDialog/UploadSummaryDialog";
-import { collection, addDoc, getDocs, deleteDoc, doc, query, where, updateDoc, onSnapshot } from 'firebase/firestore';
 import "./SummaryLibrary.css";
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../../../firebase/config';
+import { 
+  collection, 
+  addDoc, 
+  getDocs, 
+  deleteDoc, 
+  doc, 
+  query, 
+  where, 
+  onSnapshot 
+} from 'firebase/firestore';
 
+// Cloudinary configuration
 const CLOUDINARY_CONFIG = {
   cloud_name: 'doxht9fpl',
   upload_preset: 'summaries_preset',
   api_key: '479472249636565',
   api_secret: 'HDKDKxj2LKE-tPHgd6VeRPFGJaU'
-};
-
-const getUserId = () => {
-  console.log(auth.currentUser?.displayName, 'Current user in SummaryLibrary');
-  return auth.currentUser?.uid || null;
 };
 
 const deleteFromCloudinary = async (publicId) => {
@@ -31,7 +36,7 @@ const deleteFromCloudinary = async (publicId) => {
     console.log('Attempting to delete from Cloudinary:', {
       publicId,
       timestamp,
-      signature: signature.substring(0, 10) + '...' // הצג רק חלק מהחתימה בלוג
+      signature: signature.substring(0, 10) + '...'
     });
 
     const formData = new FormData();
@@ -40,7 +45,6 @@ const deleteFromCloudinary = async (publicId) => {
     formData.append('api_key', CLOUDINARY_CONFIG.api_key);
     formData.append('signature', signature);
     formData.append('access_mode', 'public');
-
 
     const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloud_name}/raw/destroy`, {
       method: 'POST',
@@ -62,7 +66,7 @@ const deleteFromCloudinary = async (publicId) => {
       return true;
     } else if (result.result === 'not found') {
       console.log('File was already deleted or not found in Cloudinary');
-      return true; // נחשיב זאת כהצלחה כי הקובץ ממילא לא קיים
+      return true;
     } else {
       console.error('Failed to delete from Cloudinary:', result);
       return false;
@@ -70,7 +74,6 @@ const deleteFromCloudinary = async (publicId) => {
   } catch (error) {
     console.error('Error deleting from Cloudinary:', error);
     
-    // בדיקה אם השגיאה קשורה ל-CORS או רשתות
     if (error.name === 'TypeError' && error.message.includes('fetch')) {
       console.error('Network error - possibly CORS issue');
       alert('שגיאת רשת במחיקה מ-Cloudinary. הקובץ עדיין קיים בשרת.');
@@ -80,7 +83,7 @@ const deleteFromCloudinary = async (publicId) => {
   }
 };
 
-const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateSummary, currentUserId }) => {
+const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, currentUserId }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -95,24 +98,21 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
 
   useEffect(() => {
     getSummaries();
-  }, []);
+  }, [user]);
 
   const getSummaries = async () => {
-    if (!user?.uid) return;
+    if (!user) return;
     
     try {
-      const summariesRef = collection(db, 'summaries');
-      const q = query(summariesRef, where('uploadedBy', '==', user.uid));
+      const q = query(
+        collection(db, 'summaries'),
+        where('author', '==', user.displayName)
+      );
       const querySnapshot = await getDocs(q);
-      
       const userSummaries = [];
       querySnapshot.forEach((doc) => {
-        userSummaries.push({
-          id: doc.id,
-          ...doc.data()
-        });
+        userSummaries.push({ id: doc.id, ...doc.data() });
       });
-      
       setSummaries(userSummaries);
     } catch (error) {
       console.error('Error getting user summaries:', error);
@@ -202,7 +202,6 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
         link.click();
         document.body.removeChild(link);
         
-        updateDownloadCount(summary.id);
         return;
       }
       
@@ -239,7 +238,6 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
         
         window.URL.revokeObjectURL(blobUrl);
         
-        updateDownloadCount(summary.id);
         console.log('File downloaded successfully via fetch as:', fileName);
         
       } catch (fetchError) {
@@ -260,14 +258,13 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
             
             const link = document.createElement('a');
             link.href = url;
-            link.download = fileName; // שימוש בשם הקובץ עם הסיומת הנכונה
-            link.target = '_blank'; // פתיחה בטאב חדש כ-fallback
+            link.download = fileName;
+            link.target = '_blank';
             
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             
-            updateDownloadCount(summary.id);
             downloadStarted = true;
             console.log('Direct download started with URL:', url, 'as:', fileName);
             break;
@@ -315,12 +312,10 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
   };
   
   const handlePreview = async () => {
-    // רק הבעלים יכול לצפות בסיכומים נדחים - לכל השאר זה נעול
     const isAccessible = isApproved || (isOwnSummary && !isRejected);
     
     if (!isAccessible) {
       if (isRejected && !isOwnSummary) {
-        // עבור משתמשים אחרים - סיכום נדחה מתנהג כמו סיכום נעול
         onAccessRequired();
         return;
       } else if (isRejected && isOwnSummary) {
@@ -359,7 +354,7 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
       if (publicId.includes('.')) {
         return publicId.split('.').pop().toLowerCase();
       }
-      return 'unknown';
+      return 'pdf'; // default to PDF
     };
 
     const fileExtension = getFileExtension(summary.public_id);
@@ -375,40 +370,75 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
           console.log('Loading preview for file type:', fileExtension);
           console.log('Public ID:', summary.public_id);
           
-          const directUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/${summary.public_id}`;
-          console.log('Direct URL:', directUrl);
+          // נסה קודם להשתמש ב-fileUrl אם קיים
+          let directUrl;
+          if (summary.fileUrl) {
+            directUrl = summary.fileUrl;
+            console.log('Using fileUrl:', directUrl);
+          } else {
+            // בנה URL ישיר מ-Cloudinary עם הגדרות נגישות פומבית
+            directUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/fl_attachment:inline/${summary.public_id}`;
+            console.log('Using Cloudinary URL:', directUrl);
+          }
+          
+          // בדוק זמינות הקובץ לפני הטעינה
+          const isFileAccessible = await checkFileAvailability(directUrl);
+          if (!isFileAccessible) {
+            throw new Error('הקובץ לא נגיש לתצוגה מקדימה');
+          }
           
           let viewers = [];
           
-          if (isDocFile) {
+          if (isPdfFile) {
             viewers = [
-              `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(directUrl)}`,
+              // PDF.js viewer - הכי אמין ל-PDFs
+              `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(directUrl)}`,
+              // Google Docs viewer - backup
               `https://docs.google.com/viewer?url=${encodeURIComponent(directUrl)}&embedded=true`,
-              `https://drive.google.com/viewerng/viewer?url=${encodeURIComponent(directUrl)}&embedded=true`,
+              // Direct view - אם שום דבר לא עובד
               directUrl
             ];
-          } else if (isPdfFile) {
+          } else if (isDocFile) {
             viewers = [
-              `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(directUrl)}`,
+              // Office Online viewer - הכי טוב לקבצי Word
+              `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(directUrl)}&wdStartOn=1`,
+              // Google Docs viewer - backup
               `https://docs.google.com/viewer?url=${encodeURIComponent(directUrl)}&embedded=true`,
-              `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(directUrl)}`,
+              // Direct download - fallback
               directUrl
             ];
           } else {
+            // קבצים אחרים
             viewers = [
               `https://docs.google.com/viewer?url=${encodeURIComponent(directUrl)}&embedded=true`,
-              `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(directUrl)}`,
               directUrl
             ];
           }
           
+          console.log('Available viewers:', viewers);
           setPreviewUrl(viewers[0]);
           
         } catch (err) {
           console.error('Error loading preview:', err);
-          setError('לא ניתן לטעון את התצוגה המקדימה');
+          setError(err.message || 'לא ניתן לטעון את התצוגה המקדימה');
         } finally {
           setIsLoading(false);
+        }
+      };
+
+      const checkFileAvailability = async (url) => {
+        try {
+          console.log('Checking file availability:', url);
+          const response = await fetch(url, { 
+            method: 'HEAD',
+            mode: 'no-cors' // חשוב למנוע בעיות CORS
+          });
+          
+          console.log('File check response status:', response.status);
+          return true; // אם הגענו לכאן, הקובץ כנראה נגיש
+        } catch (error) {
+          console.warn('File availability check failed, but will try anyway:', error);
+          return true; // נמשיך בכל מקרה
         }
       };
 
@@ -418,21 +448,29 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
     const handleIframeError = () => {
       console.log('Current viewer failed, trying next one');
       
-      const directUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/${summary.public_id}`;
+      let directUrl;
+      if (summary.fileUrl) {
+        directUrl = summary.fileUrl;
+      } else {
+        directUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/fl_attachment:inline/${summary.public_id}`;
+      }
       
       let viewers = [];
-      if (isDocFile) {
-        viewers = [
-          `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(directUrl)}`,
-          `https://docs.google.com/viewer?url=${encodeURIComponent(directUrl)}&embedded=true`,
-          `https://drive.google.com/viewerng/viewer?url=${encodeURIComponent(directUrl)}&embedded=true`,
-          directUrl
-        ];
-      } else if (isPdfFile) {
+      if (isPdfFile) {
         viewers = [
           `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(directUrl)}`,
           `https://docs.google.com/viewer?url=${encodeURIComponent(directUrl)}&embedded=true`,
-          `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(directUrl)}`,
+          directUrl
+        ];
+      } else if (isDocFile) {
+        viewers = [
+          `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(directUrl)}&wdStartOn=1`,
+          `https://docs.google.com/viewer?url=${encodeURIComponent(directUrl)}&embedded=true`,
+          directUrl
+        ];
+      } else {
+        viewers = [
+          `https://docs.google.com/viewer?url=${encodeURIComponent(directUrl)}&embedded=true`,
           directUrl
         ];
       }
@@ -445,27 +483,44 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
         setPreviewUrl(viewers[nextIndex]);
       } else {
         console.log('All viewers failed');
-        setError('לא ניתן לטעון את התצוגה המקדימה. הקובץ עשוי להיות פגום או לא נגיש.');
+        setError('לא ניתן לטעון את התצוגה המקדימה. נסה להוריד את הקובץ במקום.');
       }
     };
 
-    const checkFileAvailability = async () => {
-      try {
-        const directUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/${summary.public_id}`;
-        const response = await fetch(directUrl, { method: 'HEAD' });
-        
-        if (!response.ok) {
-          throw new Error(`File not accessible: ${response.status}`);
-        }
-        
-        const contentType = response.headers.get('content-type');
-        console.log('File content type:', contentType);
-        
-        return true;
-      } catch (error) {
-        console.error('File availability check failed:', error);
-        return false;
+    const handleRetry = async () => {
+      setCurrentViewerIndex(0);
+      setError(null);
+      setIsLoading(true);
+      
+      // נסה שוב עם ה-viewer הראשון
+      let directUrl;
+      if (summary.fileUrl) {
+        directUrl = summary.fileUrl;
+      } else {
+        directUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/fl_attachment:inline/${summary.public_id}`;
       }
+      
+      let firstViewer;
+      if (isPdfFile) {
+        firstViewer = `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(directUrl)}`;
+      } else if (isDocFile) {
+        firstViewer = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(directUrl)}&wdStartOn=1`;
+      } else {
+        firstViewer = `https://docs.google.com/viewer?url=${encodeURIComponent(directUrl)}&embedded=true`;
+      }
+      
+      setPreviewUrl(firstViewer);
+      setTimeout(() => setIsLoading(false), 2000);
+    };
+
+    const openInNewTab = () => {
+      let directUrl;
+      if (summary.fileUrl) {
+        directUrl = summary.fileUrl;
+      } else {
+        directUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/${summary.public_id}`;
+      }
+      window.open(directUrl, '_blank');
     };
 
     if (isLoading) {
@@ -492,70 +547,31 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
           <div className="preview-error-description">
             {isDocFile ? 
               'קבצי Word לפעמים דורשים הורדה לצפייה מלאה' : 
+              isPdfFile ?
+              'קבצי PDF עשויים להיות מוגנים או לא נגישים' :
               'הקובץ עשוי להיות פגום או לא נגיש'
             }
           </div>
           <div className="preview-error-actions">
             <button
-              onClick={() => {
-                const directUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/${summary.public_id}`;
-                window.open(directUrl, '_blank');
-              }}
+              onClick={openInNewTab}
               className="preview-error-btn primary"
             >
               פתח קובץ בטאב חדש
             </button>
             <button
-              onClick={async () => {
-                const isAvailable = await checkFileAvailability();
-                if (isAvailable) {
-                  setCurrentViewerIndex(0);
-                  setError(null);
-                  setIsLoading(true);
-                  
-                  const directUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/${summary.public_id}`;
-                  const firstViewer = isDocFile ? 
-                    `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(directUrl)}` :
-                    `https://docs.google.com/viewer?url=${encodeURIComponent(directUrl)}&embedded=true`;
-                  
-                  setPreviewUrl(firstViewer);
-                  setTimeout(() => setIsLoading(false), 1000);
-                } else {
-                  alert('הקובץ לא נגיש. נסה להוריד אותו במקום.');
-                }
-              }}
+              onClick={handleRetry}
               className="preview-error-btn secondary"
             >
               נסה שוב
             </button>
-            {isDocFile && (
-              <button
-                onClick={() => {
-                  const directUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloud_name}/raw/upload/${summary.public_id}`;
-                  const convertUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(directUrl)}&embedded=true&a=v&pagenumber=1&w=100%`;
-                  setPreviewUrl(convertUrl);
-                  setError(null);
-                }}
-                className="preview-error-btn warning"
-              >
-                נסה תצוגה מותאמת
-              </button>
-            )}
           </div>
         </div>
       );
     }
 
     return (
-      <div className="preview-content-summary-container">
-        <div className="viewer-info">
-          {isDocFile ? 'Word Document' : isPdfFile ? 'PDF' : 'Document'} 
-          {currentViewerIndex === 0 && ' - Microsoft Viewer'}
-          {currentViewerIndex === 1 && ' - Google Viewer'}
-          {currentViewerIndex === 2 && ' - Alternative Viewer'}
-          {currentViewerIndex === 3 && ' - Direct View'}
-        </div>
-        
+      <div className="preview-content-summary-container" style={{ width: '100%', height: '100%' }}>        
         <iframe
           src={previewUrl}
           className="preview-iframe"
@@ -565,33 +581,35 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
             console.log('Preview loaded successfully with viewer index:', currentViewerIndex);
             console.log('Viewer URL:', previewUrl);
           }}
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+          style={{
+            width: '100%',
+            height: 'calc(90vh - 60px)',
+            border: 'none',
+            borderRadius: '8px',
+            backgroundColor: '#f5f5f5'
+          }}
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+          referrerPolicy="no-referrer-when-downgrade"
         />
       </div>
     );
   };
 
-  const updateDownloadCount = async (summaryId) => {
-    try {
-      const summary = summaries.find(s => s.id === summaryId);
-      if (!summary) return;
+  // const updateDownloadCount = async (summaryId) => {
+  //   try {
+  //     const summaryRef = doc(db, 'summaries', summaryId);
+  //     const currentDownloads = summary.downloads || 0;
+  //     await updateDoc(summaryRef, {
+  //       downloads: currentDownloads + 1
+  //     });
       
-      const newDownloadCount = (summary.downloads || 0) + 1;
-      
-      // עדכון ב-Firebase
-      await updateDoc(doc(db, 'summaries', summaryId), {
-        downloads: newDownloadCount
-      });
-      
-      // עדכון מקומי
-      if (onUpdateSummary) {
-        onUpdateSummary(summaryId, { downloads: newDownloadCount });
-      }
-      
-    } catch (error) {
-      console.error('Error updating download count:', error);
-    }
-  };
+  //     if (onUpdateSummary) {
+  //       onUpdateSummary(summaryId, { downloads: currentDownloads + 1 });
+  //     }
+  //   } catch (error) {
+  //     console.error('Error updating download count:', error);
+  //   }
+  // };
 
   const handleDelete = async () => {
     if (window.confirm(`האם אתה בטוח שברצונך למחוק את הסיכום "${summary.title}"? פעולה זו אינה ניתנת לביטול.`)) {
@@ -608,12 +626,12 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
         } else {
           const shouldContinue = window.confirm(
             "לא הצלחנו למחוק את הקובץ מהשרת (Cloudinary). זה יכול להיות בגלל בעיית רשת או הרשאות.\n\n" +
-            "האם ברצונך למחוק אותו רק מהממשק המקומי? (הקובץ עדיין יישאר בשרת)"
+            "האם ברצונך למחוק אותו רק מהמסד נתונים? (הקובץ עדיין יישאר בשרת)"
           );
           
           if (shouldContinue) {
             await onDelete(summary.public_id);
-            alert("הסיכום נמחק מהממשק המקומי בלבד.\nהקובץ עדיין קיים בשרת Cloudinary.");
+            alert("הסיכום נמחק ממסד הנתונים בלבד.\nהקובץ עדיין קיים בשרת Cloudinary.");
           }
         }
       } catch (error) {
@@ -629,31 +647,24 @@ const SummaryCard = ({ summary, hasAccess, onAccessRequired, onDelete, onUpdateS
     const isOwnSummary = summary.uploadedBy === currentUserId; 
     const isRejected = summary.status === 'נדחה';
 
-    // האם המשתמש העלה סיכום כלשהו?
     const userHasSubmittedAny = summaries.length > 0;
-
-    // האם המשתמש העלה סיכום מאושר?
     const userHasApprovedSummary = summaries.some(s => s.status === 'מאושר');
 
-    // 1. אם לא העלה סיכום בכלל → נעול
     if (!userHasSubmittedAny) {
       return true;
     }
 
-    // 2. הסיכום שלו → אף פעם לא נעול (גם אם דחוי)
     if (isOwnSummary) {
       return false;
     }
 
-    // 3. סיכום של מישהו אחר
     if (!userHasApprovedSummary) {
-      return true;  // אם המשתמש לא העלה סיכום מאושר → סיכומים אחרים נעולים
+      return true;
     }
 
-    return isRejected; // אם המשתמש העלה סיכום מאושר → סיכומים אחרים נעולים רק אם דחויים
+    return isRejected;
   };
 
-  // בדיקה אם הסיכום צריך להיראות כנעול
   const shouldDisplayAsLocked = isSummaryLocked(summary)
 
   return (
@@ -810,19 +821,27 @@ const SummaryLibrary = () => {
   const [hasUploaded, setHasUploaded] = useState(false);
   const [summaries, setSummaries] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentUserId] = useState(getUserId());
+  const [currentUserId, setCurrentUserId] = useState(null);
 
   const [user] = useAuthState(auth);
 
-  const handleUpdateSummary = (summaryId, updates) => {
-    setSummaries(prevSummaries => 
-      prevSummaries.map(summary => 
-        summary.id === summaryId 
-          ? { ...summary, ...updates }
-          : summary
-      )
-    );
-  };
+  useEffect(() => {
+    if (user) {
+      setCurrentUserId(user.uid);
+    } else {
+      setCurrentUserId(null);
+    }
+  }, [user]);
+
+  // const handleUpdateSummary = (summaryId, updates) => {
+  //   setSummaries(prevSummaries => 
+  //     prevSummaries.map(summary => 
+  //       summary.id === summaryId 
+  //         ? { ...summary, ...updates }
+  //         : summary
+  //     )
+  //   );
+  // };
 
   const checkUserUploadStatus = async (user) => {
     if (!user?.uid) {
@@ -1001,7 +1020,7 @@ const SummaryLibrary = () => {
 
   const filteredSummaries = summaries.filter(summary => {
     const isApproved = summary.status === 'מאושר';
-    const isOwnSummary = summary.uploadedBy === currentUserId;
+    const isOwnSummary = user && summary.uploadedBy === user.uid;
     
     // הצג סיכומים מאושרים לכולם, וסיכומים של המשתמש עצמו (כולל ממתינים/נדחים)
     if (!isApproved && !isOwnSummary) {
@@ -1162,8 +1181,8 @@ const SummaryLibrary = () => {
               hasAccess={hasUploaded}
               onAccessRequired={() => setIsDialogOpen(true)}
               onDelete={deleteSummaryFromFirebase}
-              onUpdateSummary={handleUpdateSummary}
-              currentUserId={currentUserId}
+              // onUpdateSummary={handleUpdateSummary}
+              currentUserId={user?.uid}
             />
           ))}
         </div>

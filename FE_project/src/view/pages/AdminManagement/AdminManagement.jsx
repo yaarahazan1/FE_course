@@ -20,7 +20,6 @@ import UserDetailDialog from "../../components/AdminManagementHelper/UserDetailD
 import SummaryDetailDialog from "../../components/AdminManagementHelper/SummaryDetailDialog/SummaryDetailDialog";
 import "./AdminManagement.css";
 
-// Cloudinary configuration
 const CLOUDINARY_CONFIG = {
   cloud_name: 'doxht9fpl',
   upload_preset: 'summaries_preset',
@@ -124,23 +123,30 @@ const AdminManagement = () => {
     loadUsers();
   }, [isAuthenticating, currentUser]);
 
-  // טעינת סיכומים מ-localStorage (רק אחרי אימות)
+  // טעינת סיכומים מ-Firebase (רק אחרי אימות)
   useEffect(() => {
     if (isAuthenticating || !currentUser) return;
 
     const loadSummaries = () => {
       try {
         setIsLoadingSummaries(true);
-        const savedSummaries = localStorage.getItem('uploaded_summaries');
-        if (savedSummaries) {
-          const summariesData = JSON.parse(savedSummaries);
-          const summariesWithStatus = summariesData.map(summary => ({
-            ...summary,
-            status: summary.status || 'ממתין לאישור'
-          }));
-          setSummaries(summariesWithStatus);
-        }
-        setIsLoadingSummaries(false);
+        const summariesCollection = collection(db, "summaries");
+        const summariesQuery = query(summariesCollection, orderBy("createdAt", "desc"));
+        
+        const unsubscribe = onSnapshot(summariesQuery, (querySnapshot) => {
+          const summariesData = [];
+          querySnapshot.forEach((doc) => {
+            summariesData.push({
+              id: doc.id,
+              ...doc.data(),
+              status: doc.data().status || 'ממתין לאישור'
+            });
+          });
+          setSummaries(summariesData);
+          setIsLoadingSummaries(false);
+        });
+
+        return unsubscribe;
       } catch (error) {
         console.error("Error loading summaries:", error);
         toast.error("שגיאה בטעינת הסיכומים");
@@ -238,48 +244,49 @@ const AdminManagement = () => {
 
   const handleSummaryAction = async (action, summaryId) => {
     try {
-      const savedSummaries = localStorage.getItem('uploaded_summaries');
-      if (savedSummaries) {
-        let summariesData = JSON.parse(savedSummaries);
-        const summaryIndex = summariesData.findIndex(s => s.id === summaryId);
-        
-        if (summaryIndex !== -1) {
-          const currentSummary = summariesData[summaryIndex];
-          
-          switch (action) {
-            case 'אישור':
-              summariesData[summaryIndex] = { 
-                ...currentSummary, 
-                status: 'מאושר',
-                approvedAt: new Date().toISOString(),
-                feedback: feedbackText
-              };
-              break;
-            case 'דחייה':
-              summariesData[summaryIndex] = { 
-                ...currentSummary, 
-                status: 'נדחה',
-                rejectedAt: new Date().toISOString(),
-                feedback: feedbackText
-              };
-              break;
-            case 'מחיקה':
-              if (currentSummary.public_id) {
-                const cloudinaryDeleted = await deleteFromCloudinary(currentSummary.public_id);
-                if (!cloudinaryDeleted) {
-                  toast.error("שגיאה במחיקת הקובץ מהשרת");
-                  return;
-                }
-              }
-              summariesData = summariesData.filter(s => s.id !== summaryId);
-              break;
-            default:
+      const summaryRef = doc(db, "summaries", summaryId);
+      const currentSummary = summaries.find(s => s.id === summaryId);
+      
+      if (!currentSummary) {
+        toast.error("סיכום לא נמצא");
+        return;
+      }
+
+      let updateData = {};
+
+      switch (action) {
+        case 'אישור':
+          updateData = { 
+            status: 'מאושר',
+            approvedAt: new Date(),
+            feedback: feedbackText,
+            updatedAt: new Date()
+          };
+          await updateDoc(summaryRef, updateData);
+          break;
+        case 'דחייה':
+          updateData = { 
+            status: 'נדחה',
+            rejectedAt: new Date(),
+            feedback: feedbackText,
+            updatedAt: new Date()
+          };
+          await updateDoc(summaryRef, updateData);
+          break;
+        case 'מחיקה':
+          // מחיקה מ-Cloudinary אם יש public_id
+          if (currentSummary.public_id) {
+            const cloudinaryDeleted = await deleteFromCloudinary(currentSummary.public_id);
+            if (!cloudinaryDeleted) {
+              toast.error("שגיאה במחיקת הקובץ מהשרת");
               return;
+            }
           }
-          
-          localStorage.setItem('uploaded_summaries', JSON.stringify(summariesData));
-          setSummaries(summariesData);
-        }
+          // מחיקה מ-Firebase
+          await deleteDoc(summaryRef);
+          break;
+        default:
+          return;
       }
       
       const actionText = {

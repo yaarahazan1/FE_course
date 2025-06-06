@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { collection, query, where, getDocs, orderBy, limit, doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../../../firebase/config';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import "./HomePage.css";
@@ -9,14 +9,6 @@ import "../../../styles/styles.css";
 
 const HomePage = () => {
   const [user, loading] = useAuthState(auth);
-  const [userStats, setUserStats] = useState({
-    totalTasks: 0,
-    completedTasks: 0,
-    totalSummaries: 0,
-    totalStudyHours: 0,
-    recentActivity: []
-  });
-  const [setIsLoadingStats] = useState(false);
 
   // Log user visit to homepage
   const logPageVisit = async () => {
@@ -32,80 +24,6 @@ const HomePage = () => {
       });
     } catch (error) {
       console.error("Error logging page visit:", error);
-    }
-  };
-
-  // Fetch user statistics
-  const fetchUserStats = async () => {
-    if (!user) return;
-
-    setIsLoadingStats(true);
-    try {
-      // Fetch tasks
-      const tasksRef = collection(db, 'tasks');
-      const tasksQuery = query(tasksRef, where('userId', '==', user.uid));
-      const tasksSnapshot = await getDocs(tasksQuery);
-      
-      let totalTasks = 0;
-      let completedTasks = 0;
-      
-      tasksSnapshot.forEach((doc) => {
-        const task = doc.data();
-        totalTasks++;
-        if (task.status === 'completed') {
-          completedTasks++;
-        }
-      });
-
-      // Fetch summaries
-      const summariesRef = collection(db, 'summaries');
-      const summariesQuery = query(summariesRef, where('userId', '==', user.uid));
-      const summariesSnapshot = await getDocs(summariesQuery);
-      const totalSummaries = summariesSnapshot.size;
-
-      // Fetch study time
-      const studyTimeRef = collection(db, 'studyTime');
-      const studyTimeQuery = query(studyTimeRef, where('userId', '==', user.uid));
-      const studyTimeSnapshot = await getDocs(studyTimeQuery);
-      
-      let totalStudyHours = 0;
-      studyTimeSnapshot.forEach((doc) => {
-        const data = doc.data();
-        totalStudyHours += data.hours || 0;
-      });
-
-      // Fetch recent activity
-      const activitiesRef = collection(db, 'activities');
-      const activitiesQuery = query(
-        activitiesRef, 
-        where('userId', '==', user.uid),
-        orderBy('timestamp', 'desc'),
-        limit(3)
-      );
-      const activitiesSnapshot = await getDocs(activitiesQuery);
-      
-      const recentActivity = [];
-      activitiesSnapshot.forEach((doc) => {
-        const data = doc.data();
-        recentActivity.push({
-          id: doc.id,
-          type: data.activityType,
-          details: data.details,
-          date: data.timestamp?.toDate().toLocaleDateString('he-IL') || ''
-        });
-      });
-
-      setUserStats({
-        totalTasks,
-        completedTasks,
-        totalSummaries,
-        totalStudyHours,
-        recentActivity
-      });
-    } catch (error) {
-      console.error("Error fetching user stats:", error);
-    } finally {
-      setIsLoadingStats(false);
     }
   };
 
@@ -130,7 +48,6 @@ const HomePage = () => {
   // Fetch stats when user is available
   useEffect(() => {
     if (user && !loading) {
-      fetchUserStats();
       logPageVisit();
     }
   }, [user, loading]);
@@ -177,7 +94,7 @@ const HomePage = () => {
           <span className="logoText">סטודנת חכם</span>
           {user && (
             <div className="user-info-header">
-              <span >שלום, {user.displayName || user.email}</span>
+              <span>שלום, {user.displayName || user.email}</span>
             </div>
           )}
         </div>
@@ -191,17 +108,16 @@ const HomePage = () => {
             </Link>
           )}
           {user && (
-              <div className="user-info-header">
-                <button 
-                  className="navButton"
-                  onClick={() => auth.signOut()}
-                >
-                  יציאה
-                </button>
-              </div>
-            )}
+            <div className="user-info-header">
+              <button 
+                className="navButton"
+                onClick={() => auth.signOut()}
+              >
+                יציאה
+              </button>
+            </div>
+          )}
         </div>
-
       </header>
 
       <section className="introSection">
@@ -212,27 +128,6 @@ const HomePage = () => {
         <p className="info">
           המערכת עוזרת לך לארגן את הלימודים שלך, לשתף סיכומים, לעקוב אחרי משימות והגשות לוח זמנים מותאם לסיכומים והחומרים האישיים שלך.
         </p>
-        
-        {/* User stats section - only show when logged in */}
-        {user && (
-          <div className="user-stats-section">
-            {/* Recent activity */}
-            {userStats.recentActivity.length > 0 && (
-              <div className="recent-activity-section">
-                <h4 className="activity-title">פעילות אחרונה</h4>
-                <div className="activity-list">
-                  {userStats.recentActivity.map((activity) => (
-                    <div key={activity.id} className="activity-item-home">
-                      <span className="activity-type">{activity.type}</span>
-                      <span className="activity-details">{activity.details}</span>
-                      <span className="activity-date">{activity.date}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </section>
 
       <section className="cardsSection">

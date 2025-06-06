@@ -547,22 +547,22 @@ const Dashboard = () => {
           </div>
           
           <div className="user-stats-grid">
-            <div className="stat-card">
+            <div className="stat-card-dashbord">
               <div className="stat-number">{currentUserData.tasksCompleted}</div>
               <div className="stat-label">משימות שהושלמו</div>
               <div className="stat-sublabel">מתוך {currentUserData.tasksTotal}</div>
             </div>
-            <div className="stat-card">
+            <div className="stat-card-dashbord">
               <div className="stat-number">{currentUserData.studyHours}</div>
               <div className="stat-label">שעות למידה</div>
               <div className="stat-sublabel">בסה"כ</div>
             </div>
-            <div className="stat-card">
+            <div className="stat-card-dashbord">
               <div className="stat-number">{currentUserData.summariesUploaded}</div>
               <div className="stat-label">סיכומים שהועלו</div>
               <div className="stat-sublabel">בסה"כ</div>
             </div>
-            <div className="stat-card">
+            <div className="stat-card-dashbord">
               <div className="stat-number">{completionRate}%</div>
               <div className="stat-label">השלמת משימות</div>
               <div className="stat-sublabel">מתוך היעד</div>

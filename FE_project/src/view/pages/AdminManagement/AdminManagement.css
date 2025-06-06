@@ -151,3 +151,20 @@
     transform: translateY(0);
   }
 }
+
+.admin-stats{
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.stat-card {
+  background-color: #fafafa;
+  padding-right: 120px;
+  padding-left: 120px;
+  margin-bottom: 20px;
+  border-radius: 0.5rem;
+  text-align: center;
+  border: 1px solid #e5e5e5;
+
+}
