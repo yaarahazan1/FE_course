@@ -12,6 +12,11 @@ const CLOUDINARY_CONFIG = {
   api_secret: 'HDKDKxj2LKE-tPHgd6VeRPFGJaU'
 };
 
+const getUserId = () => {
+  console.log(auth.currentUser?.displayName, 'Current user in SummaryLibrary');
+  return auth.currentUser?.uid || null;
+};
+
 const deleteFromCloudinary = async (publicId) => {
   try {
     const timestamp = Math.round(new Date().getTime() / 1000);
@@ -805,8 +810,8 @@ const SummaryLibrary = () => {
   const [hasUploaded, setHasUploaded] = useState(false);
   const [summaries, setSummaries] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentUserId] = useState(getUserId());
 
-  const currentUserId = user?.uid || null;
   const [user] = useAuthState(auth);
 
   const handleUpdateSummary = (summaryId, updates) => {
@@ -820,7 +825,10 @@ const SummaryLibrary = () => {
   };
 
   const checkUserUploadStatus = async (user) => {
-    if (!user?.uid) return false;
+    if (!user?.uid) {
+      console.log('No user UID for upload status check');
+      return false;
+    }
     
     try {
       const summariesRef = collection(db, 'summaries');
@@ -829,36 +837,42 @@ const SummaryLibrary = () => {
       return !querySnapshot.empty;
     } catch (error) {
       console.error('Error checking user upload status:', error);
+      
+      if (error.code === 'permission-denied') {
+        console.error('Permission denied when checking upload status');
+      }
+      
       return false;
     }
   };
 
   useEffect(() => {
     const checkUploadStatus = async () => {
-      if (user?.uid) {
-        console.log('Checking user upload status for:', user.displayName);
+      if (user) {
+        console.log('Checking user upload status...');
         const userHasUploaded = await checkUserUploadStatus(user);
         console.log('User has uploaded:', userHasUploaded);
         setHasUploaded(userHasUploaded);
-      } else {
-        console.log('No user for upload status check');
-        setHasUploaded(false);
       }
     };
     
     checkUploadStatus();
-  }, [user]);
+  }, [user, summaries]);
+
 
   const loadSummariesFromFirebase = async () => {
-    if (!user?.uid) {
-      console.log('No user, cannot load summaries');
-      setIsLoading(false);
-      return;
-    }
-
     try {
       setIsLoading(true);
-      console.log('Loading summaries for user:', user.displayName);
+      
+      // בדיקה שהמשתמש מחובר
+      if (!user || !user.uid) {
+        console.log('No authenticated user, skipping Firestore query');
+        setSummaries([]);
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('Loading summaries for user:', user.uid);
       
       const summariesRef = collection(db, 'summaries');
       const querySnapshot = await getDocs(summariesRef);
@@ -871,10 +885,10 @@ const SummaryLibrary = () => {
         });
       });
       
-      console.log('Loaded summaries from Firebase:', firebaseSummaries.length);
+      console.log('Loaded summaries:', firebaseSummaries.length);
       
       const userHasUploaded = await checkUserUploadStatus(user);
-      console.log('User upload status:', userHasUploaded);
+      console.log('Loading summaries - user has uploaded:', userHasUploaded);
       
       const allSummaries = firebaseSummaries.map(summary => ({
         ...summary,
@@ -886,6 +900,22 @@ const SummaryLibrary = () => {
       
     } catch (error) {
       console.error('Error loading summaries from Firebase:', error);
+      
+      // טיפול בסוגי שגיאות שונים
+      if (error.code === 'permission-denied') {
+        console.error('Permission denied - check Firestore rules');
+        alert('שגיאת הרשאות: אין גישה לנתונים. נא לפנות למנהל המערכת.');
+      } else if (error.code === 'unavailable') {
+        console.error('Firestore unavailable');
+        alert('השירות אינו זמין כרגע. נסה שוב מאוחר יותר.');
+      } else if (error.code === 'unauthenticated') {
+        console.error('User not authenticated');
+        alert('נדרשת התחברות למערכת.');
+      } else {
+        console.error('Unknown Firebase error:', error);
+        alert('שגיאה בטעינת הנתונים. נסה לרענן את הדף.');
+      }
+      
       setSummaries([]);
     } finally {
       setIsLoading(false);
@@ -937,22 +967,37 @@ const SummaryLibrary = () => {
 
   useEffect(() => {
     if (user) {
-      console.log('User detected, loading summaries for:', user.displayName);
+      console.log('User authenticated, loading summaries...');
       loadSummariesFromFirebase();
       
+      // הוסף בדיקת הרשאות לפני הגדרת הליסנר
       const summariesRef = collection(db, 'summaries');
-      const unsubscribe = onSnapshot(summariesRef, () => {
-        console.log('Real-time update detected');
-        loadSummariesFromFirebase();
-      });
       
-      return () => unsubscribe();
+      const unsubscribe = onSnapshot(
+        summariesRef, 
+        (snapshot) => {
+          console.log('Real-time update detected, changes:', snapshot.docChanges().length);
+          loadSummariesFromFirebase();
+        },
+        (error) => {
+          console.error('Snapshot listener error:', error);
+          if (error.code === 'permission-denied') {
+            console.error('Permission denied in snapshot listener');
+            // אל תציג alert כאן כי זה יכול לקרות הרבה פעמים
+          }
+        }
+      );
+      
+      return () => {
+        console.log('Unsubscribing from Firestore listener');
+        unsubscribe();
+      };
     } else {
-      console.log('No user detected yet, waiting...');
-      setIsLoading(true);
+      console.log('No user, clearing summaries');
+      setSummaries([]);
+      setIsLoading(false);
     }
   }, [user]);
-
 
   const filteredSummaries = summaries.filter(summary => {
     const isApproved = summary.status === 'מאושר';
