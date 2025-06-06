@@ -12,11 +12,6 @@ const CLOUDINARY_CONFIG = {
   api_secret: 'HDKDKxj2LKE-tPHgd6VeRPFGJaU'
 };
 
-const getUserId = () => {
-  console.log(auth.currentUser?.displayName, 'Current user in SummaryLibrary');
-  return auth.currentUser?.uid || null;
-};
-
 const deleteFromCloudinary = async (publicId) => {
   try {
     const timestamp = Math.round(new Date().getTime() / 1000);
@@ -810,8 +805,8 @@ const SummaryLibrary = () => {
   const [hasUploaded, setHasUploaded] = useState(false);
   const [summaries, setSummaries] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentUserId] = useState(getUserId());
 
+  const currentUserId = user?.uid || null;
   const [user] = useAuthState(auth);
 
   const handleUpdateSummary = (summaryId, updates) => {
@@ -840,21 +835,30 @@ const SummaryLibrary = () => {
 
   useEffect(() => {
     const checkUploadStatus = async () => {
-      if (user) {
-        console.log('Checking user upload status...');
+      if (user?.uid) {
+        console.log('Checking user upload status for:', user.displayName);
         const userHasUploaded = await checkUserUploadStatus(user);
         console.log('User has uploaded:', userHasUploaded);
         setHasUploaded(userHasUploaded);
+      } else {
+        console.log('No user for upload status check');
+        setHasUploaded(false);
       }
     };
     
     checkUploadStatus();
-  }, [user, summaries]);
-
+  }, [user]);
 
   const loadSummariesFromFirebase = async () => {
+    if (!user?.uid) {
+      console.log('No user, cannot load summaries');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
+      console.log('Loading summaries for user:', user.displayName);
       
       const summariesRef = collection(db, 'summaries');
       const querySnapshot = await getDocs(summariesRef);
@@ -867,8 +871,10 @@ const SummaryLibrary = () => {
         });
       });
       
+      console.log('Loaded summaries from Firebase:', firebaseSummaries.length);
+      
       const userHasUploaded = await checkUserUploadStatus(user);
-      console.log('Loading summaries - user has uploaded:', userHasUploaded);
+      console.log('User upload status:', userHasUploaded);
       
       const allSummaries = firebaseSummaries.map(summary => ({
         ...summary,
@@ -931,6 +937,7 @@ const SummaryLibrary = () => {
 
   useEffect(() => {
     if (user) {
+      console.log('User detected, loading summaries for:', user.displayName);
       loadSummariesFromFirebase();
       
       const summariesRef = collection(db, 'summaries');
@@ -940,6 +947,9 @@ const SummaryLibrary = () => {
       });
       
       return () => unsubscribe();
+    } else {
+      console.log('No user detected yet, waiting...');
+      setIsLoading(true);
     }
   }, [user]);
 
