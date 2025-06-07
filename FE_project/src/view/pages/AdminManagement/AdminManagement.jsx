@@ -9,17 +9,16 @@ import {
   query,
   orderBy,
   onSnapshot,
-  where,
-  getDocs
+  serverTimestamp 
 } from "firebase/firestore";
-import { db, auth } from "../../../firebase/config";
-import { onAuthStateChanged } from "firebase/auth";
+import { db } from "../../../firebase/config"
 import UserList from "../../components/AdminManagementHelper/UserList/UserList";
 import SummaryList from "../../components/AdminManagementHelper/SummaryList/SummaryList";
 import UserDetailDialog from "../../components/AdminManagementHelper/UserDetailDialog/UserDetailDialog";
 import SummaryDetailDialog from "../../components/AdminManagementHelper/SummaryDetailDialog/SummaryDetailDialog";
 import "./AdminManagement.css";
 
+// Cloudinary configuration
 const CLOUDINARY_CONFIG = {
   cloud_name: 'doxht9fpl',
   upload_preset: 'summaries_preset',
@@ -43,63 +42,24 @@ const AdminManagement = () => {
   const [summaries, setSummaries] = useState([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [isLoadingSummaries, setIsLoadingSummaries] = useState(true);
-  const [isAuthenticating, setIsAuthenticating] = useState(true);
-  const [currentUser, setCurrentUser] = useState(null);
 
-  // פונקציה לבדיקת הרשאות אדמין בשרת
-  const checkAdminPermissions = async (userId) => {
-    try {
-      const userQuery = query(
-        collection(db, "users"), 
-        where("uid", "==", userId),
-        where("isAdmin", "==", true)
-      );
-      const querySnapshot = await getDocs(userQuery);
-      return !querySnapshot.empty;
-    } catch (error) {
-      console.error("Error checking admin permissions:", error);
-      return false;
-    }
-  };
-
-  // אימות משתמש ובדיקת הרשאות
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-      setIsAuthenticating(true);
-      
-      if (!user) {
-        toast.error("יש להתחבר כדי לגשת לדף הניהול");
-        navigate("/login");
-        return;
-      }
-
-      setCurrentUser(user);
-      
-      // בדיקת הרשאות אדמין בשרת
-      const isAdmin = await checkAdminPermissions(user.uid);
-      
-      if (!isAdmin) {
-        toast.error("אין לך הרשאת גישה לדף הניהול");
-        navigate("/");
-        return;
-      }
-
-      setIsAuthenticating(false);
-    });
-
-    return () => unsubscribeAuth();
+    const isAdmin = localStorage.getItem("isAdmin") === "true";
+    if (!isAdmin) {
+      toast.error("אין לך הרשאת גישה לדף הניהול");
+      navigate("/");
+    }
   }, [navigate]);
 
-  // טעינת משתמשים מ-Firebase (רק אחרי אימות)
+  // טעינת משתמשים מ-Firebase
   useEffect(() => {
-    if (isAuthenticating || !currentUser) return;
-
     const loadUsers = async () => {
       try {
         setIsLoadingUsers(true);
         const usersCollection = collection(db, "users");
         const usersQuery = query(usersCollection, orderBy("createdAt", "desc"));
         
+        // שימוש ב-onSnapshot לעדכון בזמן אמת
         const unsubscribe = onSnapshot(usersQuery, (querySnapshot) => {
           const usersData = [];
           querySnapshot.forEach((doc) => {
@@ -121,23 +81,22 @@ const AdminManagement = () => {
     };
 
     loadUsers();
-  }, [isAuthenticating, currentUser]);
+  }, []);
 
-  // טעינת סיכומים מ-Firebase (רק אחרי אימות)
+  // טעינת סיכומים מ-Firebase (במקום localStorage)
   useEffect(() => {
-    if (isAuthenticating || !currentUser) return;
-
     const loadSummaries = () => {
       try {
         setIsLoadingSummaries(true);
+        
         const summariesCollection = collection(db, "summaries");
-        const summariesQuery = query(summariesCollection, orderBy("createdAt", "desc"));
+        const summariesQuery = query(summariesCollection, orderBy("uploadedAt", "desc"));
         
         const unsubscribe = onSnapshot(summariesQuery, (querySnapshot) => {
           const summariesData = [];
           querySnapshot.forEach((doc) => {
             summariesData.push({
-              id: doc.id,
+              firebaseId: doc.id, // ID האמיתי של המסמך ב-Firebase
               ...doc.data(),
               status: doc.data().status || 'ממתין לאישור'
             });
@@ -155,7 +114,7 @@ const AdminManagement = () => {
     };
 
     loadSummaries();
-  }, [isAuthenticating, currentUser]);
+  }, []);
 
   // פונקציה למחיקת קובץ מ-Cloudinary
   const deleteFromCloudinary = async (publicId) => {
@@ -208,10 +167,10 @@ const AdminManagement = () => {
 
       switch (action) {
         case 'הקפאה':
-          updateData = { status: 'קפוא', updatedAt: new Date() };
+          updateData = { status: 'קפוא', updatedAt: serverTimestamp() };
           break;
         case 'הפעלה':
-          updateData = { status: 'פעיל', updatedAt: new Date() };
+          updateData = { status: 'פעיל', updatedAt: serverTimestamp() };
           break;
         case 'הסרה':
           await deleteDoc(userRef);
@@ -244,37 +203,37 @@ const AdminManagement = () => {
 
   const handleSummaryAction = async (action, summaryId) => {
     try {
-      const summaryRef = doc(db, "summaries", summaryId);
-      const currentSummary = summaries.find(s => s.id === summaryId);
+      // מצא את הסיכום לפי ID (זה יכול להיות firebaseId או id)
+      const currentSummary = summaries.find(s => s.id === summaryId || s.firebaseId === summaryId);
       
       if (!currentSummary) {
         toast.error("סיכום לא נמצא");
         return;
       }
 
-      let updateData = {};
+      // השתמש ב-firebaseId לעדכון הדוקומנט
+      const firebaseDocId = currentSummary.firebaseId || summaryId;
+      const summaryRef = doc(db, "summaries", firebaseDocId);
 
       switch (action) {
         case 'אישור':
-          updateData = { 
+          await updateDoc(summaryRef, {
             status: 'מאושר',
-            approvedAt: new Date(),
-            feedback: feedbackText,
-            updatedAt: new Date()
-          };
-          await updateDoc(summaryRef, updateData);
+            approvedAt: new Date().toISOString(),
+            feedback: feedbackText
+          });
           break;
+          
         case 'דחייה':
-          updateData = { 
+          await updateDoc(summaryRef, {
             status: 'נדחה',
-            rejectedAt: new Date(),
-            feedback: feedbackText,
-            updatedAt: new Date()
-          };
-          await updateDoc(summaryRef, updateData);
+            rejectedAt: new Date().toISOString(),
+            feedback: feedbackText
+          });
           break;
+          
         case 'מחיקה':
-          // מחיקה מ-Cloudinary אם יש public_id
+          // מחיקה מ-Cloudinary תחילה
           if (currentSummary.public_id) {
             const cloudinaryDeleted = await deleteFromCloudinary(currentSummary.public_id);
             if (!cloudinaryDeleted) {
@@ -282,9 +241,11 @@ const AdminManagement = () => {
               return;
             }
           }
+          
           // מחיקה מ-Firebase
           await deleteDoc(summaryRef);
           break;
+          
         default:
           return;
       }
@@ -298,6 +259,7 @@ const AdminManagement = () => {
       toast.success(`${actionText[action]} בוצעה בהצלחה!`);
       setIsSummaryDetailOpen(false);
       setFeedbackText("");
+      
     } catch (error) {
       console.error("Error updating summary:", error);
       toast.error("שגיאה בעדכון הסיכום");
@@ -314,17 +276,6 @@ const AdminManagement = () => {
     setIsSummaryDetailOpen(true);
   };
 
-  // הצגת מסך טעינה במהלך האימות
-  if (isAuthenticating) {
-    return (
-      <div className="admin-container">
-        <div style={{ textAlign: 'center', padding: '50px' }}>
-          <h2>מאמת הרשאות...</h2>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="admin-container">
       <header className="admin-header">
@@ -335,6 +286,24 @@ const AdminManagement = () => {
       <h1 className="admin-title">ניהול מערכת</h1>
 
       <main className="admin-main">
+        <div className="admin-stats">
+          <div className="stat-card">
+            <h3>סה"כ משתמשים</h3>
+            <p>{users.length}</p>
+          </div>
+          <div className="stat-card">
+            <h3>סה"כ סיכומים</h3>
+            <p>{summaries.length}</p>
+          </div>
+          <div className="stat-card">
+            <h3>ממתינים לאישור</h3>
+            <p>{summaries.filter(s => s.status === 'ממתין לאישור').length}</p>
+          </div>
+          <div className="stat-card">
+            <h3>סיכומים שנדחו</h3>
+            <p>{summaries.filter(s => s.status === 'נדחה').length}</p>
+          </div>
+        </div>
         <div className="admin-tabs">
           <div className="admin-tabs-list">
             <button 
