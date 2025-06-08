@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Eye, EyeOff, User, Facebook } from "lucide-react";
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, FacebookAuthProvider } from "firebase/auth";
 import { collection, addDoc, doc, updateDoc, getDoc, setDoc } from "firebase/firestore";
@@ -18,8 +18,74 @@ const Login = () => {
   const googleProvider = new GoogleAuthProvider();
   const facebookProvider = new FacebookAuthProvider();
 
+  // פונקציה פשוטה לקריפטוגרפיה (Base64 + מפתח פשוט)
+  const encryptData = (data) => {
+    const key = "smartStudent2024"; // מפתח קבוע - בפרודקשן כדאי להשתמש במשהו יותר מורכב
+    const encrypted = btoa(JSON.stringify({ data, key }));
+    return encrypted;
+  };
+
+  const decryptData = (encryptedData) => {
+    try {
+      const decrypted = JSON.parse(atob(encryptedData));
+      if (decrypted.key === "smartStudent2024") {
+        return decrypted.data;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  // טעינת נתונים שמורים בטעינת הקומפוננטה
+  useEffect(() => {
+    const savedCredentials = localStorage.getItem('rememberedCredentials');
+    const savedTime = localStorage.getItem('rememberTime');
+    
+    if (savedCredentials && savedTime) {
+      const currentTime = new Date().getTime();
+      const savedTimeMs = parseInt(savedTime);
+      const timeDiff = currentTime - savedTimeMs;
+      const tenMinutes = 10 * 60 * 1000; // 10 דקות במילישניות
+      
+      // אם עברו פחות מ-10 דקות, נטען את הנתונים השמורים
+      if (timeDiff < tenMinutes) {
+        const credentials = decryptData(savedCredentials);
+        if (credentials) {
+          setEmail(credentials.email);
+          setPassword(credentials.password);
+          setRememberMe(true);
+        }
+      } else {
+        // אם עברו יותר מ-10 דקות, ננקה את הנתונים השמורים
+        clearRememberedData();
+      }
+    }
+  }, []);
+
+  // פונקציה לניקוי נתונים שמורים
+  const clearRememberedData = () => {
+    localStorage.removeItem('rememberedCredentials');
+    localStorage.removeItem('rememberTime');
+  };
+
+  // פונקציה לשמירת נתוני "זכור אותי"
+  const saveRememberData = (userEmail, userPassword) => {
+    if (rememberMe) {
+      const credentials = {
+        email: userEmail,
+        password: userPassword
+      };
+      const encryptedCredentials = encryptData(credentials);
+      localStorage.setItem('rememberedCredentials', encryptedCredentials);
+      localStorage.setItem('rememberTime', new Date().getTime().toString());
+    } else {
+      clearRememberedData();
+    }
+  };
+
   // פונקציה לרישום כניסה למערכת
-  const recordLogin = async (user) => {
+  const recordLogin = async (user, loginMethod = 'email') => {
     try {
       // שמירת נתוני הכניסה בקולקשן logins
       await addDoc(collection(db, 'logins'), {
@@ -27,7 +93,7 @@ const Login = () => {
         email: user.email,
         displayName: user.displayName || 'משתמש אלמוני',
         loginTime: new Date(),
-        loginMethod: 'email', // או 'google', 'facebook'
+        loginMethod: loginMethod,
         createdAt: new Date(),
         connected: true
       });
@@ -51,7 +117,8 @@ const Login = () => {
           email: user.email,
           displayName: user.displayName || 'משתמש אלמוני',
           createdAt: new Date(),
-          lastActive: new Date()
+          lastActive: new Date(),
+          connected: true
         });
       }
 
@@ -72,12 +139,10 @@ const Login = () => {
       const user = userCredential.user;
       
       // רישום הכניסה במסד הנתונים
-      await recordLogin(user);
+      await recordLogin(user, 'email');
       
-      // שמירת מצב "זכור אותי" ב-localStorage אם נדרש
-      if (rememberMe) {
-        localStorage.setItem('rememberUser', 'true');
-      }
+      // שמירת נתוני "זכור אותי" (כולל סיסמה)
+      saveRememberData(user.email, password);
       
       console.log("התחברות מוצלחת:", user);
       navigate("/"); // מעבר לדף הבית
@@ -99,6 +164,9 @@ const Login = () => {
         case 'auth/too-many-requests':
           setError("יותר מדי ניסיונות התחברות. נסה שוב מאוחר יותר");
           break;
+        case 'auth/invalid-credential':
+          setError("פרטי ההתחברות שגויים");
+          break;
         default:
           setError("שגיאה בהתחברות. בדק את הפרטים ונסה שוב");
       }
@@ -116,7 +184,14 @@ const Login = () => {
       const user = result.user;
       
       // רישום הכניסה במסד הנתונים
-      await recordLogin(user);
+      await recordLogin(user, 'google');
+      
+      // עבור כניסה חברתית לא שומרים נתונים (אין סיסמה)
+      // אבל נקפה את הזכור אותי אם הוא מסומן
+      if (rememberMe) {
+        setRememberMe(false);
+        clearRememberedData();
+      }
       
       console.log("התחברות עם Google מוצלחת:", user);
       navigate("/");
@@ -137,7 +212,13 @@ const Login = () => {
       const user = result.user;
       
       // רישום הכניסה במסד הנתונים
-      await recordLogin(user);
+      await recordLogin(user, 'facebook');
+      
+      // עבור כניסה חברתית לא שומרים נתונים (אין סיסמה)
+      if (rememberMe) {
+        setRememberMe(false);
+        clearRememberedData();
+      }
       
       console.log("התחברות עם Facebook מוצלחת:", user);
       navigate("/");
@@ -148,6 +229,41 @@ const Login = () => {
       setLoading(false);
     }
   };
+
+  // פונקציה לטיפול בשינוי מצב "זכור אותי"
+  const handleRememberMeChange = (e) => {
+    const isChecked = e.target.checked;
+    setRememberMe(isChecked);
+    
+    // אם המשתמש ביטל את "זכור אותי", ננקה את הנתונים השמורים
+    if (!isChecked) {
+      clearRememberedData();
+    }
+  };
+
+  // פונקציה לבדיקת זמן התפוגה בזמן אמת
+  useEffect(() => {
+    const checkExpiration = () => {
+      const savedTime = localStorage.getItem('rememberTime');
+      if (savedTime) {
+        const currentTime = new Date().getTime();
+        const savedTimeMs = parseInt(savedTime);
+        const timeDiff = currentTime - savedTimeMs;
+        const tenMinutes = 10 * 60 * 1000;
+        
+        if (timeDiff >= tenMinutes) {
+          clearRememberedData();
+          setEmail("");
+          setPassword("");
+          setRememberMe(false);
+        }
+      }
+    };
+
+    // בדיקה כל דקה
+    const interval = setInterval(checkExpiration, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="login-container">
@@ -229,11 +345,11 @@ const Login = () => {
                       id="remember-me" 
                       type="checkbox"
                       checked={rememberMe} 
-                      onChange={(e) => setRememberMe(e.target.checked)}
+                      onChange={handleRememberMeChange}
                       className="checkbox"
                       disabled={loading}
                     />
-                    <label htmlFor="remember-me">זכור אותי</label>
+                    <label htmlFor="remember-me">זכור אותי (10 דקות)</label>
                   </div>
                 </div>
                 
@@ -307,7 +423,6 @@ const Login = () => {
           </div>
         </div>
       </div>
-
     </div>
   );
 };
