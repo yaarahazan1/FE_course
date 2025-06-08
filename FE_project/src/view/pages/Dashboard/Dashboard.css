@@ -46,7 +46,7 @@
   padding-bottom: 10px;
 }
 
-.card-content {
+.card-content-dashboard {
   padding: 1.5rem;
 }
 
@@ -497,7 +497,7 @@
     padding: 0.5rem;
   }
   
-  .card-content {
+  .card-content-dashboard {
     padding: 1rem;
   }
   

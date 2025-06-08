@@ -157,11 +157,11 @@ const Login = () => {
         </div>
       </header>
 
-      <div className="main-content">
-        <div className="form-section">
+      <div className="main-content-login">
+        <div className="form-section-login">
           <div className="login-card">
-            <div className="card-content">
-              <div className="form-header">
+            <div className="card-content-login">
+              <div className="form-header-login">
                 <h1>כניסה</h1>
                 <p>ברוך שובך! נא להזין את פרטי הכניסה</p>
               </div>
@@ -220,6 +220,7 @@ const Login = () => {
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
+                  <a href="/ForgotPassword">שכחת סיסמה?</a>
                 </div>
                 
                 <div className="form-options">

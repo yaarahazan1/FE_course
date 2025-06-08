@@ -91,13 +91,13 @@
   gap: 1rem;
 }
 
-.input-group {
+.input-group-signup {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.input-group label {
+.input-group-signup label {
   text-align: right;
   display: block;
   font-weight: 500;

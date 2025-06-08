@@ -725,7 +725,7 @@
 
         {/* מידע על המשתמש הנוכחי */}
         <div className="dashboard-card user-info-card">
-          <div className="card-content">
+          <div className="card-content-dashboard">
             <div className="user-header">
               <h2 className="user-title">
                 <User className="icon" />
@@ -828,7 +828,7 @@
         <div className="summary-grid">
           {/* גרף עוגה של משימות */}
           <div className="dashboard-card">
-            <div className="card-content">
+            <div className="card-content-dashboard">
               <h2 className="card-title">סטטוס משימות</h2>
               <div className="pie-chart-container">
                 {tasks.completed > 0 || tasks.pending > 0 ? (
@@ -869,7 +869,7 @@
 
           {/* סיכומים חדשים */}
           <div className="dashboard-card">
-            <div className="card-content">
+            <div className="card-content-dashboard">
               <h2 className="card-title">סיכומים חדשים</h2>
               <div className="summaries-list">
                 {recentSummaries.length > 0 ? (
@@ -891,7 +891,7 @@
 
           {/* פעילויות אחרונות */}
           <div className="dashboard-card">
-            <div className="card-content">
+            <div className="card-content-dashboard">
               <h2 className="card-title">פעילות אחרונה</h2>
               <div className="activities-list">
                 {recentActivities.length > 0 ? (
@@ -917,7 +917,7 @@
       <div className="kpi-grid">
         {/* זמן שהוקדש לקורסים */}
         <div className="dashboard-card">
-          <div className="card-content">
+          <div className="card-content-dashboard">
             <h2 className="card-title">זמן שהוקדש לקורסים</h2>
             <div className="chart-container">
               {timeSpentData.length > 0 ? (
@@ -941,7 +941,7 @@
 
         {/* פידבק וציונים על סיכומים */}
         <div className="dashboard-card">
-          <div className="card-content">
+          <div className="card-content-dashboard">
             <h2 className="card-title">פידבק וציונים על סיכומים</h2>
             <div className="ratings-list">
               {summaryRatings.length > 0 ? (
@@ -977,7 +977,7 @@
 
         {/* שיעור השלמת משימות */}
         <div className="dashboard-card">
-          <div className="card-content">
+          <div className="card-content-dashboard">
             <h2 className="card-title">שיעור השלמת משימות</h2>
             <div className="completion-rate-container">
               <div className="completion-circle">
@@ -996,7 +996,7 @@
       {/* מעורבות משתמשים ותדירות העלאת סיכומים */}
       <div className={`engagement-grid ${!isAdmin ? 'single-card' : ''}`}>
         <div className={`dashboard-card ${!isAdmin ? 'full-width-card' : ''}`}>
-          <div className="card-content">
+          <div className="card-content-dashboard">
             <h2 className="card-title">תדירות העלאת סיכומים</h2>
             <div className="chart-container">
               <ResponsiveContainer width="100%" height="100%">
@@ -1017,7 +1017,7 @@
         {/* מעורבות משתמשים - רק לאדמין */}
         {isAdmin && (
           <div className="dashboard-card">
-            <div className="card-content">
+            <div className="card-content-dashboard">
               <h2 className="card-title">מעורבות משתמשים</h2>
               <div className="engagement-stats">
                 <div className="engagement-stat">
@@ -1046,7 +1046,7 @@
         {/* מעורבות משתמשים - רק לאדמין */}
         {isAdmin && (
           <div className="dashboard-card">
-            <div className="card-content">
+            <div className="card-content-dashboard">
               <h2 className="card-title">מעורבות משתמשים</h2>
               <div className="engagement-stats">
                 <div className="engagement-stat">

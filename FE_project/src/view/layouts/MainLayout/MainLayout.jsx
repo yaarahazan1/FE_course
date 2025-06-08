@@ -6,7 +6,10 @@ const MainLayout = () => {
   const location = useLocation();
   
   // נתיבים שבהם לא נציג Header
-  const hideHeaderPaths = ['/', '/Home', '/Login', '/Signup', '/Dashboard', '/HelpSettings', '/AdminManagement'];
+  const hideHeaderPaths = ['/', '/Home', '/Login', '/Signup', '/Dashboard', '/HelpSettings', '/AdminManagement', '/ForgotPassword'];
+  
+  // נתיבים שבהם לא נציג Footer
+  const hideFooterPaths = ['/Login', '/Signup', '/ForgotPassword', '/Dashboard'];
   
   return (
     <div>
@@ -16,17 +19,19 @@ const MainLayout = () => {
         <Outlet />
       </main>
 
-      <footer className="footer">
-        <div className="footer-container">
-          <div className="footer-links">
-            <Link to="/HelpSettings" className="footer-link">עזרה והגדרות</Link>
-            <span className="footer-separator">|</span>
-            <div className="footer-item">תנאי שימוש</div>
-            <span className="footer-separator">|</span>
-            <div className="footer-item">מדיניות פרטיות</div>
+      {!hideFooterPaths.includes(location.pathname) && (
+        <footer className="footer">
+          <div className="footer-container">
+            <div className="footer-links">
+              <Link to="/HelpSettings" className="footer-link">עזרה והגדרות</Link>
+              <span className="footer-separator">|</span>
+              <div className="footer-item">תנאי שימוש</div>
+              <span className="footer-separator">|</span>
+              <div className="footer-item">מדיניות פרטיות</div>
+            </div>
           </div>
-        </div>
-      </footer>
+        </footer>
+      )}
     </div>
   );
 };

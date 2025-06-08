@@ -197,7 +197,7 @@ const Signup = () => {
               )}
               
               <form onSubmit={handleSignup} className="registration-form">
-                <div className="input-group">
+                <div className="input-group-signup">
                   <label htmlFor="fullName">שם מלא</label>
                   <input
                     id="fullName"
@@ -212,7 +212,7 @@ const Signup = () => {
                   />
                 </div>
 
-                <div className="input-group">
+                <div className="input-group-signup">
                   <label htmlFor="email">דוא״ל</label>
                   <input
                     id="email"
@@ -227,7 +227,7 @@ const Signup = () => {
                   />
                 </div>
                 
-                <div className="input-group">
+                <div className="input-group-signup">
                   <label htmlFor="password">סיסמה</label>
                   <div className="password-wrapper">
                     <input
@@ -262,7 +262,7 @@ const Signup = () => {
                   )}
                 </div>
 
-                <div className="input-group">
+                <div className="input-group-signup">
                   <label htmlFor="confirm-password">אימות סיסמה</label>
                   <input
                     id="confirm-password"
@@ -287,7 +287,7 @@ const Signup = () => {
                 </div>
 
 
-                <div className="input-group">
+                <div className="input-group-signup">
                   <label htmlFor="study-field">תחום לימוד</label>
                   <select 
                     id="study-field"
@@ -313,7 +313,7 @@ const Signup = () => {
                   </select>
                 </div>
 
-                <div className="input-group">
+                <div className="input-group-signup">
                   <label htmlFor="institution">מוסד לימודים</label>
                   <select 
                     id="institution"

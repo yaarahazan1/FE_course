@@ -89,7 +89,7 @@
   background-color: #8a7a68;
 }
 
-.cancel-btn {
+.cancel-btn-event-list {
   background-color: #6c757d;
   color: white;
   border: none;
@@ -99,7 +99,7 @@
   font-weight: 500;
 }
 
-.cancel-btn:hover {
+.cancel-btn-event-list:hover {
   background-color: #5a6268;
 }
 
@@ -252,7 +252,7 @@
   }
   
   .submit-btn,
-  .cancel-btn {
+  .cancel-btn-event-list {
     width: 100%;
   }
   

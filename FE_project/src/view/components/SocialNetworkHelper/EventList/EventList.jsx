@@ -211,7 +211,7 @@ const EventList = ({ currentUser, onCreateEvent}) => {
               <button type="submit" className="submit-btn">הוסף אירוע</button>
               <button 
                 type="button" 
-                className="cancel-btn"
+                className="cancel-btn-event-list"
                 onClick={() => setShowAddForm(false)}
               >
                 ביטול

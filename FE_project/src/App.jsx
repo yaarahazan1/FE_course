@@ -15,6 +15,7 @@ import SocialNetwork from '../src/view/pages/SocialNetwork/SocialNetwork';
 import Login from '../src/view/pages/Login/Login';
 import Signup from '../src/view/pages/Signup/Signup';
 import AdminManagement from '../src/view/pages/AdminManagement/AdminManagement';
+import ForgotPassword from '../src/view/pages/ForgotPassword/ForgotPassword';
 import NotFound from '../src/view/pages/NotFound/NotFound';
 
 function App() {
@@ -43,7 +44,6 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
-              
               <Route 
                 path="/HelpSettings" 
                 element={
@@ -123,6 +123,15 @@ function App() {
                 element={
                   <ProtectedRoute requireAuth={false}>
                     <Signup />
+                  </ProtectedRoute>
+                } 
+              />
+              {/* תיקון: ForgotPassword לא צריך אימות */}
+              <Route 
+                path="/ForgotPassword" 
+                element={
+                  <ProtectedRoute requireAuth={false}>
+                    <ForgotPassword />
                   </ProtectedRoute>
                 } 
               />

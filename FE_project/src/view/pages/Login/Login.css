@@ -35,19 +35,19 @@
   color: #3a4447;
 }
 
-.main-content {
+.main-content-login {
   display: flex;
   flex-direction: column;
   flex: 1;
 }
 
 @media (min-width: 768px) {
-  .main-content {
+  .main-content-login {
     flex-direction: row;
   }
 }
 
-.form-section {
+.form-section-login {
   flex: 1;
   display: flex;
   align-items: center;
@@ -65,23 +65,23 @@
   border: none;
 }
 
-.card-content {
+.card-content-login {
   padding: 2rem 1.5rem 1.5rem;
 }
 
-.form-header {
+.form-header-login {
   text-align: center;
   margin-bottom: 1.5rem;
   
 }
 
-.form-header h1 {
+.form-header-login h1 {
   font-size: 1.5rem;
   font-weight: bold;
   margin-bottom: 0.5rem;
 }
 
-.form-header p {
+.form-header-login p {
   color: #6b7280;
 }
 
