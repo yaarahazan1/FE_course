@@ -366,7 +366,7 @@ const AdminManagement = () => {
           </div>
           <div className="stat-card">
             <h3>סיכומים שאושרו</h3>
-            <p>{summaries.filter(s => s.status === 'אושר').length}</p>
+            <p>{summaries.filter(s => s.status === 'מאושר').length}</p>
           </div>
         </div>
         <div className="admin-tabs">
