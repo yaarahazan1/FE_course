@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Eye, EyeOff, User, Facebook } from "lucide-react";
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, FacebookAuthProvider } from "firebase/auth";
-import { collection, addDoc, doc, updateDoc, getDoc, setDoc } from "firebase/firestore";
+import { collection, addDoc, doc, updateDoc, getDoc, setDoc, deleteDoc, query, where, getDocs } from "firebase/firestore";
 import { auth, db } from "../../../firebase/config";
 import { useNavigate } from "react-router-dom";
 import "./Login.css";
@@ -18,76 +18,172 @@ const Login = () => {
   const googleProvider = new GoogleAuthProvider();
   const facebookProvider = new FacebookAuthProvider();
 
-  // פונקציה פשוטה לקריפטוגרפיה (Base64 + מפתח פשוט)
+  // פונקציות קריפטוגרפיה מתקדמות יותר
   const encryptData = (data) => {
-    const key = "smartStudent2024"; // מפתח קבוע - בפרודקשן כדאי להשתמש במשהו יותר מורכב
-    const encrypted = btoa(JSON.stringify({ data, key }));
-    return encrypted;
+    const key = "smartStudent2024"; // בפרודקשן כדאי להשתמש במפתח דינמי
+    const jsonString = JSON.stringify(data);
+    let encrypted = "";
+    
+    for (let i = 0; i < jsonString.length; i++) {
+      const keyChar = key[i % key.length];
+      const encryptedChar = String.fromCharCode(jsonString.charCodeAt(i) ^ keyChar.charCodeAt(0));
+      encrypted += encryptedChar;
+    }
+    
+    return btoa(encrypted);
   };
 
   const decryptData = (encryptedData) => {
     try {
-      const decrypted = JSON.parse(atob(encryptedData));
-      if (decrypted.key === "smartStudent2024") {
-        return decrypted.data;
+      const key = "smartStudent2024";
+      const encrypted = atob(encryptedData);
+      let decrypted = "";
+      
+      for (let i = 0; i < encrypted.length; i++) {
+        const keyChar = key[i % key.length];
+        const decryptedChar = String.fromCharCode(encrypted.charCodeAt(i) ^ keyChar.charCodeAt(0));
+        decrypted += decryptedChar;
       }
+      
+      return JSON.parse(decrypted);
+    } catch (error) {
+      console.error("שגיאה בפענוח נתונים:", error);
       return null;
-    } catch {
-      return null;
+    }
+  };
+
+  // יצירת מזהה ייחודי ויציב למכשיר ללא localStorage
+  // גירסה פשוטה יותר עם sessionStorage (נמחק רק כשסוגרים דפדפן)
+  const getDeviceId = () => {
+    let deviceId = sessionStorage.getItem('deviceId');
+    if (!deviceId) {
+      // שימוש בfinger printing פשוט
+      const fingerprint = [
+        navigator.userAgent,
+        navigator.language,
+        screen.width + 'x' + screen.height,
+        new Date().getTimezoneOffset()
+      ].join('|');
+      
+      let hash = 0;
+      for (let i = 0; i < fingerprint.length; i++) {
+        const char = fingerprint.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+      }
+      
+      deviceId = 'device_' + Math.abs(hash).toString(16);
+      sessionStorage.setItem('deviceId', deviceId);
+    }
+    return deviceId;
+  };
+
+  // שמירת נתוני "זכור אותי" ב-Firebase
+  const saveRememberDataToFirebase = async (userEmail, userPassword) => {
+    if (!rememberMe) return;
+
+    try {
+      const deviceId = getDeviceId();
+      const credentials = {
+        email: userEmail,
+        password: userPassword
+      };
+      
+      const encryptedCredentials = encryptData(credentials);
+      const expirationTime = new Date();
+      expirationTime.setMinutes(expirationTime.getMinutes() + 10); // 10 דקות מהיום
+
+      await setDoc(doc(db, 'rememberedCredentials', deviceId), {
+        deviceId: deviceId,
+        encryptedData: encryptedCredentials,
+        createdAt: new Date(),
+        expiresAt: expirationTime,
+        userAgent: navigator.userAgent // לזיהוי נוסף של המכשיר
+      });
+
+      console.log("נתוני זכור אותי נשמרו ב-Firebase");
+    } catch (error) {
+      console.error("שגיאה בשמירת נתוני זכור אותי:", error);
+    }
+  };
+
+  // טעינת נתוני "זכור אותי" מ-Firebase
+  const loadRememberDataFromFirebase = async () => {
+    try {
+      const deviceId = getDeviceId();
+      const credentialsDoc = await getDoc(doc(db, 'rememberedCredentials', deviceId));
+      
+      if (credentialsDoc.exists()) {
+        const data = credentialsDoc.data();
+        const currentTime = new Date();
+        const expirationTime = data.expiresAt.toDate();
+        
+        // בדיקה אם הנתונים עדיין תקפים
+        if (currentTime < expirationTime) {
+          const credentials = decryptData(data.encryptedData);
+          if (credentials) {
+            setEmail(credentials.email);
+            setPassword(credentials.password);
+            setRememberMe(true);
+            console.log("נתוני זכור אותי נטענו מ-Firebase");
+            return true;
+          }
+        } else {
+          // אם הנתונים פגו תוקף, נמחק אותם
+          await clearRememberDataFromFirebase();
+          console.log("נתוני זכור אותי פגו תוקף ונמחקו");
+        }
+      }
+      return false;
+    } catch (error) {
+      console.error("שגיאה בטעינת נתוני זכור אותי:", error);
+      return false;
+    }
+  };
+
+  // מחיקת נתוני "זכור אותי" מ-Firebase
+  const clearRememberDataFromFirebase = async () => {
+    try {
+      const deviceId = getDeviceId();
+      await deleteDoc(doc(db, 'rememberedCredentials', deviceId));
+      console.log("נתוני זכור אותי נמחקו מ-Firebase");
+    } catch (error) {
+      console.error("שגיאה במחיקת נתוני זכור אותי:", error);
+    }
+  };
+
+  // ניקוי נתונים פגי תוקף (פונקציה עזר לתחזוקה)
+  const cleanupExpiredCredentials = async () => {
+    try {
+      const q = query(
+        collection(db, 'rememberedCredentials'),
+        where('expiresAt', '<', new Date())
+      );
+      
+      const querySnapshot = await getDocs(q);
+      const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(deletePromises);
+      
+      console.log(`נמחקו ${querySnapshot.docs.length} רשומות של נתוני זכור אותי שפגו תוקף`);
+    } catch (error) {
+      console.error("שגיאה בניקוי נתונים פגי תוקף:", error);
     }
   };
 
   // טעינת נתונים שמורים בטעינת הקומפוננטה
   useEffect(() => {
-    const savedCredentials = localStorage.getItem('rememberedCredentials');
-    const savedTime = localStorage.getItem('rememberTime');
-    
-    if (savedCredentials && savedTime) {
-      const currentTime = new Date().getTime();
-      const savedTimeMs = parseInt(savedTime);
-      const timeDiff = currentTime - savedTimeMs;
-      const tenMinutes = 10 * 60 * 1000; // 10 דקות במילישניות
-      
-      // אם עברו פחות מ-10 דקות, נטען את הנתונים השמורים
-      if (timeDiff < tenMinutes) {
-        const credentials = decryptData(savedCredentials);
-        if (credentials) {
-          setEmail(credentials.email);
-          setPassword(credentials.password);
-          setRememberMe(true);
-        }
-      } else {
-        // אם עברו יותר מ-10 דקות, ננקה את הנתונים השמורים
-        clearRememberedData();
-      }
-    }
+    const loadSavedCredentials = async () => {
+      await loadRememberDataFromFirebase();
+      // ניקוי נתונים פגי תוקף בטעינה
+      await cleanupExpiredCredentials();
+    };
+
+    loadSavedCredentials();
   }, []);
 
-  // פונקציה לניקוי נתונים שמורים
-  const clearRememberedData = () => {
-    localStorage.removeItem('rememberedCredentials');
-    localStorage.removeItem('rememberTime');
-  };
-
-  // פונקציה לשמירת נתוני "זכור אותי"
-  const saveRememberData = (userEmail, userPassword) => {
-    if (rememberMe) {
-      const credentials = {
-        email: userEmail,
-        password: userPassword
-      };
-      const encryptedCredentials = encryptData(credentials);
-      localStorage.setItem('rememberedCredentials', encryptedCredentials);
-      localStorage.setItem('rememberTime', new Date().getTime().toString());
-    } else {
-      clearRememberedData();
-    }
-  };
-
-  // פונקציה לרישום כניסה למערכת
+  // פונקציה לרישום כניסה למערכת (ללא שינוי)
   const recordLogin = async (user, loginMethod = 'email') => {
     try {
-      // שמירת נתוני הכניסה בקולקשן logins
       await addDoc(collection(db, 'logins'), {
         userId: user.uid,
         email: user.email,
@@ -98,12 +194,10 @@ const Login = () => {
         connected: true
       });
 
-      // עדכון lastActive במשתמש
       const userRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userRef);
       
       if (userDoc.exists()) {
-        // עדכון משתמש קיים
         await updateDoc(userRef, {
           lastActive: new Date(),
           email: user.email,
@@ -111,7 +205,6 @@ const Login = () => {
           connected: true
         });
       } else {
-        // יצירת משתמש חדש
         await setDoc(userRef, {
           uid: user.uid,
           email: user.email,
@@ -125,7 +218,6 @@ const Login = () => {
       console.log("כניסה נרשמה בהצלחה");
     } catch (error) {
       console.error("שגיאה ברישום הכניסה:", error);
-      // לא נעצור את תהליך הכניסה אם יש שגיאה ברישום
     }
   };
 
@@ -141,16 +233,15 @@ const Login = () => {
       // רישום הכניסה במסד הנתונים
       await recordLogin(user, 'email');
       
-      // שמירת נתוני "זכור אותי" (כולל סיסמה)
-      saveRememberData(user.email, password);
+      // שמירת נתוני "זכור אותי" ב-Firebase
+      await saveRememberDataToFirebase(user.email, password);
       
       console.log("התחברות מוצלחת:", user);
-      navigate("/"); // מעבר לדף הבית
+      navigate("/");
       
     } catch (error) {
       console.error("שגיאה בהתחברות:", error);
       
-      // הודעות שגיאה בעברית
       switch (error.code) {
         case 'auth/user-not-found':
           setError("משתמש לא קיים במערכת");
@@ -183,14 +274,12 @@ const Login = () => {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       
-      // רישום הכניסה במסד הנתונים
       await recordLogin(user, 'google');
       
-      // עבור כניסה חברתית לא שומרים נתונים (אין סיסמה)
-      // אבל נקפה את הזכור אותי אם הוא מסומן
+      // עבור כניסה חברתית נמחק נתוני זכור אותי (אין סיסמה)
       if (rememberMe) {
         setRememberMe(false);
-        clearRememberedData();
+        await clearRememberDataFromFirebase();
       }
       
       console.log("התחברות עם Google מוצלחת:", user);
@@ -211,13 +300,11 @@ const Login = () => {
       const result = await signInWithPopup(auth, facebookProvider);
       const user = result.user;
       
-      // רישום הכניסה במסד הנתונים
       await recordLogin(user, 'facebook');
       
-      // עבור כניסה חברתית לא שומרים נתונים (אין סיסמה)
       if (rememberMe) {
         setRememberMe(false);
-        clearRememberedData();
+        await clearRememberDataFromFirebase();
       }
       
       console.log("התחברות עם Facebook מוצלחת:", user);
@@ -231,28 +318,22 @@ const Login = () => {
   };
 
   // פונקציה לטיפול בשינוי מצב "זכור אותי"
-  const handleRememberMeChange = (e) => {
+  const handleRememberMeChange = async (e) => {
     const isChecked = e.target.checked;
     setRememberMe(isChecked);
     
-    // אם המשתמש ביטל את "זכור אותי", ננקה את הנתונים השמורים
+    // אם המשתמש ביטל את "זכור אותי", נמחק את הנתונים השמורים
     if (!isChecked) {
-      clearRememberedData();
+      await clearRememberDataFromFirebase();
     }
   };
 
-  // פונקציה לבדיקת זמן התפוגה בזמן אמת
+  // בדיקת זמן התפוגה בזמן אמת
   useEffect(() => {
-    const checkExpiration = () => {
-      const savedTime = localStorage.getItem('rememberTime');
-      if (savedTime) {
-        const currentTime = new Date().getTime();
-        const savedTimeMs = parseInt(savedTime);
-        const timeDiff = currentTime - savedTimeMs;
-        const tenMinutes = 10 * 60 * 1000;
-        
-        if (timeDiff >= tenMinutes) {
-          clearRememberedData();
+    const checkExpiration = async () => {
+      if (rememberMe) {
+        const isStillValid = await loadRememberDataFromFirebase();
+        if (!isStillValid) {
           setEmail("");
           setPassword("");
           setRememberMe(false);
@@ -263,7 +344,7 @@ const Login = () => {
     // בדיקה כל דקה
     const interval = setInterval(checkExpiration, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [rememberMe]);
 
   return (
     <div className="login-container">

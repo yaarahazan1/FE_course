@@ -9,9 +9,12 @@ import {
   query,
   orderBy,
   onSnapshot,
-  serverTimestamp 
+  serverTimestamp,
+  where,
+  getDocs
 } from "firebase/firestore";
-import { db } from "../../../firebase/config"
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth, db } from "../../../firebase/config"
 import UserList from "../../components/AdminManagementHelper/UserList/UserList";
 import SummaryList from "../../components/AdminManagementHelper/SummaryList/SummaryList";
 import UserDetailDialog from "../../components/AdminManagementHelper/UserDetailDialog/UserDetailDialog";
@@ -42,24 +45,65 @@ const AdminManagement = () => {
   const [summaries, setSummaries] = useState([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [isLoadingSummaries, setIsLoadingSummaries] = useState(true);
+  
+  // הוספת state לבדיקת הרשאות
+  const [isCheckingPermissions, setIsCheckingPermissions] = useState(true);
+  const [hasAdminAccess, setHasAdminAccess] = useState(false);
 
-  useEffect(() => {
-    const isAdmin = localStorage.getItem("isAdmin") === "true";
-    if (!isAdmin) {
-      toast.error("אין לך הרשאת גישה לדף הניהול");
-      navigate("/");
+  // פונקציה לבדיקת הרשאות אדמין בשרת (כמו ב-AdminBadge)
+  const checkAdminPermissions = async (userId) => {
+    try {
+      const userQuery = query(
+        collection(db, "users"), 
+        where("uid", "==", userId),
+        where("isAdmin", "==", true)
+      );
+      const querySnapshot = await getDocs(userQuery);
+      return !querySnapshot.empty;
+    } catch (error) {
+      console.error("Error checking admin permissions:", error);
+      return false;
     }
+  };
+
+  // החלפת הבדיקה הישנה בבדיקה אמיתית מול Firebase
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      setIsCheckingPermissions(true);
+      
+      if (user) {
+        // בדיקת הרשאות אדמין אמיתיות בשרת
+        const adminStatus = await checkAdminPermissions(user.uid);
+        setHasAdminAccess(adminStatus);
+        
+        if (!adminStatus) {
+          toast.error("אין לך הרשאת גישה לדף הניהול");
+          navigate("/");
+          return;
+        }
+      } else {
+        setHasAdminAccess(false);
+        toast.error("עליך להתחבר כדי לגשת לדף הניהול");
+        navigate("/");
+        return;
+      }
+      
+      setIsCheckingPermissions(false);
+    });
+
+    return () => unsubscribeAuth();
   }, [navigate]);
 
-  // טעינת משתמשים מ-Firebase
+  // טעינת משתמשים מ-Firebase - רק אם יש הרשאות אדמין
   useEffect(() => {
+    if (!hasAdminAccess) return;
+    
     const loadUsers = async () => {
       try {
         setIsLoadingUsers(true);
         const usersCollection = collection(db, "users");
         const usersQuery = query(usersCollection, orderBy("createdAt", "desc"));
         
-        // שימוש ב-onSnapshot לעדכון בזמן אמת
         const unsubscribe = onSnapshot(usersQuery, (querySnapshot) => {
           const usersData = [];
           querySnapshot.forEach((doc) => {
@@ -81,10 +125,12 @@ const AdminManagement = () => {
     };
 
     loadUsers();
-  }, []);
+  }, [hasAdminAccess]);
 
-  // טעינת סיכומים מ-Firebase (במקום localStorage)
+  // טעינת סיכומים מ-Firebase - רק אם יש הרשאות אדמין
   useEffect(() => {
+    if (!hasAdminAccess) return;
+    
     const loadSummaries = () => {
       try {
         setIsLoadingSummaries(true);
@@ -96,7 +142,7 @@ const AdminManagement = () => {
           const summariesData = [];
           querySnapshot.forEach((doc) => {
             summariesData.push({
-              firebaseId: doc.id, // ID האמיתי של המסמך ב-Firebase
+              firebaseId: doc.id,
               ...doc.data(),
               status: doc.data().status || 'ממתין לאישור'
             });
@@ -114,7 +160,26 @@ const AdminManagement = () => {
     };
 
     loadSummaries();
-  }, []);
+  }, [hasAdminAccess]);
+
+  // אם עדיין בודק הרשאות, הצג טעינה
+  if (isCheckingPermissions) {
+    return (
+      <div className="admin-container" style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh' 
+      }}>
+        <div>בודק הרשאות...</div>
+      </div>
+    );
+  }
+
+  // אם אין הרשאות, לא להציג כלום (כבr הוא יועבר לדף הבית)
+  if (!hasAdminAccess) {
+    return null;
+  }
 
   // פונקציה למחיקת קובץ מ-Cloudinary
   const deleteFromCloudinary = async (publicId) => {
@@ -203,7 +268,6 @@ const AdminManagement = () => {
 
   const handleSummaryAction = async (action, summaryId) => {
     try {
-      // מצא את הסיכום לפי ID (זה יכול להיות firebaseId או id)
       const currentSummary = summaries.find(s => s.id === summaryId || s.firebaseId === summaryId);
       
       if (!currentSummary) {
@@ -211,7 +275,6 @@ const AdminManagement = () => {
         return;
       }
 
-      // השתמש ב-firebaseId לעדכון הדוקומנט
       const firebaseDocId = currentSummary.firebaseId || summaryId;
       const summaryRef = doc(db, "summaries", firebaseDocId);
 
@@ -233,7 +296,6 @@ const AdminManagement = () => {
           break;
           
         case 'מחיקה':
-          // מחיקה מ-Cloudinary תחילה
           if (currentSummary.public_id) {
             const cloudinaryDeleted = await deleteFromCloudinary(currentSummary.public_id);
             if (!cloudinaryDeleted) {
@@ -242,7 +304,6 @@ const AdminManagement = () => {
             }
           }
           
-          // מחיקה מ-Firebase
           await deleteDoc(summaryRef);
           break;
           
