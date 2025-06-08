@@ -329,6 +329,14 @@
   margin-bottom: 2rem;
 }
 
+.engagement-grid.single-card {
+  grid-template-columns: 1fr;
+}
+
+.dashboard-card.full-width-card {
+  grid-column: 1 / -1;
+}
+
 /* Ratings */
 .ratings-list {
   display: flex;

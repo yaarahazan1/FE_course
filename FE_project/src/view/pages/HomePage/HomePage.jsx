@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../../../firebase/config';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import "./HomePage.css";
@@ -10,7 +10,20 @@ import "../../../styles/styles.css";
 const HomePage = () => {
   const [user, loading] = useAuthState(auth);
 
-  // Log user visit to homepage
+  const handleLogout = async () => {
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        connected: false
+      });
+      
+      await auth.signOut();
+      
+    } catch (error) {
+      console.error("שגיאה בתהליך היציאה:", error);
+    }
+  };
+
   const logPageVisit = async () => {
     if (!user) return;
 
@@ -111,7 +124,7 @@ const HomePage = () => {
             <div className="user-info-header">
               <button 
                 className="navButton"
-                onClick={() => auth.signOut()}
+                onClick={handleLogout}
               >
                 יציאה
               </button>

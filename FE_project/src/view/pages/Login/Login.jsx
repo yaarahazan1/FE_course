@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Eye, EyeOff, User, Facebook } from "lucide-react";
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, FacebookAuthProvider } from "firebase/auth";
-import { auth } from "../../../firebase/config";
+import { collection, addDoc, doc, updateDoc, getDoc, setDoc } from "firebase/firestore";
+import { auth, db } from "../../../firebase/config";
 import { useNavigate } from "react-router-dom";
 import "./Login.css";
 
@@ -17,6 +18,50 @@ const Login = () => {
   const googleProvider = new GoogleAuthProvider();
   const facebookProvider = new FacebookAuthProvider();
 
+  // פונקציה לרישום כניסה למערכת
+  const recordLogin = async (user) => {
+    try {
+      // שמירת נתוני הכניסה בקולקשן logins
+      await addDoc(collection(db, 'logins'), {
+        userId: user.uid,
+        email: user.email,
+        displayName: user.displayName || 'משתמש אלמוני',
+        loginTime: new Date(),
+        loginMethod: 'email', // או 'google', 'facebook'
+        createdAt: new Date(),
+        connected: true
+      });
+
+      // עדכון lastActive במשתמש
+      const userRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userRef);
+      
+      if (userDoc.exists()) {
+        // עדכון משתמש קיים
+        await updateDoc(userRef, {
+          lastActive: new Date(),
+          email: user.email,
+          displayName: user.displayName || userDoc.data().displayName || 'משתמש אלמוני',
+          connected: true
+        });
+      } else {
+        // יצירת משתמש חדש
+        await setDoc(userRef, {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName || 'משתמש אלמוני',
+          createdAt: new Date(),
+          lastActive: new Date()
+        });
+      }
+
+      console.log("כניסה נרשמה בהצלחה");
+    } catch (error) {
+      console.error("שגיאה ברישום הכניסה:", error);
+      // לא נעצור את תהליך הכניסה אם יש שגיאה ברישום
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -25,6 +70,9 @@ const Login = () => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+      
+      // רישום הכניסה במסד הנתונים
+      await recordLogin(user);
       
       // שמירת מצב "זכור אותי" ב-localStorage אם נדרש
       if (rememberMe) {
@@ -66,6 +114,10 @@ const Login = () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
+      
+      // רישום הכניסה במסד הנתונים
+      await recordLogin(user);
+      
       console.log("התחברות עם Google מוצלחת:", user);
       navigate("/");
     } catch (error) {
@@ -83,6 +135,10 @@ const Login = () => {
     try {
       const result = await signInWithPopup(auth, facebookProvider);
       const user = result.user;
+      
+      // רישום הכניסה במסד הנתונים
+      await recordLogin(user);
+      
       console.log("התחברות עם Facebook מוצלחת:", user);
       navigate("/");
     } catch (error) {
