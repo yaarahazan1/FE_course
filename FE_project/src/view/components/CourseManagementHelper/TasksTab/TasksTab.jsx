@@ -179,7 +179,7 @@ const TasksTab = () => {
           <p>אין משימות כרגע. לחץ על כפתור "הוסף משימה" כדי להתחיל.</p>
         </div>
       ) : (
-        <div className="tasks-container">
+        <div className="tasks-container-calender">
           {tasks.map((task) => (
             <div key={task.id} className="task-card">
               {editingTask === task.id ? (

@@ -39,7 +39,7 @@
   color: #a1a1aa;
 }
 
-.tasks-container {
+.tasks-container-calender {
   display: flex;
   flex-direction: column;
   gap: 4px;

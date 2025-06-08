@@ -87,7 +87,7 @@ const MonthView = ({ date, daysInMonth, filteredTasks }) => {
                       <div className="day-number">{format(day, "d")}</div>
 
                       {tasksForDay && tasksForDay.length > 0 && (
-                        <div className="tasks-container">
+                        <div className="tasks-container-calender">
                           {tasksForDay.slice(0, 3).map((task, taskIndex) => (
                             <div
                               key={`task-${task.id || dayIndex}-${taskIndex}`}
