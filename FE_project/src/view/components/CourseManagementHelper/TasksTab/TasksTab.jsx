@@ -168,9 +168,6 @@ const TasksTab = () => {
 
   return (
     <div className="tasks-tab">
-      <div className="tab-header">
-        <h2>מבחן אמצע סמסטר</h2>
-      </div>
       
       {loading ? (
         <div className="loading">טוען משימות...</div>
@@ -179,7 +176,7 @@ const TasksTab = () => {
           <p>אין משימות כרגע. לחץ על כפתור "הוסף משימה" כדי להתחיל.</p>
         </div>
       ) : (
-        <div className="tasks-container-calender">
+        <div className="tasks-container">
           {tasks.map((task) => (
             <div key={task.id} className="task-card">
               {editingTask === task.id ? (
