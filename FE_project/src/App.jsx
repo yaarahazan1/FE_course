@@ -2,10 +2,11 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './AuthContext';
 import { FirebaseDataProvider } from './contexts/FirebaseDataContext';
 import ProtectedRoute from './ProtectedRoute';
-import MainLayout from '../src/view/layouts/MainLayout/MainLayout';
+import MainLayout from './view/layouts/MainLayout';
 import HomePage from '../src/view/pages/HomePage/HomePage';
 import LandingPage from '../src/view/pages/LandingPage/LandingPage';
 import HelpSettings from '../src/view/pages/HelpSettings/HelpSettings';
+import Support from '../src/view/pages/Support/Support';
 import TimeManagement from '../src/view/pages/TimeManagement/TimeManagement';
 import SummaryLibrary from '../src/view/pages/SummaryLibrary/SummaryLibrary';
 import AcademicWriting from '../src/view/pages/AcademicWriting/AcademicWriting';
@@ -49,6 +50,14 @@ function App() {
                 element={
                   <ProtectedRoute requireAuth={true}>
                     <HelpSettings />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/Support" 
+                element={
+                  <ProtectedRoute requireAuth={true}>
+                    <Support />
                   </ProtectedRoute>
                 } 
               />

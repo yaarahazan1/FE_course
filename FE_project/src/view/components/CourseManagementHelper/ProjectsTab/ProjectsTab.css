@@ -209,21 +209,6 @@
   font-size: 1.2em;
 }
 
-.project-meta-inline {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.project-title-row {
-  width: 100%;
-}
-
-.project-title-row h3 {
-  margin: 0;
-  font-size: 1.2em;
-}
-
 .delete-project-btn {
   background-color: white;
   border: none;

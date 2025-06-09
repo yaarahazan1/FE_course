@@ -201,7 +201,6 @@
       }
     };
 
-    // Fetch user activities from Firebase
     const fetchUserActivities = async (userId) => {
       try {
         const activitiesRef = collection(db, 'activities');
@@ -216,11 +215,166 @@
         const activities = [];
         querySnapshot.forEach((doc) => {
           const data = doc.data();
+          
+          // פונקציה להמרת סוג הפעילות לעברית מובנת
+          const getActivityText = (activityType, details) => {
+            switch(activityType?.toLowerCase()) {
+              case 'navigation':
+              case 'page_visit':
+              case 'route_change':
+                // בדיקה אם יש פרטים על הדף שביקר
+                if (details) {
+                  if (details.includes('summaries') || details.includes('סיכומים')) {
+                    return 'ביקור בדף הסיכומים';
+                  } else if (details.includes('tasks') || details.includes('משימות')) {
+                    return 'ביקור בדף המשימות';
+                  } else if (details.includes('dashboard') || details.includes('לוח')) {
+                    return 'ביקור בלוח המחוונים';
+                  } else if (details.includes('profile') || details.includes('פרופיל')) {
+                    return 'ביקור בפרופיל האישי';
+                  } else if (details.includes('login') || details.includes('כניסה')) {
+                    return 'כניסה למערכת';
+                  } else {
+                    return 'ניווט באתר';
+                  }
+                }
+                return 'ניווט באתר';
+                
+              case 'task_created':
+              case 'add_task':
+                return 'יצירת משימה חדשה';
+                
+              case 'task_completed':
+              case 'complete_task':
+                return 'השלמת משימה';
+                
+              case 'task_updated':
+              case 'update_task':
+                return 'עדכון משימה';
+                
+              case 'summary_uploaded':
+              case 'upload_summary':
+                return 'העלאת סיכום חדש';
+                
+              case 'summary_viewed':
+              case 'view_summary':
+                return 'צפייה בסיכום';
+                
+              case 'summary_downloaded':
+              case 'download_summary':
+                return 'הורדת סיכום';
+                
+              case 'login':
+              case 'sign_in':
+                return 'כניסה למערכת';
+                
+              case 'logout':
+              case 'sign_out':
+                return 'יציאה מהמערכת';
+                
+              case 'profile_updated':
+              case 'update_profile':
+                return 'עדכון פרופיל אישי';
+                
+              case 'search':
+                return 'חיפוש במערכת';
+                
+              case 'rating_given':
+              case 'rate_summary':
+                return 'מתן דירוג לסיכום';
+                
+              case 'comment_added':
+              case 'add_comment':
+                return 'הוספת תגובה';
+                
+              case 'file_uploaded':
+              case 'upload_file':
+                return 'העלאת קובץ';
+                
+              case 'study_session':
+              case 'study_time':
+                return 'מפגש למידה';
+                
+              default:
+                // אם לא מוצא התמה ספציפית, ינסה להבין מהפרטים
+                if (details) {
+                  if (details.includes('upload') || details.includes('העלה')) {
+                    return 'העלאת תוכן';
+                  } else if (details.includes('download') || details.includes('הורד')) {
+                    return 'הורדת תוכן';
+                  } else if (details.includes('view') || details.includes('צפה')) {
+                    return 'צפייה בתוכן';
+                  } else if (details.includes('create') || details.includes('יצר')) {
+                    return 'יצירת תוכן חדש';
+                  } else if (details.includes('update') || details.includes('עדכן')) {
+                    return 'עדכון תוכן';
+                  } else if (details.includes('delete') || details.includes('מחק')) {
+                    return 'מחיקת תוכן';
+                  }
+                }
+                return 'פעילות במערכת';
+            }
+          };
+          
+          // פונקציה ליצירת תיאור מפורט יותר
+          const getActivityDetails = (activityType, details, timestamp) => {
+            const timeAgo = getTimeAgo(timestamp);
+            
+            switch(activityType?.toLowerCase()) {
+              case 'task_created':
+              case 'add_task':
+                return `נוצרה לפני ${timeAgo}`;
+                
+              case 'task_completed':
+              case 'complete_task':
+                return `הושלמה לפני ${timeAgo}`;
+                
+              case 'summary_uploaded':
+              case 'upload_summary':
+                return `הועלה לפני ${timeAgo}`;
+                
+              case 'login':
+              case 'sign_in':
+                return `התחבר לפני ${timeAgo}`;
+                
+              case 'study_session':
+              case 'study_time':
+                { const duration = details?.duration || 'זמן לא ידוע';
+                return `למד ${duration} לפני ${timeAgo}`; }
+                
+              case 'rating_given':
+              case 'rate_summary':
+                { const rating = details?.rating || '';
+                return `דירג ${rating} כוכבים לפני ${timeAgo}`; }
+                
+              default:
+                return `בוצעה לפני ${timeAgo}`;
+            }
+          };
+          
+          // פונקציה לחישוב זמן שעבר
+          const getTimeAgo = (timestamp) => {
+            if (!timestamp) return 'זמן לא ידוע';
+            
+            const now = new Date();
+            const activityTime = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+            const diffInMinutes = Math.floor((now - activityTime) / (1000 * 60));
+            
+            if (diffInMinutes < 1) return 'זה עתה';
+            if (diffInMinutes < 60) return `${diffInMinutes} דקות`;
+            if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} שעות`;
+            return `${Math.floor(diffInMinutes / 1440)} ימים`;
+          };
+          
+          const activityType = data.activityType || data.type || data.action || 'unknown';
+          const details = data.details || data.description || data.info || '';
+          
           activities.push({
             id: doc.id,
-            activity: data.activityType || data.type || 'פעילות',
-            details: data.details || data.description || 'פעילות במערכת',
-            date: data.timestamp?.toDate ? data.timestamp.toDate().toLocaleDateString('he-IL') : new Date().toLocaleDateString('he-IL')
+            activity: getActivityText(activityType, details),
+            details: getActivityDetails(activityType, details, data.timestamp),
+            date: data.timestamp?.toDate ? data.timestamp.toDate().toLocaleDateString('he-IL') : new Date().toLocaleDateString('he-IL'),
+            timestamp: data.timestamp
           });
         });
 
@@ -231,7 +385,6 @@
       }
     };
 
-    // Fetch time spent data from Firebase
     const fetchTimeSpentData = async (userId) => {
       try {
         const timeRef = collection(db, 'studyTime');

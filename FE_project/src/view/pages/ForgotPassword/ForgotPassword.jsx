@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mail, ArrowRight, CheckCircle } from "lucide-react";
-import { sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "../../../firebase/config";
+import { sendPasswordResetEmail, onAuthStateChanged } from "firebase/auth";
+import { doc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { auth, db } from "../../../firebase/config";
 import { useNavigate } from "react-router-dom";
 import "./ForgotPassword.css";
 
@@ -14,6 +15,34 @@ const ForgotPassword = () => {
   
   const navigate = useNavigate();
 
+  // האזנה לשינויים באימות המשתמש
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user && emailSent) {
+        console.log("משתמש התחבר אחרי איפוס סיסמה:", user.email);
+        
+        // כאן אנחנו יודעים שהמשתמש רק עכשיו איפס את הסיסמה
+        // אבל אנחנו לא יכולים לדעת מה הסיסמה החדשה
+        // לכן נעדכן רק מטאדטה
+        try {
+          const userDocRef = doc(db, "users", user.uid);
+          await updateDoc(userDocRef, {
+            passwordResetCompletedAt: new Date(),
+            lastLogin: new Date(),
+            lastPasswordResetEmail: emailSent,
+            // הסרנו את עדכון השדה password כי אין לנו גישה לסיסמה החדשה
+            passwordLastChanged: new Date() // שדה חדש לעקוב אחרי מתי הסיסמה שונתה
+          });
+          console.log("מידע המשתמש עודכן אחרי איפוס סיסמה");
+        } catch (error) {
+          console.error("שגיאה בעדכון מטאדטה של המשתמש:", error);
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [emailSent]);
+
   const handleResetPassword = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -21,15 +50,41 @@ const ForgotPassword = () => {
     setSuccess(false);
 
     try {
-      await sendPasswordResetEmail(auth, email);
+      // הגדרות מתקדמות לאימייל איפוס הסיסמה
+      const actionCodeSettings = {
+        // URL שאליו המשתמש יוכוון אחרי איפוס הסיסמה
+        url: window.location.origin + '/Login?passwordReset=true',
+        handleCodeInApp: false,
+      };
+
+      // שליחת אימייל איפוס סיסמה
+      await sendPasswordResetEmail(auth, email, actionCodeSettings);
       setSuccess(true);
       setEmailSent(email);
       console.log("אימייל איפוס סיסמה נשלח בהצלחה לכתובת:", email);
       
+      // שמירת מידע על בקשת איפוס הסיסמה
+      try {
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("email", "==", email));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+          const userDoc = querySnapshot.docs[0];
+          await updateDoc(userDoc.ref, {
+            passwordResetRequestedAt: new Date(),
+            passwordResetEmail: email,
+            passwordResetStatus: "email-sent"
+          });
+          console.log("בקשת איפוס סיסמה נרשמה בבסיס הנתונים");
+        }
+      } catch (dbError) {
+        console.error("שגיאה בעדכון בסיס הנתונים:", dbError);
+      }
+      
     } catch (error) {
       console.error("שגיאה בשליחת אימייל איפוס סיסמה:", error);
       
-      // הודעות שגיאה בעברית
       switch (error.code) {
         case 'auth/user-not-found':
           setError("כתובת דוא״ל זו לא רשומה במערכת");
@@ -39,6 +94,9 @@ const ForgotPassword = () => {
           break;
         case 'auth/too-many-requests':
           setError("יותר מדי בקשות. נסה שוב מאוחר יותר");
+          break;
+        case 'auth/network-request-failed':
+          setError("בעיית רשת. בדוק את החיבור לאינטרנט");
           break;
         default:
           setError("שגיאה בשליחת האימייל. נסה שוב מאוחר יותר");
@@ -57,8 +115,31 @@ const ForgotPassword = () => {
     setError("");
     
     try {
-      await sendPasswordResetEmail(auth, emailSent);
+      const actionCodeSettings = {
+        url: window.location.origin + '/Login?passwordReset=true',
+        handleCodeInApp: false,
+      };
+      
+      await sendPasswordResetEmail(auth, emailSent, actionCodeSettings);
       console.log("אימייל איפוס סיסמה נשלח שוב לכתובת:", emailSent);
+      
+      // עדכון זמן שליחה חוזרת
+      try {
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("email", "==", emailSent));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+          const userDoc = querySnapshot.docs[0];
+          await updateDoc(userDoc.ref, {
+            passwordResetResentAt: new Date(),
+            passwordResetStatus: "email-resent"
+          });
+        }
+      } catch (dbError) {
+        console.error("שגיאה בעדכון מידע שליחה חוזרת:", dbError);
+      }
+      
     } catch (error) {
       console.error("שגיאה בשליחה חוזרת של אימייל:", error);
       setError("שגיאה בשליחת האימייל. נסה שוב מאוחר יותר");
@@ -99,9 +180,13 @@ const ForgotPassword = () => {
                   <ol className="steps-list">
                     <li>בדוק את תיבת הדוא״ל שלך (כולל תיקיית הספאם)</li>
                     <li>לחץ על הקישור באימייל</li>
-                    <li>בחר סיסמה חדשה</li>
+                    <li>בחר סיסמה חדשה בדף של Firebase</li>
                     <li>חזור לעמוד הכניסה והתחבר עם הסיסמה החדשה</li>
                   </ol>
+                  
+                  <div className="info-note">
+                    <p><strong>הערה חשובה:</strong> הסיסמה החדשה תישמר אוטומטית במערכת Firebase Authentication. השדה password בפרופיל שלך יעודכן רק כשתתחבר למערכת עם הסיסמה החדשה.</p>
+                  </div>
                 </div>
 
                 {error && (
@@ -142,6 +227,7 @@ const ForgotPassword = () => {
                 <h2>איפוס סיסמה</h2>
                 <p>
                   בעוד כמה דקות תקבל אימייל עם הוראות פשוטות לאיפוס הסיסמה שלך.
+                  Firebase יטפל בכל השאר ויעדכן את הסיסמה החדשה במערכת.
                 </p>
               </div>
             </div>
@@ -196,7 +282,7 @@ const ForgotPassword = () => {
                 <button 
                   type="submit" 
                   className="reset-button-forgot-pass"
-                  disabled={loading || !email}
+                  disabled={loading || !email.trim()}
                 >
                   {loading ? "שולח..." : "שלח קישור לאיפוס סיסמה"}
                 </button>
@@ -225,7 +311,8 @@ const ForgotPassword = () => {
             <div className="welcome-text">
               <h2>איפוס סיסמה</h2>
               <p>
-                נשלח לך אימייל עם הוראות פשוטות לאיפוס הסיסמה שלך. התהליך בטוח ומהיר.
+                נשלח לך אימייל עם הוראות פשוטות לאיפוס הסיסמה שלך. 
+                התהליך בטוח ומהיר, ו-Firebase יטפל בהצפנה.
               </p>
             </div>
           </div>

@@ -89,15 +89,7 @@ const HelpSettings = () => {
           </Link>
         </div>
         
-        {/* הצגת מידע על המשתמש המחובר */}
-        <div className="user-info" style={{
-          backgroundColor: '#e3f2fd',
-          padding: '12px 16px',
-          borderRadius: '6px',
-          marginBottom: '20px',
-          fontSize: '14px',
-          color: '#1976d2'
-        }}>
+        <div className="user-info">
           מחובר כ: {user?.displayName || user?.email}
         </div>
         

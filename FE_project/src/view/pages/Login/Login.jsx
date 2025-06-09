@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from 'react-router-dom';
 import { Eye, EyeOff, User, Facebook } from "lucide-react";
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, FacebookAuthProvider } from "firebase/auth";
 import { collection, addDoc, doc, updateDoc, getDoc, setDoc, deleteDoc, query, where, getDocs } from "firebase/firestore";
@@ -14,13 +15,28 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   
+  const location = useLocation();
+
   const navigate = useNavigate();
   const googleProvider = new GoogleAuthProvider();
   const facebookProvider = new FacebookAuthProvider();
 
-  // פונקציות קריפטוגרפיה מתקדמות יותר
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const passwordReset = urlParams.get('passwordReset');
+    
+    if (passwordReset === 'true') {
+      // הצגת הודעה למשתמש שהסיסמה שונתה
+      setTimeout(() => {
+        alert('הסיסמה שונתה בהצלחה! כעת תוכל להתחבר עם הסיסמה החדשה.');
+        // הסרת הפרמטר מה-URL
+        window.history.replaceState({}, document.title, '/Login');
+      }, 500);
+    }
+  }, [location]);
+
   const encryptData = (data) => {
-    const key = "smartStudent2024"; // בפרודקשן כדאי להשתמש במפתח דינמי
+    const key = "smartStudent2024"; 
     const jsonString = JSON.stringify(data);
     let encrypted = "";
     
@@ -52,12 +68,9 @@ const Login = () => {
     }
   };
 
-  // יצירת מזהה ייחודי ויציב למכשיר ללא localStorage
-  // גירסה פשוטה יותר עם sessionStorage (נמחק רק כשסוגרים דפדפן)
   const getDeviceId = () => {
     let deviceId = sessionStorage.getItem('deviceId');
     if (!deviceId) {
-      // שימוש בfinger printing פשוט
       const fingerprint = [
         navigator.userAgent,
         navigator.language,
@@ -81,7 +94,7 @@ const Login = () => {
   const checkUserStatusByEmail = async (userEmail) => {
     try {
       // חיפוש המשתמש לפי כתובת האימייל
-      const q = query(collection(db, 'users'), where('email', '==', userEmail));
+      const q = query(collection(db, 'users'), where('email', '==', userEmail.toLowerCase()));
       const querySnapshot = await getDocs(q);
       
       if (querySnapshot.empty) {
@@ -104,7 +117,7 @@ const Login = () => {
           return { 
             isValid: false, 
             message: "החשבון שלך נמחק מהמערכת. אנא פנה לתמיכה לקבלת עזרה" 
-          };
+          };          
         case 'active':
         default:
           return { isValid: true };
@@ -249,14 +262,12 @@ const Login = () => {
   useEffect(() => {
     const loadSavedCredentials = async () => {
       await loadRememberDataFromFirebase();
-      // ניקוי נתונים פגי תוקף בטעינה
       await cleanupExpiredCredentials();
     };
 
     loadSavedCredentials();
   }, []);
 
-  // פונקציה לרישום כניסה למערכת (ללא שינוי)
   const recordLogin = async (user, loginMethod = 'email') => {
     try {
       await addDoc(collection(db, 'logins'), {
@@ -297,6 +308,21 @@ const Login = () => {
     }
   };
 
+  const updatePasswordInFirestore = async (userId, newPassword) => {
+    try {
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, {
+        password: newPassword,
+        passwordLastUpdated: new Date(),
+        lastPasswordSync: new Date()
+      });
+      console.log("סיסמה עודכנה ב-Firestore");
+    } catch (error) {
+      console.error("שגיאה בעדכון סיסמה ב-Firestore:", error);
+    }
+  };
+
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -309,25 +335,27 @@ const Login = () => {
       if (!statusCheck.isValid) {
         setError(statusCheck.message);
         setLoading(false);
-        return; // עוצרים כאן - לא מנסים להתחבר בכלל
+        return;
       }
 
       // רק אם הסטטוס תקין - מתחברים
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
-      // בדיקה נוספת אחרי כניסה מוצלחת (למקרה של שינוי סטטוס ברגע האחרון)
+      // בדיקה נוספת אחרי כניסה מוצלחת
       const finalStatusCheck = await checkUserStatusByUID(user.uid);
       
       if (!finalStatusCheck.isValid) {
-        // התנתקות מיידית אם הסטטוס לא תקין
         await auth.signOut();
         setError(finalStatusCheck.message);
         setLoading(false);
         return;
       }
       
-      // הכל תקין - ממשיכים עם התהליך
+      // עדכון הסיסמה ב-Firestore (חשוב!)
+      await updatePasswordInFirestore(user.uid, password);
+      
+      // המשך התהליך הרגיל
       await recordLogin(user, 'email');
       await saveRememberDataToFirebase(user.email, password);
       
@@ -337,7 +365,6 @@ const Login = () => {
     } catch (error) {
       console.error("שגיאה בהתחברות:", error);
       
-      // בדיקה נוספת במקרה של שגיאות Auth
       if (error.code === 'auth/user-not-found') {
         setError("המשתמש לא קיים במערכת או שהחשבון נמחק. אנא פנה לתמיכה");
         setLoading(false);
@@ -345,7 +372,6 @@ const Login = () => {
       }
       
       if (error.code === 'auth/invalid-credential') {
-        // נבדוק אם זה בגלל משתמש נמחק או סיסמה שגויה
         try {
           const statusCheck = await checkUserStatusByEmail(email);
           if (!statusCheck.isValid) {
