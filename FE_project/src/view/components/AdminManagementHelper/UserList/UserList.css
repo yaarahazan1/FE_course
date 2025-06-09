@@ -142,6 +142,16 @@
   height: 1rem;
 }
 
+.activate-btn {
+  color: #306a3e;
+  border-color: #608d6a;
+}
+
+.activate-btn:hover {
+  background-color: #d4edda;
+  border-color: #4caf50;
+}
+
 .freeze-btn {
   color: #856404;
   border-color: #ffc107;

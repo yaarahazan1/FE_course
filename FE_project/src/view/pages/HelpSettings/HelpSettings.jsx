@@ -43,7 +43,7 @@ const HelpSettings = () => {
           }}>
             <h2>נדרשת התחברות</h2>
             <p>כדי לגשת להגדרות ולמרכז העזרה, עליך להתחבר למערכת</p>
-            <Link to="/login" style={{
+            <Link to="/Login" style={{
               display: 'inline-block',
               marginTop: '16px',
               padding: '12px 24px',

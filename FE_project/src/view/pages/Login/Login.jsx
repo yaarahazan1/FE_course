@@ -78,6 +78,81 @@ const Login = () => {
     return deviceId;
   };
 
+  const checkUserStatusByEmail = async (userEmail) => {
+    try {
+      // חיפוש המשתמש לפי כתובת האימייל
+      const q = query(collection(db, 'users'), where('email', '==', userEmail));
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        return { 
+          isValid: false, 
+          message: "המשתמש לא קיים במערכת או שהחשבון נמחק. אנא פנה לתמיכה" 
+        };
+      }
+
+      const userData = querySnapshot.docs[0].data();
+      const status = userData.status;
+
+      switch (status) {
+        case 'קפוא':
+          return { 
+            isValid: false, 
+            message: "החשבון שלך הוקפא. אנא פנה לתמיכה לקבלת עזרה" 
+          };
+        case 'נמחק':
+          return { 
+            isValid: false, 
+            message: "החשבון שלך נמחק מהמערכת. אנא פנה לתמיכה לקבלת עזרה" 
+          };
+        case 'active':
+        default:
+          return { isValid: true };
+      }
+    } catch (error) {
+      console.error("שגיאה בבדיקת סטטוס משתמש:", error);
+      return { 
+        isValid: false, 
+        message: "שגיאה בבדיקת החשבון. נסה שוב מאוחר יותר" 
+      };
+    }
+  };
+
+  const checkUserStatusByUID = async (userId) => {
+    try {
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      
+      if (!userDoc.exists()) {
+        return { isValid: false, message: "החשבון שלך לא קיים במערכת. אנא פנה לתמיכה" };
+      }
+
+      const userData = userDoc.data();
+      const status = userData.status;
+
+      switch (status) {
+        case 'קפוא':
+          return { 
+            isValid: false, 
+            message: "החשבון שלך הוקפא. אנא פנה לתמיכה לקבלת עזרה" 
+          };
+        case 'נמחק':
+          return { 
+            isValid: false, 
+            message: "החשבון שלך נמחק מהמערכת. אנא פנה לתמיכה" 
+          };
+        case 'active':
+        default:
+          return { isValid: true };
+      }
+    } catch (error) {
+      console.error("שגיאה בבדיקת סטטוס משתמש:", error);
+      return { 
+        isValid: false, 
+        message: "שגיאה בבדיקת החשבון. נסה שוב מאוחר יותר" 
+      };
+    }
+  };
+
   // שמירת נתוני "זכור אותי" ב-Firebase
   const saveRememberDataToFirebase = async (userEmail, userPassword) => {
     if (!rememberMe) return;
@@ -211,7 +286,8 @@ const Login = () => {
           displayName: user.displayName || 'משתמש אלמוני',
           createdAt: new Date(),
           lastActive: new Date(),
-          connected: true
+          connected: true,
+          status: 'active' // סטטוס ברירת מחדל
         });
       }
 
@@ -227,13 +303,32 @@ const Login = () => {
     setError("");
 
     try {
+      // בדיקת סטטוס המשתמש לפני ניסיון הכניסה
+      const statusCheck = await checkUserStatusByEmail(email);
+      
+      if (!statusCheck.isValid) {
+        setError(statusCheck.message);
+        setLoading(false);
+        return; // עוצרים כאן - לא מנסים להתחבר בכלל
+      }
+
+      // רק אם הסטטוס תקין - מתחברים
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
-      // רישום הכניסה במסד הנתונים
-      await recordLogin(user, 'email');
+      // בדיקה נוספת אחרי כניסה מוצלחת (למקרה של שינוי סטטוס ברגע האחרון)
+      const finalStatusCheck = await checkUserStatusByUID(user.uid);
       
-      // שמירת נתוני "זכור אותי" ב-Firebase
+      if (!finalStatusCheck.isValid) {
+        // התנתקות מיידית אם הסטטוס לא תקין
+        await auth.signOut();
+        setError(finalStatusCheck.message);
+        setLoading(false);
+        return;
+      }
+      
+      // הכל תקין - ממשיכים עם התהליך
+      await recordLogin(user, 'email');
       await saveRememberDataToFirebase(user.email, password);
       
       console.log("התחברות מוצלחת:", user);
@@ -242,9 +337,30 @@ const Login = () => {
     } catch (error) {
       console.error("שגיאה בהתחברות:", error);
       
+      // בדיקה נוספת במקרה של שגיאות Auth
+      if (error.code === 'auth/user-not-found') {
+        setError("המשתמש לא קיים במערכת או שהחשבון נמחק. אנא פנה לתמיכה");
+        setLoading(false);
+        return;
+      }
+      
+      if (error.code === 'auth/invalid-credential') {
+        // נבדוק אם זה בגלל משתמש נמחק או סיסמה שגויה
+        try {
+          const statusCheck = await checkUserStatusByEmail(email);
+          if (!statusCheck.isValid) {
+            setError(statusCheck.message);
+            setLoading(false);
+            return;
+          }
+        } catch (dbError) {
+          console.error("שגיאה בבדיקת מסד נתונים:", dbError);
+        }
+      }
+      
       switch (error.code) {
         case 'auth/user-not-found':
-          setError("משתמש לא קיים במערכת");
+          setError("המשתמש לא קיים במערכת או שהחשבון נמחק. אנא פנה לתמיכה");
           break;
         case 'auth/wrong-password':
           setError("סיסמה שגויה");
@@ -256,7 +372,10 @@ const Login = () => {
           setError("יותר מדי ניסיונות התחברות. נסה שוב מאוחר יותר");
           break;
         case 'auth/invalid-credential':
-          setError("פרטי ההתחברות שגויים");
+          setError("פרטי ההתחברות שגויים או שהחשבון לא קיים במערכת");
+          break;
+        case 'auth/user-disabled':
+          setError("החשבון הושבת. אנא פנה לתמיכה");
           break;
         default:
           setError("שגיאה בהתחברות. בדק את הפרטים ונסה שוב");
@@ -274,6 +393,17 @@ const Login = () => {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       
+      // בדיקת סטטוס המשתמש לפני כל דבר אחר
+      const statusCheck = await checkUserStatusByUID(user.uid);
+      
+      if (!statusCheck.isValid) {
+        // התנתקות מיידית אם הסטטוס לא תקין
+        await auth.signOut();
+        setError(statusCheck.message);
+        setLoading(false);
+        return; // יציאה מהפונקציה - לא ממשיכים עם התהליך
+      }
+      
       await recordLogin(user, 'google');
       
       // עבור כניסה חברתית נמחק נתוני זכור אותי (אין סיסמה)
@@ -286,7 +416,14 @@ const Login = () => {
       navigate("/");
     } catch (error) {
       console.error("שגיאה בהתחברות Google:", error);
-      setError("שגיאה בהתחברות עם Google");
+      
+      if (error.code === 'auth/popup-closed-by-user') {
+        setError("חלון ההתחברות נסגר. נסה שוב");
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        setError("בקשת ההתחברות בוטלה");
+      } else {
+        setError("שגיאה בהתחברות עם Google. נסה שוב");
+      }
     } finally {
       setLoading(false);
     }
@@ -300,6 +437,17 @@ const Login = () => {
       const result = await signInWithPopup(auth, facebookProvider);
       const user = result.user;
       
+      // בדיקת סטטוס המשתמש לפני כל דבר אחר
+      const statusCheck = await checkUserStatusByUID(user.uid);
+      
+      if (!statusCheck.isValid) {
+        // התנתקות מיידית אם הסטטוס לא תקין
+        await auth.signOut();
+        setError(statusCheck.message);
+        setLoading(false);
+        return; // יציאה מהפונקציה - לא ממשיכים עם התהליך
+      }
+      
       await recordLogin(user, 'facebook');
       
       if (rememberMe) {
@@ -311,7 +459,14 @@ const Login = () => {
       navigate("/");
     } catch (error) {
       console.error("שגיאה בהתחברות Facebook:", error);
-      setError("שגיאה בהתחברות עם Facebook");
+      
+      if (error.code === 'auth/popup-closed-by-user') {
+        setError("חלון ההתחברות נסגר. נסה שוב");
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        setError("בקשת ההתחברות בוטלה");
+      } else {
+        setError("שגיאה בהתחברות עם Facebook. נסה שוב");
+      }
     } finally {
       setLoading(false);
     }
